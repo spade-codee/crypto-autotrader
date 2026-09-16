@@ -48,9 +48,10 @@ becomes the single source of truth. Research code is not execution code.
 | Validation | Zod | Validate every exchange response; never trust a third-party payload's shape |
 | Frontend | React + Vite + Tailwind + shadcn/ui | Already known from `staff-hub` |
 | Charts | `lightweight-charts` (TradingView) | Purpose-built for price and equity curves; Recharts for simple bars |
-| Auth + DB hosting | Supabase | Postgres and auth from one vendor, generous free tier, less to operate |
-| Frontend hosting | Vercel | Already in use |
-| Worker hosting | Railway (or Fly.io / Render) | See section 3 — the worker cannot live on Vercel |
+| Auth | `better-auth` (self-hosted) | Postgres is already on the box; no reason to add a vendor |
+| Hosting | **Self-hosted VPS** | Already available. Static egress IP is a genuine security win — see section 3.2 |
+| Process supervision | `systemd` | Restarts the worker on crash and on reboot. Not PM2 — systemd is already installed and owns boot order |
+| TLS / reverse proxy | Caddy | Automatic certificates, one-line config |
 | Error tracking | Sentry | |
 | Cycle monitoring | Healthchecks.io or Better Stack | See section 3 |
 | Ops alerts | Telegram bot | Free, instant, and already where the team lives |
@@ -75,12 +76,32 @@ likely way to fail it.
 - Never `parseFloat` an exchange response. Parse to Decimal directly from the string.
 - Never store money as `float8` or `double precision`. Ever.
 
-### 3.2 The worker cannot run on serverless
+### 3.2 The VPS solves one problem and hands you four
 
-Vercel, Netlify, and Lambda-style functions are request-scoped and time-limited. The
-execution worker needs to hold a process, own a schedule, poll for order fills, and survive
-between cycles. Put the frontend on Vercel and the worker on Railway, Fly.io, or Render.
-Splitting them also means a frontend deploy can never interrupt a trading cycle.
+A long-running execution worker cannot live on serverless: Vercel, Netlify, and Lambda-style
+functions are request-scoped and time-limited, while the worker must hold a process, own a
+schedule, poll for fills, and survive between cycles. A VPS removes that constraint entirely,
+and it comes with a real bonus — a **static egress IP**, which means the Bybit API keys can
+be IP-allowlisted to exactly one machine. A stolen key is then useless from anywhere else.
+That is a security property serverless hosting cannot offer at any price.
+
+In exchange, four responsibilities move from a platform onto us:
+
+1. **Process supervision.** A `systemd` unit with `Restart=always` and `WantedBy=multi-user.target`,
+   so the worker comes back after a crash and after a reboot. Without this, an unnoticed OOM
+   kill silently stops all trading.
+2. **Backups.** The ledger is the track record, and the track record is the product's entire
+   credibility. Nightly `pg_dump` to off-box object storage, and **a restore rehearsed at
+   least once before going live.** An untested backup is not a backup.
+3. **Patching and hardening.** `unattended-upgrades` for security patches, UFW default-deny
+   with only 22/80/443 open, SSH keys only with password auth disabled, `fail2ban`.
+4. **Being a single point of failure.** If the box dies, trading stops. Under the fail-closed
+   design that is *safe* — no trades happen — but it is not *harmless*, because the user still
+   believes the trend filter is protecting them. This is precisely why section 3.3 matters
+   more on a VPS than it would on a managed platform.
+
+Keep the frontend deploy separate from the worker (separate systemd unit, separate directory,
+separate restart) so that shipping a UI change can never interrupt a trading cycle.
 
 ### 3.3 Monitor for the cycle that did not run
 
@@ -174,17 +195,17 @@ to clear that.
 |---|---|---|---|
 | 1 | Bybit account, API keys | Create **two**: testnet for Phase 2, live for Phase 3. Trade on, **withdrawal off**, IP-allowlisted to the worker | Free |
 | 2 | GitHub repo | **Private.** Enable secret scanning | Free |
-| 3 | Supabase project | Postgres + auth | Free tier |
-| 4 | Railway / Fly.io account | Worker hosting | ~$5/mo |
-| 5 | Vercel account | Frontend | Free tier |
-| 6 | Domain name | | ~$12/yr |
-| 7 | Sentry | Error tracking | Free tier |
-| 8 | Healthchecks.io | Dead-man's switch on the cycle | Free tier |
-| 9 | Telegram bot token | Ops alerts, via @BotFather | Free |
-| 10 | Resend | Transactional email | Free tier |
+| 3 | VPS | Already available. Record its **static egress IP** — needed for the Bybit allowlist | Existing |
+| 4 | Postgres on the VPS | Plus off-box backup storage (S3, R2, or Backblaze B2) | ~$1/mo |
+| 5 | Domain name | | ~$12/yr |
+| 6 | Sentry | Error tracking | Free tier |
+| 7 | Healthchecks.io | Dead-man's switch on the cycle | Free tier |
+| 8 | Telegram bot token | Ops alerts, via @BotFather | Free |
+| 9 | Resend | Transactional email | Free tier |
+| 10 | Object storage for backups | Cloudflare R2 or Backblaze B2 | ~$1/mo |
 
-Total running cost at pilot scale: roughly **$10–25/month**. This is not a capital-intensive
-build. The expensive inputs are time and care.
+Total running cost at pilot scale, with the VPS already paid for: roughly **$2–3/month plus
+the domain**. This is not a capital-intensive build. The expensive inputs are time and care.
 
 ### Data
 
