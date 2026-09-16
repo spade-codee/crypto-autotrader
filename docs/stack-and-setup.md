@@ -1,6 +1,7 @@
-# Stack, Brand, and Setup Checklist
+# Stack and Setup
 
 Companion to `docs/superpowers/specs/2026-09-16-crypto-trading-automation-design.md`.
+Brand lives separately in [`docs/brand.md`](./brand.md).
 
 ---
 
@@ -115,8 +116,6 @@ Use a dead-man's switch: the worker pings a monitoring URL after every successfu
 the monitor alerts when a ping does not arrive on time. Healthchecks.io does this on a free
 tier. This single alert is worth more than most of the dashboard.
 
----
-
 ### 3.4 Why not Next.js
 
 Next.js is the default React answer, and it is a good framework. Its value is concentrated in
@@ -150,79 +149,12 @@ framework for everything is worth more than the simpler deployment, it is a work
 
 ## 4. Brand
 
-### Positioning first
+Moved to [`docs/brand.md`](./brand.md), which is the single source of truth for the
+name, palette, typography, voice, accessibility rules, asset list, and launch checklist.
 
-The product's promise is the removal of panic. It is discipline, sold to people who know
-they lack it at 3am. That has a direct visual consequence: **it must not look like a crypto
-casino.** No neon gradients, no rocket emoji, no lime-on-black hype. It should look like an
-instrument — calm, precise, slightly boring, obviously careful with your money.
-
-It also must not look like Binance or Bybit. Both own yellow-on-black. Borrowing that palette
-reads as imitation, and imitation is the opposite of the trust being sold.
-
-### The rule that drives the palette
-
-**Green and red are reserved for profit and loss. They are never brand colours.**
-
-In a P&L product, green means "you made money." If green is also the button colour, the
-header colour, and the logo, then green stops carrying information. So the brand accent must
-be something other than green or red — which rules out most of the category and is a gift,
-because it makes the brand distinctive for free.
-
-### Chosen direction — "Instrument" (decided 2026-09-16)
-
-Deep navy ground, cool teal accent, warm neutral text. Reads as a precision tool rather than
-a trading floor.
-
-| Token | Hex | Use |
-|---|---|---|
-| `bg` | `#0B1220` | App background |
-| `surface` | `#141E30` | Cards, panels |
-| `border` | `#243449` | Dividers, input borders |
-| `text` | `#E8EDF4` | Primary text |
-| `text-muted` | `#8FA3BC` | Labels, secondary text |
-| `accent` | `#2DD4BF` | Primary actions, links, focus rings, logo |
-| `accent-deep` | `#0D9488` | Hover, pressed |
-| `profit` | `#34D399` | Positive P&L only |
-| `loss` | `#F87171` | Negative P&L only |
-| `warn` | `#FBBF24` | Paused, degraded, needs attention |
-
-Light mode inverts to a warm off-white ground (`#F7F9FC`) with the same accent, since the
-teal holds contrast on both.
-
-Teal is unclaimed territory in this category — Binance and Bybit own yellow, Coinbase owns
-blue, Kraken owns purple. It is also the accent furthest from green, so it never competes
-with the profit colour for meaning.
-
-### Rejected alternatives, and why
-
-- **"Vault"** — near-black `#0A0A0B` with brass `#C9A227`. The most attractive of the three
-  and the most dangerous: brass is yellow-adjacent, and glanced at on a phone in bright sun
-  it reads as Binance. It also signals private banking, which is the wrong note for a $200
-  account.
-- **"Signal"** — charcoal `#16161A` with violet `#7C5CFF`. Clean and modern, but violet is
-  the default accent of every DeFi protocol and web3 startup. It reads as a competent app
-  rather than a distinctive instrument.
-
-### Accessibility, and why it matters more here than usual
-
-Roughly 8% of men have some red-green colour deficiency. This is a profit-and-loss product
-whose primary signal is encoded in red versus green, and its audience skews heavily male.
-**Colour alone is never allowed to carry the P&L signal.** Always pair it with a sign and an
-arrow: `+2.4% ▲`, `−1.1% ▼`. Test every screen in greyscale; if it still reads, it is right.
-
-Body text against background must meet at least 4.5:1 contrast. The palette above is built
-to clear that.
-
-### Other brand basics
-
-- **Type:** Inter or Geist for UI. **Numbers must be tabular** (`font-variant-numeric:
-  tabular-nums`) so figures in a column align and do not jitter as they update.
-- **Tone of voice:** plain, calm, never hyped. "Your position moved to cash" — not
-  "🚀 Strategy activated!" Never state or imply a return. Every performance figure carries
-  the period it covers.
-- **Mobile first.** Nigerian users are overwhelmingly on Android phones, often on metered
-  data. Design at 375px first and keep the bundle small.
+Decided: the product is **Keel**. Palette is **Instrument** (navy ground, teal accent,
+green and red reserved exclusively for P&L). Type is **IBM Plex Sans** for interface and
+**IBM Plex Mono** for every figure, self-hosted.
 
 ---
 
