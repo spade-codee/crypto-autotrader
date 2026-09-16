@@ -46,7 +46,8 @@ becomes the single source of truth. Research code is not execution code.
 | Jobs / scheduling | `pg-boss` | Postgres-backed queue, so no Redis to run and pay for. In-process `node-cron` is disqualified: it dies with the process and leaves no record of whether a cycle ran |
 | Exchange access | CCXT, behind our own adapter | Bybit now, Binance later, one interface |
 | Validation | Zod | Validate every exchange response; never trust a third-party payload's shape |
-| Frontend | React + Vite + Tailwind + shadcn/ui | Already known from `staff-hub` |
+| Frontend | React + Vite + Tailwind + shadcn/ui | Static build, no server process — see section 3.4 for why not Next.js |
+| Marketing site (later) | Astro | Static output for the public landing and track-record pages, served by the same Caddy |
 | Charts | `lightweight-charts` (TradingView) | Purpose-built for price and equity curves; Recharts for simple bars |
 | Auth | `better-auth` (self-hosted) | Postgres is already on the box; no reason to add a vendor |
 | Hosting | **Self-hosted VPS** | Already available. Static egress IP is a genuine security win — see section 3.2 |
@@ -116,6 +117,37 @@ tier. This single alert is worth more than most of the dashboard.
 
 ---
 
+### 3.4 Why not Next.js
+
+Next.js is the default React answer, and it is a good framework. Its value is concentrated in
+server-side rendering, static generation, SEO, and server components. **The dashboard is
+behind a login.** Every page is user-specific and live: there is nothing to index, nothing to
+pre-render, no crawler to serve. Next.js's strengths are structurally unavailable to this
+part of the product, while its complexity is not optional.
+
+The self-hosting difference is concrete. Vite emits static files; Caddy serves them off disk.
+There is no server process, so it uses no RAM, cannot crash, and cannot be OOM-killed.
+Next.js needs its own Node server — a second supervised process on the same VPS, competing
+for memory with the worker that moves money. On a small box that is a real trade, not a
+theoretical one.
+
+The tempting variant is using Next.js route handlers and server actions as the backend, which
+sounds like a simplification: one codebase instead of two. It couples the money-handling API
+to a frontend framework's release cycle, and it makes the API harder to exercise in isolation.
+A plain Hono service can be tested with `curl`, is independent of whatever the frontend does,
+and can be consumed unchanged by an Android app later — which matters in a market that is
+overwhelmingly mobile.
+
+**Where SSR does earn its keep** is the public marketing site and the public track-record
+page: those need SEO and shareable link previews. For that, Astro is the better fit than
+Next.js — static output, zero JavaScript by default, served by the same Caddy, no additional
+process.
+
+Next.js is defensible rather than wrong. The cost is operational, not correctness. If one
+framework for everything is worth more than the simpler deployment, it is a workable choice.
+
+---
+
 ## 4. Brand
 
 ### Positioning first
@@ -137,7 +169,7 @@ header colour, and the logo, then green stops carrying information. So the brand
 be something other than green or red — which rules out most of the category and is a gift,
 because it makes the brand distinctive for free.
 
-### Recommended direction — "Instrument"
+### Chosen direction — "Instrument" (decided 2026-09-16)
 
 Deep navy ground, cool teal accent, warm neutral text. Reads as a precision tool rather than
 a trading floor.
@@ -158,12 +190,19 @@ a trading floor.
 Light mode inverts to a warm off-white ground (`#F7F9FC`) with the same accent, since the
 teal holds contrast on both.
 
-### Alternatives if that reads too cold
+Teal is unclaimed territory in this category — Binance and Bybit own yellow, Coinbase owns
+blue, Kraken owns purple. It is also the accent furthest from green, so it never competes
+with the profit colour for meaning.
 
-- **"Vault"** — near-black `#0A0A0B` with a brass accent `#C9A227`. Premium, private-banking
-  feel. Risk: sits close to Binance/Bybit yellow.
-- **"Signal"** — charcoal `#16161A` with electric violet `#7C5CFF`. More startup, more
-  modern, slightly less serious about money.
+### Rejected alternatives, and why
+
+- **"Vault"** — near-black `#0A0A0B` with brass `#C9A227`. The most attractive of the three
+  and the most dangerous: brass is yellow-adjacent, and glanced at on a phone in bright sun
+  it reads as Binance. It also signals private banking, which is the wrong note for a $200
+  account.
+- **"Signal"** — charcoal `#16161A` with violet `#7C5CFF`. Clean and modern, but violet is
+  the default accent of every DeFi protocol and web3 startup. It reads as a competent app
+  rather than a distinctive instrument.
 
 ### Accessibility, and why it matters more here than usual
 
