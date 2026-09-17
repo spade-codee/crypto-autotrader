@@ -69,7 +69,9 @@ connection: signed client, permission-allowlist key validation, encrypted vault,
 
 What remains: **Task 15, which the founder runs** because it needs a real testnet API key — never
 ask them for one, and never read their terminal while they enter it. Once they confirm it passed,
-record the outcome in the Phase 1 spec (section 10) and merge the branch to `master`.
+record the outcome in the Phase 1 spec (section 10) and merge the branch to `master`. **Then
+merge `research-robustness`**, which is built on this branch: it tests the trend filter across
+neighbouring periods and on ETH, and concludes the evidence supports BTC only.
 
 Other work, if the founder asks for it:
 
