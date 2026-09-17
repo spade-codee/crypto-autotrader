@@ -57,9 +57,15 @@ free tier below an account-size threshold. The pilot sets the price and threshol
 **Phase 0 is done.** To reproduce its result on any machine: `npm install`, `npm run fetch`, then
 `npm run sweep`.
 
-**Phase 1 is unblocked** — the read-only Bybit adapter, encrypted key vault, and key
-validation. Its design is agreed with the founder before any plan is written, so check
-`docs/superpowers/specs/` and `docs/superpowers/plans/` for Phase 1 documents before starting.
+**Phase 1 is in progress on branch `phase-1-exchange-adapter`** — the read-only Bybit
+connection: signed client, permission-allowlist key validation, encrypted vault, balance reads.
+
+- Spec: `docs/superpowers/specs/2026-09-17-phase-1-exchange-adapter-design.md`
+- Plan: `docs/superpowers/plans/2026-09-17-phase-1-exchange-adapter.md`
+
+Check out the branch and continue from its latest commit — each task ends in exactly one commit
+whose message matches the task. Do not restart from `master`. **Task 15 is done by the founder**,
+because it needs a real API key; never ask them for one.
 
 Other work, if the founder asks for it:
 
