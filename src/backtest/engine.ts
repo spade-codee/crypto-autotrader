@@ -11,6 +11,15 @@ import type {
   Trade,
 } from '../types.js';
 
+export type BacktestOptions = {
+  /**
+   * Epoch ms. Candles before this time are warm-up: the strategy sees them, so
+   * a moving average is already formed on the first evaluated day, but no
+   * trades or equity are recorded until this time. Defaults to the first candle.
+   */
+  evaluateFrom?: number;
+};
+
 /**
  * Replays candles through a strategy.
  *
@@ -23,6 +32,8 @@ import type {
  *
  * Because step 3 runs after step 1, a signal can never be acted on before it
  * could have existed. A decision made at a daily close fills at the next open.
+ * During warm-up only step 3 runs, so the last warm-up decision executes at
+ * the first evaluated open.
  */
 export function runBacktest(
   candles: Candle[],
@@ -30,9 +41,14 @@ export function runBacktest(
   costs: CostModel,
   initialCapital: Decimal,
   label: string,
+  options: BacktestOptions = {},
 ): BacktestResult {
   if (candles.length === 0) {
     throw new Error('backtest requires at least one candle');
+  }
+  const evaluateFrom = options.evaluateFrom ?? candles[0]!.time;
+  if (candles[candles.length - 1]!.time < evaluateFrom) {
+    throw new Error('no candles at or after evaluateFrom');
   }
 
   let cash = initialCapital;
@@ -43,7 +59,15 @@ export function runBacktest(
   const trades: Trade[] = [];
   const equityCurve: EquityPoint[] = [];
 
-  for (const candle of candles) {
+  for (let i = 0; i < candles.length; i++) {
+    const candle = candles[i]!;
+
+    if (candle.time < evaluateFrom) {
+      // Warm-up: decide only.
+      pending = strategy(candles.slice(0, i + 1));
+      continue;
+    }
+
     // 1. Execute the previous candle's decision at this candle's open.
     if (pending !== null && pending !== state) {
       if (pending === 'LONG') {
@@ -76,7 +100,7 @@ export function runBacktest(
     });
 
     // 3. Decide, using history that ends at this candle.
-    pending = strategy(candles.slice(0, equityCurve.length));
+    pending = strategy(candles.slice(0, i + 1));
   }
 
   return {

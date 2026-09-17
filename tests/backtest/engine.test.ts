@@ -133,6 +133,54 @@ describe('runBacktest', () => {
     );
   });
 
+  describe('with a warm-up period (evaluateFrom)', () => {
+    // Without warm-up, a 200-day average sits in cash for the first 200 days of
+    // any test window while buy-and-hold is invested from day one — penalising
+    // longer periods for a reason that has nothing to do with the strategy.
+    const bars = candles([
+      { open: 10, close: 10 },
+      { open: 20, close: 20 },
+      { open: 30, close: 30 },
+      { open: 40, close: 40 },
+    ]);
+
+    it('records no trades or equity before evaluateFrom', () => {
+      const result = runBacktest(bars, buyAndHold, FREE, d(1000), 'test', {
+        evaluateFrom: 2 * DAY,
+      });
+      expect(result.equityCurve.map((p) => p.time)).toEqual([2 * DAY, 3 * DAY]);
+      expect(result.trades.every((t) => t.time >= 2 * DAY)).toBe(true);
+    });
+
+    it('still lets the strategy see the warm-up history', () => {
+      const seen: number[] = [];
+      const spy: StrategyFn = (history) => {
+        seen.push(history.length);
+        return 'FLAT';
+      };
+      runBacktest(bars, spy, FREE, d(1000), 'test', { evaluateFrom: 2 * DAY });
+      expect(seen).toEqual([1, 2, 3, 4]);
+    });
+
+    it('executes a decision from the last warm-up candle at the first evaluated open', () => {
+      // A strategy already LONG by the end of warm-up enters on the first
+      // evaluated day, rather than waiting to rediscover the trend.
+      const result = runBacktest(bars, buyAndHold, FREE, d(1000), 'test', {
+        evaluateFrom: 2 * DAY,
+      });
+      expect(result.trades[0]!.time).toBe(2 * DAY);
+      expect(result.trades[0]!.price.toString()).toBe('30');
+      // 1000 / 30 units, marked at the day-2 close of 30.
+      expect(result.equityCurve[0]!.equity.toFixed(6)).toBe('1000.000000');
+    });
+
+    it('rejects an evaluateFrom later than every candle', () => {
+      expect(() =>
+        runBacktest(bars, buyAndHold, FREE, d(1000), 'test', { evaluateFrom: 99 * DAY }),
+      ).toThrow('no candles at or after evaluateFrom');
+    });
+  });
+
   it('works end to end with the real trend filter', () => {
     // Rising then falling, so the filter enters and exits at least once.
     const closes = [10, 11, 12, 13, 14, 15, 14, 13, 12, 11, 10, 9];
