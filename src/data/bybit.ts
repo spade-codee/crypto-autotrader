@@ -1,14 +1,10 @@
 import Decimal from 'decimal.js';
+import { bybitHosts } from '../exchange/bybit/hosts.js';
 import { getJson, type FetchLike } from '../net/http.js';
 import type { Candle } from '../types.js';
 
-/**
- * Bybit serves its public API from more than one domain. `api.bybit.com` is
- * the primary, but on Nigerian networks it fails DNS resolution under the
- * NCC's February 2024 ISP block (verified 2026-09-17), while Bybit's official
- * alternate domain `api.bytick.com` still answers. Hosts are tried in order.
- */
-export const BYBIT_HOSTS = ['https://api.bybit.com', 'https://api.bytick.com'];
+/** Mainnet hosts in fallback order. See src/exchange/bybit/hosts.ts. */
+export const BYBIT_HOSTS = bybitHosts('mainnet');
 
 const KLINE_PATH = '/v5/market/kline';
 const MAX_LIMIT = 1000;
