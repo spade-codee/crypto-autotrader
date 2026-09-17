@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import Decimal from 'decimal.js';
-import { closedCandles, getJson, parseKlineResponse } from '../../src/data/bybit.js';
+import {
+  closedCandles,
+  fetchDailyCandles,
+  getJson,
+  parseKlineResponse,
+} from '../../src/data/bybit.js';
 import type { Candle } from '../../src/types.js';
 
 const DAY = 86_400_000;
@@ -71,6 +76,68 @@ describe('parseKlineResponse', () => {
   it('rejects a row with too few fields', () => {
     const body = { retCode: 0, retMsg: 'OK', result: { list: [['0', '1', '2']] } };
     expect(() => parseKlineResponse(body)).toThrow('malformed Bybit kline row');
+  });
+});
+
+describe('fetchDailyCandles', () => {
+  const row = (time: number) => [String(time), '1', '1', '1', '1', '1', '1'];
+  const page = (...times: number[]) => ({
+    retCode: 0,
+    retMsg: 'OK',
+    // Bybit returns newest first.
+    result: { list: times.map(row).reverse() },
+  });
+
+  /** Serves the given response bodies in order, recording every URL requested. */
+  function serve(bodies: unknown[]) {
+    const urls: string[] = [];
+    const impl = async (url: string) => {
+      urls.push(url);
+      const body = bodies[Math.min(urls.length - 1, bodies.length - 1)];
+      return { ok: true, status: 200, json: async () => body };
+    };
+    return { impl, urls };
+  }
+
+  it('pages forward, requests the given category, and drops the unfinished candle', async () => {
+    const now = 2 * DAY + 3_600_000; // day 2 has started but not finished
+    const { impl, urls } = serve([page(0, DAY), page(2 * DAY), page()]);
+
+    const candles = await fetchDailyCandles('BTCUSD', new Date(0), {
+      category: 'inverse',
+      hosts: ['https://x.test'],
+      fetchImpl: impl,
+      now,
+    });
+
+    expect(candles.map((c) => c.time)).toEqual([0, DAY]);
+    expect(urls).toHaveLength(2);
+    expect(urls[0]).toContain('category=inverse');
+    expect(urls[0]).toContain('symbol=BTCUSD');
+    expect(urls[0]).toContain('start=0');
+    // The second page continues from the day after the last candle received.
+    expect(urls[1]).toContain(`start=${2 * DAY}`);
+  });
+
+  it('defaults to the spot category', async () => {
+    const { impl, urls } = serve([page()]);
+    await fetchDailyCandles('BTCUSDT', new Date(0), {
+      hosts: ['https://x.test'],
+      fetchImpl: impl,
+      now: DAY,
+    });
+    expect(urls[0]).toContain('category=spot');
+  });
+
+  it('stops rather than looping forever if the API repeats a page', async () => {
+    const { impl, urls } = serve([page(0, DAY)]); // every request returns the same page
+    const candles = await fetchDailyCandles('BTCUSDT', new Date(0), {
+      hosts: ['https://x.test'],
+      fetchImpl: impl,
+      now: 100 * DAY,
+    });
+    expect(candles.map((c) => c.time)).toEqual([0, DAY]);
+    expect(urls).toHaveLength(2);
   });
 });
 

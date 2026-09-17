@@ -96,6 +96,19 @@ export function closedCandles(candles: Candle[], now: number): Candle[] {
   return candles.filter((c) => c.time + DAY_MS <= now);
 }
 
+export type FetchCandlesOptions = {
+  /**
+   * Bybit market. `spot` is what the product trades. `inverse` is the BTCUSD
+   * perpetual, whose history reaches back to 2018-11-14 versus spot's
+   * 2021-07-05; it is used only as a longer price history for research.
+   */
+  category?: 'spot' | 'linear' | 'inverse';
+  hosts?: string[];
+  fetchImpl?: FetchLike;
+  /** Epoch ms treated as the current time. Injectable for tests. */
+  now?: number;
+};
+
 /**
  * Fetches CLOSED daily candles from `start` up to now, paginating forward.
  *
@@ -107,14 +120,19 @@ export function closedCandles(candles: Candle[], now: number): Candle[] {
 export async function fetchDailyCandles(
   symbol: string,
   start: Date,
-  hosts: string[] = BYBIT_HOSTS,
+  options: FetchCandlesOptions = {},
 ): Promise<Candle[]> {
+  const category = options.category ?? 'spot';
+  const hosts = options.hosts ?? BYBIT_HOSTS;
+  const fetchImpl = options.fetchImpl ?? fetch;
+  const now = options.now ?? Date.now();
+
   const all: Candle[] = [];
   let cursor = start.getTime();
 
   for (;;) {
-    const path = `${KLINE_PATH}?category=spot&symbol=${symbol}&interval=D&start=${cursor}&limit=${MAX_LIMIT}`;
-    const page = parseKlineResponse(await getJson(hosts, path));
+    const path = `${KLINE_PATH}?category=${category}&symbol=${symbol}&interval=D&start=${cursor}&limit=${MAX_LIMIT}`;
+    const page = parseKlineResponse(await getJson(hosts, path, fetchImpl));
     if (page.length === 0) {
       break;
     }
@@ -126,10 +144,10 @@ export async function fetchDailyCandles(
     all.push(...fresh);
 
     cursor = all[all.length - 1]!.time + DAY_MS;
-    if (cursor > Date.now()) {
+    if (cursor > now) {
       break;
     }
   }
 
-  return closedCandles(all, Date.now());
+  return closedCandles(all, now);
 }
