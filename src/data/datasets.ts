@@ -7,28 +7,38 @@ export type Dataset = {
   purpose: string;
 };
 
-export type Asset = 'BTC' | 'ETH';
+export type Asset = 'BTC' | 'ETH' | 'DOGE' | 'SHIB' | 'PEPE';
 
 export type AssetDatasets = {
-  /** The spot market, which is what the product trades. */
+  /** The spot market, which is what the product would trade. */
   spot: Dataset;
-  /** The inverse perpetual, whose history starts years before spot. */
-  longHistory: Dataset;
+  /**
+   * A perpetual future on the same asset, used only when its history starts
+   * years before spot. Omitted where no such contract adds useful history.
+   */
+  longHistory?: Dataset;
 };
 
 /**
  * Every dataset comes from Bybit's public API; no credentials are involved.
  *
  * Spot history only begins 2021-07-05, which is too short to choose a
- * parameter on one period and verify it on another, so each asset also has its
- * inverse perpetual as a longer price history. For BTC the perpetual reaches
- * back to 2018-11-14 and tracks spot closely: over the 1,900 days both exist,
- * median daily close divergence is 0.05% and 50/100/200-day moving-average
- * signals agree on 99.84–100% of days (measured 2026-09-17).
+ * parameter on one period and verify it on another, so BTC and ETH also carry
+ * their inverse perpetual as a longer price history. For BTC the perpetual
+ * reaches back to 2018-11-14 and tracks spot closely: over the 1,900 days both
+ * exist, median daily close divergence is 0.05% and 50/100/200-day moving-
+ * average signals agree on 99.84-100% of days (measured 2026-09-17).
  *
- * BTC is the only asset the product trades. ETH exists solely as an
- * out-of-asset check: a strategy tuned on BTC should still behave sensibly on
- * an asset it was never tuned on.
+ * BTC is the only asset the product trades. Every other asset here exists
+ * solely as an out-of-asset check: a strategy tuned on BTC should still behave
+ * sensibly on an asset it was never tuned on. ETH tests a large, established
+ * asset; DOGE, SHIB, and PEPE test meme coins, whose price is driven by
+ * attention rather than adoption.
+ *
+ * The meme coins have no usable inverse perpetual — DOGEUSD inverse only
+ * begins 2025-03-05 — so DOGE uses its LINEAR perpetual (from 2021-06-02,
+ * three months before spot) and SHIB and PEPE use spot alone. Each still
+ * covers a full boom and bust, which is what an out-of-asset check needs.
  */
 export const ASSETS: Record<Asset, AssetDatasets> = {
   BTC: {
@@ -59,15 +69,44 @@ export const ASSETS: Record<Asset, AssetDatasets> = {
       purpose: 'out-of-asset check, long history',
     },
   },
+  DOGE: {
+    spot: {
+      symbol: 'DOGEUSDT',
+      category: 'spot',
+      file: 'data/DOGEUSDT-spot-1d.csv',
+      purpose: 'meme-coin check, spot',
+    },
+    longHistory: {
+      symbol: 'DOGEUSDT',
+      category: 'linear',
+      file: 'data/DOGEUSDT-linear-1d.csv',
+      purpose: 'meme-coin check, long history',
+    },
+  },
+  SHIB: {
+    spot: {
+      symbol: 'SHIBUSDT',
+      category: 'spot',
+      file: 'data/SHIBUSDT-spot-1d.csv',
+      purpose: 'meme-coin check, spot',
+    },
+  },
+  PEPE: {
+    spot: {
+      symbol: 'PEPEUSDT',
+      category: 'spot',
+      file: 'data/PEPEUSDT-spot-1d.csv',
+      purpose: 'meme-coin check, spot',
+    },
+  },
 };
 
 export const SPOT = ASSETS.BTC.spot;
-export const LONG_HISTORY = ASSETS.BTC.longHistory;
+export const LONG_HISTORY = ASSETS.BTC.longHistory!;
 
-export const DATASETS: Dataset[] = Object.values(ASSETS).flatMap((asset) => [
-  asset.spot,
-  asset.longHistory,
-]);
+export const DATASETS: Dataset[] = Object.values(ASSETS).flatMap((asset) =>
+  asset.longHistory === undefined ? [asset.spot] : [asset.spot, asset.longHistory],
+);
 
 /** Reads ASSET for the research commands. Defaults to BTC, the traded asset. */
 export function parseAsset(value: string | undefined): Asset {

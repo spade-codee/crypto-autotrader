@@ -12,6 +12,16 @@ import type { Candle, StrategyConfig, StrategyFn, TargetState } from '../types.j
  * Equality resolves to FLAT. A close that merely matches its own average is
  * not evidence of an uptrend, and biasing toward cash is the safer default.
  */
+/**
+ * The period chosen on BTC in-sample and verified out-of-sample, from the
+ * middle of a broad plateau of periods that all worked.
+ * See docs/research/phase-0-findings.md.
+ *
+ * It belongs to BTC. Judging another asset means applying THIS number to it,
+ * never re-choosing a period per asset, which would be curve fitting.
+ */
+export const CHOSEN_MA_PERIOD = 125;
+
 export function trendFilter(config: StrategyConfig): StrategyFn {
   if (!Number.isInteger(config.maPeriod) || config.maPeriod <= 0) {
     throw new Error('maPeriod must be a positive integer');

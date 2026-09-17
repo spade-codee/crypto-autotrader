@@ -52,6 +52,14 @@ function sweep(candles: Candle[], evaluateFrom: number, heading: string): void {
 }
 
 async function main(): Promise<void> {
+  if (LONG_HISTORY === undefined) {
+    throw new Error(
+      `${ASSET} has no long-history dataset, so it cannot be split in-sample and ` +
+        'out-of-sample. Use `npm run out-of-asset` instead, which judges the ' +
+        'period already chosen on BTC over the whole available history.',
+    );
+  }
+
   const long = await load(LONG_HISTORY);
   const spot = await load(SPOT);
 

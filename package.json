@@ -12,6 +12,7 @@
     "fetch": "tsx src/cli/fetch.ts",
     "backtest": "tsx src/cli/backtest.ts",
     "sweep": "tsx src/cli/sweep.ts",
+    "out-of-asset": "tsx src/cli/outOfAsset.ts",
     "db:generate": "drizzle-kit generate",
     "vault:init": "tsx src/cli/vault-init.ts",
     "key:add": "tsx src/cli/key-add.ts",

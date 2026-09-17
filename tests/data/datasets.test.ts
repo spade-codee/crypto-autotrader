@@ -13,10 +13,31 @@ describe('datasets', () => {
     expect(ASSETS.ETH.longHistory).toMatchObject({ symbol: 'ETHUSD', category: 'inverse' });
   });
 
+  it('gives DOGE its linear perpetual, whose history starts before spot', () => {
+    // The DOGEUSD inverse perpetual only begins 2025-03-05, too late to be useful.
+    expect(ASSETS.DOGE.longHistory).toMatchObject({ symbol: 'DOGEUSDT', category: 'linear' });
+    expect(ASSETS.DOGE.spot).toMatchObject({ symbol: 'DOGEUSDT', category: 'spot' });
+  });
+
+  it('separates datasets that share a symbol but not a market', () => {
+    expect(ASSETS.DOGE.longHistory?.file).not.toBe(ASSETS.DOGE.spot.file);
+  });
+
+  it('leaves out a long history where no contract provides one', () => {
+    expect(ASSETS.SHIB.longHistory).toBeUndefined();
+    expect(ASSETS.PEPE.longHistory).toBeUndefined();
+  });
+
   it('fetches every dataset, each to its own file', () => {
     const files = DATASETS.map((dataset) => dataset.file);
-    expect(files).toHaveLength(4);
-    expect(new Set(files).size).toBe(4);
+    expect(files).toHaveLength(8);
+    expect(new Set(files).size).toBe(8);
+  });
+
+  it('includes the spot market of every asset', () => {
+    for (const asset of Object.values(ASSETS)) {
+      expect(DATASETS).toContain(asset.spot);
+    }
   });
 });
 
@@ -26,16 +47,20 @@ describe('parseAsset', () => {
     expect(parseAsset('')).toBe('BTC');
   });
 
-  it('accepts ETH', () => {
-    expect(parseAsset('ETH')).toBe('ETH');
+  it('accepts every asset in the table', () => {
+    for (const asset of Object.keys(ASSETS)) {
+      expect(parseAsset(asset)).toBe(asset);
+    }
   });
 
   it('rejects anything else', () => {
-    expect(() => parseAsset('SOL')).toThrow('ASSET must be one of BTC, ETH, not "SOL"');
+    expect(() => parseAsset('SOL')).toThrow(
+      'ASSET must be one of BTC, ETH, DOGE, SHIB, PEPE, not "SOL"',
+    );
   });
 
   it('rejects property names every object inherits', () => {
-    expect(() => parseAsset('toString')).toThrow('ASSET must be one of BTC, ETH');
-    expect(() => parseAsset('constructor')).toThrow('ASSET must be one of BTC, ETH');
+    expect(() => parseAsset('toString')).toThrow('ASSET must be one of');
+    expect(() => parseAsset('constructor')).toThrow('ASSET must be one of');
   });
 });
