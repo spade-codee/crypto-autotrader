@@ -2,20 +2,30 @@
   "name": "crypto-autotrader",
   "private": true,
   "type": "module",
-  "engines": { "node": ">=22" },
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "fetch": "tsx src/cli/fetch.ts",
     "backtest": "tsx src/cli/backtest.ts",
-    "sweep": "tsx src/cli/sweep.ts"
+    "sweep": "tsx src/cli/sweep.ts",
+    "db:generate": "drizzle-kit generate",
+    "vault:init": "tsx src/cli/vault-init.ts",
+    "key:add": "tsx src/cli/key-add.ts",
+    "key:check": "tsx src/cli/key-check.ts",
+    "balance": "tsx src/cli/balance.ts"
   },
   "dependencies": {
-    "decimal.js": "^10.4.3"
+    "@electric-sql/pglite": "^0.5.8",
+    "decimal.js": "^10.4.3",
+    "drizzle-orm": "^0.45.2"
   },
   "devDependencies": {
     "@types/node": "^22.7.0",
+    "drizzle-kit": "^0.31.10",
     "tsx": "^4.19.0",
     "typescript": "^5.6.0",
     "vitest": "^4.1.11"
