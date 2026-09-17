@@ -10,8 +10,9 @@ design and research stage. Users would connect their own exchange account with a
 has trading enabled and **withdrawals disabled**, and the software would run a mechanical BTC
 trend-following strategy on their account. Money never leaves the user's own exchange account.
 
-**No application code exists yet.** The repository holds the design, the build plan for the
-first phase, product research, and a full decision log.
+**Phase 0 code exists** — the strategy, backtest engine, and data fetcher. **No trading, account, or
+user-facing code exists yet.** The repository also holds the design, product research, and a full
+decision log.
 
 - **Working name: `crypto-autotrader`.** A placeholder, not a brand. No name has been chosen.
 - **Founder:** a solo technical builder based in Nigeria, with an existing local crypto
@@ -24,7 +25,7 @@ first phase, product research, and a full decision log.
 | Design | Approved |
 | Phase 0 — strategy proof | **Complete and merged to `master`.** 67 tests. Result in `docs/research/phase-0-findings.md` |
 | Phase 0 result | **Passes, with claims narrowed.** Out-of-sample, MA-125 cut max drawdown to 27.4% from buy-and-hold's 53.1%, but gave up ~9 points of annual growth. Insurance, not a return enhancer |
-| Product research | Complete — and it **reopened the business model** |
+| Product research | Complete. It reopened the business model, which was re-decided 2026-09-17 |
 | Name | **Undecided** — "Keel" was rejected after a verified conflict |
 
 **Decided 2026-09-17:** the product places trades for users, with a flat yearly fee in USDT and a

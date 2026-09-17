@@ -20,7 +20,7 @@ are still open.
 | 3 | Starter strategy | BTC trend filter | DECIDED |
 | 4 | Custody and venue | Centralised exchange via trade-only API keys | DECIDED |
 | 5 | First market | Nigeria | DECIDED |
-| 6 | Positioning and pricing | SaaS tool; free pilot, then flat monthly fee | **REOPENED** |
+| 6 | Positioning and pricing | SaaS tool; free pilot, then a flat fee — refined by #16 | DECIDED |
 | 7 | Architecture | Eight components, pure strategy engine | DECIDED |
 | 8 | First exchange | Bybit, then Binance | DECIDED — access verified 2026-09-17 |
 | 9 | Language | TypeScript everywhere | DECIDED |
@@ -131,7 +131,7 @@ portfolio-management authorisation respectively. "Global" was also rejected, bec
 practice it means accidentally acquiring US and EU users. **Block US and EU signups at
 onboarding.**
 
-## 6. Positioning and pricing — REOPENED
+## 6. Positioning and pricing — DECIDED, refined by #16
 
 | Option | Description |
 |---|---|
@@ -150,7 +150,9 @@ who is on record making the decision, and how money is charged.
 record. Run live on the founder's own capital, then informed volunteers, for 3–6 months, and
 publish verifiable results.
 
-**Reopened on 2026-09-17** by research. See #16, #17, and #18.
+**Reopened on 2026-09-17** by research, and **re-decided the same day** in #16 and #17: the SaaS
+posture and the free pilot stand; the fee becomes yearly rather than monthly, is paid in USDT,
+and is waived below an account-size threshold.
 
 ## 7. Architecture — DECIDED
 
