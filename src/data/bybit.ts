@@ -85,7 +85,19 @@ export function parseKlineResponse(body: unknown): Candle[] {
 }
 
 /**
- * Fetches daily candles from `start` up to now, paginating forward.
+ * Keeps only daily candles whose day has fully ended by `now`.
+ *
+ * The exchange includes today's candle while it is still forming, and its
+ * "close" is merely the latest price. The strategy decides on daily closes, so
+ * acting on an unfinished candle would mean trading on a value that can still
+ * change — in the backtest a small distortion, in production a real bug.
+ */
+export function closedCandles(candles: Candle[], now: number): Candle[] {
+  return candles.filter((c) => c.time + DAY_MS <= now);
+}
+
+/**
+ * Fetches CLOSED daily candles from `start` up to now, paginating forward.
  *
  * Given only a `start`, Bybit returns the OLDEST `limit` candles at or after
  * it (verified against the live API 2026-09-17), so each page continues from
@@ -119,5 +131,5 @@ export async function fetchDailyCandles(
     }
   }
 
-  return all;
+  return closedCandles(all, Date.now());
 }

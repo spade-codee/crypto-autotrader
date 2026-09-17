@@ -1,5 +1,33 @@
 import { describe, expect, it } from 'vitest';
-import { getJson, parseKlineResponse } from '../../src/data/bybit.js';
+import Decimal from 'decimal.js';
+import { closedCandles, getJson, parseKlineResponse } from '../../src/data/bybit.js';
+import type { Candle } from '../../src/types.js';
+
+const DAY = 86_400_000;
+
+function candleAt(time: number): Candle {
+  const one = new Decimal(1);
+  return { time, open: one, high: one, low: one, close: one, volume: one };
+}
+
+describe('closedCandles', () => {
+  it('drops a daily candle whose day has not finished', () => {
+    // The strategy acts on daily closes. An in-progress candle's "close" is just
+    // the current price, and treating it as final would trade on a guess.
+    const now = 2 * DAY + 3_600_000; // one hour into day 2
+    const result = closedCandles([candleAt(0), candleAt(DAY), candleAt(2 * DAY)], now);
+    expect(result.map((c) => c.time)).toEqual([0, DAY]);
+  });
+
+  it('keeps a candle whose day ended exactly now', () => {
+    const result = closedCandles([candleAt(0), candleAt(DAY)], 2 * DAY);
+    expect(result.map((c) => c.time)).toEqual([0, DAY]);
+  });
+
+  it('returns an empty list unchanged', () => {
+    expect(closedCandles([], DAY)).toEqual([]);
+  });
+});
 
 describe('parseKlineResponse', () => {
   it('parses Bybit rows and returns them oldest first', () => {
