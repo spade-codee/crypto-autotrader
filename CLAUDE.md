@@ -22,7 +22,7 @@ first phase, product research, and a full decision log.
 | Area | State |
 |---|---|
 | Design | Approved |
-| Phase 0 implementation plan | Written, **not started** |
+| Phase 0 implementation plan | **In progress on branch `phase-0-backtest`** — check it out and continue; do not restart from `master` |
 | Product research | Complete — and it **reopened the business model** |
 | Name | **Undecided** — "Keel" was rejected after a verified conflict |
 
@@ -55,6 +55,25 @@ buy-and-hold on **out-of-sample** data.
 
 **Do not start Phase 1 or later** until the founder resolves the fee-model decision. It changes
 who the product is for, and therefore onboarding, pricing, and licensing exposure.
+
+## Working across two machines
+
+The founder builds on two machines, kept in sync through GitHub. Neither machine is the source
+of truth — the remote is.
+
+- **`git pull` before starting any work**, every session. Check which branch the current phase
+  lives on before creating anything.
+- **Commit and push after every task.** Small, frequent pushes keep the machines from drifting
+  far enough apart to conflict.
+- **One branch per phase** — for example `phase-0-backtest`. Merge to `master` only when the
+  phase is complete and verified.
+- **If a push is rejected**, the other machine pushed first: `git pull --rebase`, re-run the
+  tests, then push. **Never force-push.**
+- **Not in git, so rebuild on each machine:** `node_modules/` (`npm install`), `data/*.csv`
+  (`npm run fetch`), the subagent collection (`setup/update-subagents.ps1`), and Claude's
+  memory, which is local to each machine.
+- **Keep Node versions matched** across machines, so a test that passes on one passes on the
+  other.
 
 ## Rules that are not negotiable
 
