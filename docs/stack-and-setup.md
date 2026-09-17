@@ -152,9 +152,10 @@ framework for everything is worth more than the simpler deployment, it is a work
 Moved to [`docs/brand.md`](./brand.md), which is the single source of truth for the
 name, palette, typography, voice, accessibility rules, asset list, and launch checklist.
 
-Decided: the product is **Keel**. Palette is **Instrument** (navy ground, teal accent,
-green and red reserved exclusively for P&L). Type is **IBM Plex Sans** for interface and
-**IBM Plex Mono** for every figure, self-hosted.
+Decided: palette is **Instrument** (navy ground, teal accent, green and red reserved
+exclusively for P&L). Type is **IBM Plex Sans** for interface and **IBM Plex Mono** for every
+figure, self-hosted. **The name is undecided** — Keel was rejected after a verified conflict;
+see `docs/brand.md` section 2.
 
 ---
 

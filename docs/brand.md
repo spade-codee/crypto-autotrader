@@ -27,22 +27,50 @@ The name must sound like an instrument, not an opportunity.
 
 ## 2. Name
 
-**Chosen: Keel.** The keel is the part of a ship that keeps it upright and stops it
-capsizing.
+**Status: undecided.** The working name is `crypto-autotrader`, which is a placeholder, not a
+brand.
 
-It promises stability rather than gains, which is both honest and legally safer. Four
-letters, unambiguous in any accent, spellable after hearing it once — which matters in a
-market where distribution is word of mouth. It gives a trivially simple logo mark, and it
-sits naturally in navy and teal without tipping into nautical kitsch.
+### Rejected: Keel
 
-**Runner-up: Duro** — Yoruba for *stand firm, hold, wait*. Strong if the strategy is to be
-visibly Nigerian-built, which is itself a trust signal locally. Weaker for international
-expansion, where it reads as a surname.
+Keel was chosen on 2026-09-16 and rejected the same day after verification. **Keel Money Ltd**
+is a live, FCA-authorised Banking-as-a-Service fintech in Manchester (FCA firm reference
+1020783), operating at `keel.money`. It exited stealth in May 2026 with a profitable,
+international client base that includes trading platforms. Every search for "Keel fintech"
+lands on them. The objection is not primarily a trademark fight — it is permanent search and
+brand confusion with a funded incumbent in the same category.
 
-Also considered and rejected: Ballast (on-message but heavy), Tide (too common a word),
-Plumbline (a syllable too long, harder to spell), Stoic (can read pretentious).
+The naming research (`docs/research/naming.md`) also cites USPTO serial numbers owned by New
+York entities. Those claims could not be verified and contradict that document's own Manchester
+finding. Do not rely on them. Formal trademark clearance is a lawyer's task regardless.
 
-Assume the exact `.com` is taken. Plan for `getkeel.com`, `keel.app`, or `usekeel.com`.
+The reasoning that originally favoured Keel still describes what a good name here must do:
+promise stability rather than gains, be spellable after hearing it once, and carry a simple
+mark.
+
+### Live candidates
+
+- **Duro** — Yoruba for *stand firm, hold, wait*. **Recommended.** It describes the product
+  literally: it stops people panic-selling. Transparent to Yoruba speakers, the largest group
+  in Nigeria's Lagos-centred crypto community. Four letters, pronounceable globally. Weakness:
+  reads as a surname internationally — a year-three problem, not a year-one problem.
+- **Tsaya** — Hausa for *stand firm, stop, pause*. The naming research's first choice. Clean
+  metaphor, no conflict found. Concern: Hausa is predominantly northern while the crypto
+  community skews Lagos and the south, so the name may be opaque to most of the actual market.
+  **This concern needs the founder's read — they know the market.**
+- **Ase (Àṣẹ)** — Yoruba, roughly *power, authority, so be it*. The research's second choice.
+  Not recommended: spiritually loaded in a way that may read as irreverent on a trading
+  product, and it promises *control* — the opposite note from a product whose value is that
+  the user stops acting.
+
+Also considered and rejected earlier: Ballast (on-message but heavy; the research found
+existing companies using it), Tide (too common a word), Plumbline (a syllable too long, harder
+to spell), Stoic (can read pretentious).
+
+### Before committing to any name
+
+- Search for existing fintech and crypto products using it. This is the step that caught Keel.
+- For any Nigerian-language name, a native-speaker check for unintended or colloquial meanings.
+- Check domain and handle availability directly. Assume the exact `.com` is taken.
 
 ---
 
@@ -162,8 +190,8 @@ male. That combination makes this a correctness issue, not a nicety.
 
 ### Same day as the domain — land grab
 
-Handle consistency matters more than which platforms get used. Claim `keel` (or the chosen
-name) on X, Instagram, Telegram (channel and group), WhatsApp Business, LinkedIn, and GitHub
+Handle consistency matters more than which platforms get used. Claim the chosen
+name on X, Instagram, Telegram (channel and group), WhatsApp Business, LinkedIn, and GitHub
 on the day the domain is bought, before anyone else does.
 
 ### Email and deliverability
@@ -174,7 +202,7 @@ failure, not a marketing one.**
 - Domain mailboxes: `founder@`, `support@`, `no-reply@`.
 - **SPF, DKIM, and DMARC records configured before the first send.** Without all three,
   mail goes to spam by default.
-- Send transactional mail from a dedicated subdomain (`mail.keel.app`) so that marketing
+- Send transactional mail from a dedicated subdomain (for example `mail.<domain>`) so that marketing
   sending can never damage transactional reputation.
 
 ### Support

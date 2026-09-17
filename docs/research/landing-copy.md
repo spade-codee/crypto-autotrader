@@ -1,5 +1,10 @@
 # Keel — Waitlist Landing Page Copy
 
+> **Note (2026-09-17):** written using the placeholder name "Keel", since rejected after a
+> verified conflict with Keel Money Ltd. Replace the name throughout before use. The copy also
+> assumes the $100–$1,000 target segment, which is now an open decision
+> (`docs/decisions.md` #16).
+
 Companion to `docs/brand.md` (voice rules, §5) and
 `docs/superpowers/specs/2026-09-16-crypto-trading-automation-design.md`.
 

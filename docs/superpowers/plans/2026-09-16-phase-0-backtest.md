@@ -64,7 +64,7 @@ Strategy code depends on nothing. The engine depends on strategy, costs, and typ
 
 ```json
 {
-  "name": "keel",
+  "name": "crypto-autotrader",
   "private": true,
   "type": "module",
   "engines": { "node": ">=22" },

@@ -1,5 +1,12 @@
 # Validation: Keel — Non-Custodial Crypto Trading Automation for Nigeria
 
+> **Note (2026-09-17):** written using the placeholder name "Keel", since rejected. The Bybit
+> access finding (assumption 5) is accurate — web access blocked and carrier-dependent, mobile
+> apps working — and `competitors.md` adds that Bybit's naira P2P is active. The ₦30,000,000
+> VASP registration fee was checked against the cited Mondaq source, which also gives a
+> ₦500,000,000 minimum paid-up capital. The separate ₦2 billion threshold reported in
+> `competitors.md` applies to exchanges and custodians.
+
 - **Date:** 2026-09-16
 - **Method:** Read the design spec, stack doc, and brand doc in full. Then ran ~17 web
   searches and 2 fetches across Nigerian crypto regulation, competitor landscape, market

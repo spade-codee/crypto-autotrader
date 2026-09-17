@@ -1,5 +1,14 @@
 # Product Naming: Stress Test and Alternatives
 
+> **Reviewer notes (2026-09-17)** — checked after this document was written:
+> - **Confirmed:** the Keel conflict. Keel Money Ltd is FCA-authorised (firm reference 1020783),
+>   Manchester-based, live at `keel.money`, and exited stealth in May 2026. Keel is rejected.
+> - **Not confirmed:** the USPTO serial numbers and the New York entities ("Keel Merchant Bank
+>   LLC", "Keel Infrastructure Corp"). These contradict this document's own Manchester finding
+>   and appear to conflate separate entities. Do not rely on them.
+> - **Disputed:** the recommendation of Tsaya and Ase. See `docs/brand.md` section 2 for why
+>   Duro is recommended instead, and the open question about Tsaya's fit for a Lagos-centred market.
+
 **Date:** 2026-09-16  
 **Product:** Non-custodial crypto trading automation platform for Nigeria  
 **Prepared by:** Product analysis

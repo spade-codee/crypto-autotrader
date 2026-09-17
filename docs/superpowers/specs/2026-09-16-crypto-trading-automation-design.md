@@ -1,8 +1,22 @@
 # Design: Non-Custodial Crypto Trading Automation
 
 - **Date:** 2026-09-16
-- **Status:** Approved (design), pending implementation plan
-- **Working name:** crypto-autotrader (rename when a brand is chosen)
+- **Status:** Design approved. Phase 0 plan written. **Business model reopened by research — see note below.**
+- **Working name:** crypto-autotrader (placeholder; no brand chosen)
+
+> **Update 2026-09-17 — read before relying on section 2.**
+> Product research (`docs/research/`) reopened part of this spec. Architecture, strategy,
+> failure handling, and testing stand. Two things do not:
+>
+> 1. **Target account size and pricing.** A flat monthly fee cannot be carried by $100–$1,000
+>    accounts: $10/month is 12% of a $1,000 account a year and 40% of a $300 one. The viable
+>    flat-fee segment starts around $3,000. Profit share fits small accounts but is what
+>    triggers portfolio-management classification. **Open decision** — `docs/decisions.md` #16.
+> 2. **Regulatory exposure.** SEC Nigeria VASP rules cover activity "for or on behalf of another
+>    person", and no software carve-out was located. The legal opinion should move to month
+>    one rather than wait for the pilot — `docs/decisions.md` #18.
+>
+> Neither blocks Phase 0. The strategy has to work regardless of who it is sold to.
 
 ---
 
