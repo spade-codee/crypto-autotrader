@@ -73,8 +73,8 @@ record the outcome in the Phase 1 spec (section 10) and merge the branch to `mas
 
 Other work, if the founder asks for it:
 
-- The optional research in `docs/research/phase-0-findings.md` — blending MA-100/125/150 into one
-  signal, and repeating the test on ETH as an out-of-asset check.
+- ~~The optional research in `docs/research/phase-0-findings.md`.~~ Done on branch
+  `research-robustness`, along with a meme-coin check the founder asked for.
 - The waitlist landing page, once a name is chosen — copy is drafted in `docs/research/landing-copy.md`.
 
 ## Running the code
@@ -86,6 +86,7 @@ Other work, if the founder asks for it:
 | `npm run fetch` | Downloads Bybit spot and long-history daily candles into `data/` (gitignored) |
 | `npm run backtest` | MA-200 against buy-and-hold on both datasets. Set `MA_PERIOD` to change |
 | `npm run sweep` | Every period, in-sample and out-of-sample — the Phase 0 result |
+| `npm run out-of-asset` | Judges BTC's MA-125, unchanged, on another asset. `ASSET=DOGE npm run out-of-asset` |
 | `npm run vault:init` | Create this machine's `.env.local` with a vault master key. Refuses to overwrite |
 | `npm run key:add` | Validate a Bybit key and store it encrypted. Interactive terminal only; secret input is hidden |
 | `npm run key:check` | Re-validate the stored key |
@@ -135,6 +136,9 @@ Each rule prevents a specific way of losing a user's money.
 - **Choose parameters in-sample, verify out-of-sample**, and pick from a broad plateau of working
   values — never the single best one.
 - **Spot only.** No leverage, futures, or margin.
+- **BTC only, and no asset is added without its own evidence.** It must pass the out-of-asset
+  check — BTC's period, no re-tuning — with a drawdown a real user would accept. Meme coins
+  were tested and failed: 71-81% drawdowns remained. `docs/decisions.md` #21.
 - **The exchange is the source of truth for positions**, never the database.
 - **Fail closed.** On any ambiguity — cannot read balances, cannot fetch prices — do nothing and
   alert.
@@ -187,7 +191,7 @@ src/
   vault/                      master keyring, AES-256-GCM sealing, credential vault
   db/                         Drizzle schema and PGlite client
   app/credentials.ts          connect, check, and balance flows
-  cli/                        fetch, backtest, sweep, vault-init, key-add, key-check, balance
+  cli/                        fetch, backtest, sweep, out-of-asset, vault-init, key-*, balance
 drizzle/                      generated SQL migrations — committed
 tests/                        mirrors src/, plus helpers/ and fixtures/
 data/                         downloaded candles and data/db/ — gitignored

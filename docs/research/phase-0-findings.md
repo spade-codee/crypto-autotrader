@@ -249,6 +249,76 @@ What this shows:
 Any additional asset needs its own evidence first, and its own honest description of how much
 protection it offers.
 
+### Does it apply to meme coins?
+
+Asked directly by the founder, and worth answering with data rather than opinion: meme coins are
+heavily traded in the Nigerian market this product targets.
+
+Tested the same way as ETH — **BTC's MA-125, unchanged, no re-tuning** — on DOGE, SHIB, and PEPE.
+Reproduce with `ASSET=DOGE npm run out-of-asset`. Data: Bybit spot for all three, plus the DOGEUSDT
+*linear* perpetual from 2021-06-02 (the DOGEUSD inverse only begins 2025-03-05, too late to use).
+All four files have zero gaps and zero OHLC violations; DOGE's perpetual tracks its spot as closely
+as BTC's does (median divergence 0.055%, MA-125 signals identical on all 1,719 shared days).
+
+Each asset is measured against buy-and-hold **over its own window**, since each starts 125 days
+after that asset's data begins. Compare within a row, not across rows.
+
+| Spot, standard costs | Window | MA-125 MaxDD | Hold MaxDD | MA-125 CAGR | Hold CAGR |
+|---|---|---|---|---|---|
+| **BTC** | 2021-11 to 2026-09 | **33.4%** | 76.6% | **+23.2%** | +4.5% |
+| DOGE | 2022-01 to 2026-09 | **72.9%** | 85.2% | **-2.4%** | -15.1% |
+| SHIB | 2022-04 to 2026-09 | **71.0%** | 88.5% | **-17.9%** | -30.2% |
+| PEPE | 2023-09 to 2026-09 | **80.9%** | 91.2% | +30.8% | **+60.8%** |
+
+**The answer is no.** Four reasons, in order of weight:
+
+1. **The protection arrives in a useless size.** The filter did reduce the worst drawdown on every
+   meme coin — the direction is right — but only from catastrophic to catastrophic: 71-81%, against
+   33% on BTC. A user who is told they are protected and then watches three quarters of their money
+   disappear has not been protected. They have been misled.
+2. **On DOGE and SHIB the filter still lost money** over four and a half years — -2.4% and -17.9% a
+   year. It lost *less* than holding did. Losing less is not a product, and it is certainly not one
+   to charge a yearly fee for.
+3. **On PEPE it took half the return and gave back nothing.** 30.8% against 60.8% for holding, with
+   an 80.9% drawdown either way and a *worse* Sharpe (0.73 against 0.98) — the user pays the cost of
+   insurance and receives none of it.
+4. **There is no plateau, so there is nothing to choose even if we wanted to.** On BTC, every period
+   from 100 to 175 worked. On DOGE, neighbouring periods flip sign: MA-20 returns +27.7%, MA-150
+   +15.2%, MA-250 -29.2%. SHIB's best is MA-50 at +20.9% while MA-75 manages +1.2% and MA-100
+   -11.7%. Results that swing that hard between adjacent settings are noise, and any period picked
+   from such a table is curve fitting.
+
+Supporting detail:
+
+- **Win rates collapse.** SHIB's MA-125 won 5.6% of its round trips — 94% lost money — against
+  22.7% on BTC. The filter is whipsawed relentlessly, buying each violent rally just before the
+  next leg down.
+- **It is not a cost artifact.** At thin-market costs (5x the slippage) every result gets modestly
+  worse and none of the conclusions change: DOGE -4.7%/74.1%, SHIB -20.5%/72.7%, PEPE 27.0%/82.3%.
+- **The longer DOGE window agrees.** Using the linear perpetual from 2021-06-02, which captures
+  more of the post-2021 collapse: -8.5% CAGR and 72.8% drawdown, against -19.9% and 85.2% holding.
+
+**Why this happens, structurally.** A trend filter can only escape a decline slow enough to push
+price below a 125-day average and keep it there. Meme coins do not decline that way. They fall
+vertically and rally violently on attention alone, so the filter sells after the drop and buys back
+into the next false start. And the filter's usefulness on BTC rests on an assumption that does not
+transfer: that the asset recovers. Every BTC drawdown so far has. In this data DOGE sits 83% below
+its 2024 high, SHIB 89%, PEPE 88%. **When an asset may never come back, the answer is not to time
+it — it is not to own it.** Attention is a fashion, not a trend.
+
+**Honest limits of this check.** Each meme coin offers only three to five years and a single
+boom-bust cycle; PEPE's window is the shortest at three years. Reference year-end closes matched
+public values within 0.4% for DOGE and 1.8% for SHIB, but PEPE's check was inconclusive because the
+reference values used were themselves unreliable — its integrity checks were clean. Most
+importantly, **these three are the survivors.** The meme coins that went to zero were never listed
+on Bybit or were delisted, so they are absent from this data entirely. The real category result is
+worse than what is shown above.
+
+**Consequence for the product: meme coins are excluded, and an asset now has to earn its way in.**
+See `docs/decisions.md` #21. Commercially this matters more than it looks: the system would have
+traded a DOGE account 56 times over four years, looking busy and productive the whole time, while
+losing the user money — and under the flat-fee model (#16) they would pay for the privilege.
+
 ## Optional next research — does not block Phase 1
 
 - ~~**Blend 100, 125, and 150** into one signal, to reduce dependence on a single period.~~ Done —

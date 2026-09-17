@@ -35,6 +35,7 @@ are still open.
 | 18 | Timing of the legal opinion | Month one recommended | **OPEN** |
 | 19 | Phase 0 verdict and MA period | Passes, claims narrowed; MA-125, range 100–150 | **RECOMMENDED — founder to review** |
 | 20 | Exchange access and API key security | Own Bybit client; spot-only permission allowlist; sealed vault | DECIDED 2026-09-17 |
+| 21 | Which assets are tradable | BTC only; meme coins excluded on evidence; an asset must pass the out-of-asset check | **RECOMMENDED — founder to review** |
 
 **What blocks what:** Phase 0 is complete and #16 is decided, so Phase 1 is unblocked. The legal
 opinion (#18) gates opening the pilot to anyone other than the founder.
@@ -468,7 +469,8 @@ MA-100/125/150 reproduces MA-125, which is expected by construction, so MA-125 s
 the BTC-chosen period and no re-tuning, the filter still reduced the worst drawdown in both
 periods — 48% against 68% out-of-sample — so the effect is not unique to BTC. But the protection
 was much weaker than on BTC, and ETH's own best periods were entirely different. **Evidence
-supports BTC only; any other asset needs its own evidence.**
+supports BTC only; any other asset needs its own evidence.** Meme coins were then tested the
+same way and failed — see #21.
 
 **How much weight it bears:** thin. MA-125 made 27 round trips in seven years, one trade produced
 most of the in-sample result, and nearby periods behave quite differently. The evidence is
@@ -496,6 +498,46 @@ Full design: `docs/superpowers/specs/2026-09-17-phase-1-exchange-adapter-design.
 - **A key is re-validated every time it is used**, because permissions can be widened on the
   exchange after the key was stored.
 - **The founder enters keys in their own terminal with hidden input.** No agent ever handles them.
+
+## 21. Which assets are tradable — RECOMMENDED, founder to review
+
+Evidence: `docs/research/phase-0-findings.md`, *Robustness checks*.
+
+**BTC only. Meme coins are excluded.** DOGE, SHIB, and PEPE were each tested with BTC's MA-125
+unchanged. The filter reduced the worst drawdown on all three — and left it at 71-81%, against 33%
+on BTC. On DOGE and SHIB it still lost money over four and a half years; on PEPE it took half the
+return and delivered a worse Sharpe than simply holding. Neighbouring periods flip sign on every
+meme coin, so there is no stable setting to choose even in hindsight.
+
+The structural reason matters more than the numbers: a trend filter needs a decline slow enough to
+cross a long average and stay there, and it assumes the asset eventually recovers. Meme coins fall
+vertically, rally on attention, and may never come back. **An asset that might not recover should
+not be timed; it should not be held.**
+
+**The rule this sets:** an asset is tradable only after passing the out-of-asset check on its own
+history — BTC's chosen period, no re-tuning, a drawdown a real user would accept, and neighbouring
+periods that agree. BTC is the only asset that has passed. ETH did not: it cut drawdown but only to
+48%.
+
+**Alternatives considered:**
+
+- **Support meme coins because that is what the market asks for.** Rejected. It is the most
+  commercially tempting option and the one most likely to end the business: the system would trade
+  a DOGE account 56 times in four years, look busy, lose the user money, and charge a yearly fee for
+  it. In a market where crypto fraud is a live public issue, that is the story that gets told.
+- **Support them with a warning label.** Rejected. The evidence says the tool does not work there;
+  a disclaimer does not convert a product that loses money into one that does not.
+- **Re-tune the period per asset.** Rejected as curve fitting, and the tables show it would not even
+  work — the best period differs wildly per asset with no plateau anywhere.
+- **Offer them unfiltered, as plain holding.** Out of scope. The product exists to decide and
+  execute; a buy-and-hold button is a different product and needs its own case.
+
+**How much weight it bears:** solid for the negative claim, and the negative claim is the one being
+made. Three assets, one boom-bust cycle each, and they are the survivors — the meme coins that went
+to zero are absent from the data, which flatters the category rather than the conclusion.
+
+**If the founder wants to overrule this,** the bar is evidence on that specific asset, not
+enthusiasm for it, and the marketing cannot describe the result as protection.
 
 ## Corrections made along the way
 
