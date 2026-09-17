@@ -1,4 +1,5 @@
 import Decimal from 'decimal.js';
+import { getJson, type FetchLike } from '../net/http.js';
 import type { Candle } from '../types.js';
 
 /**
@@ -12,38 +13,6 @@ export const BYBIT_HOSTS = ['https://api.bybit.com', 'https://api.bytick.com'];
 const KLINE_PATH = '/v5/market/kline';
 const MAX_LIMIT = 1000;
 const DAY_MS = 86_400_000;
-
-type FetchResponse = { ok: boolean; status: number; json(): Promise<unknown> };
-export type FetchLike = (url: string) => Promise<FetchResponse>;
-
-/**
- * GETs `path` from the first host that can be reached.
- *
- * Moves to the next host ONLY when a request fails to connect at all — a DNS
- * failure or refused connection, which `fetch` signals by throwing. An HTTP
- * error means the exchange answered, so the problem is the request rather
- * than reachability; retrying on another host would hide it.
- */
-export async function getJson(
-  hosts: string[],
-  path: string,
-  fetchImpl: FetchLike = fetch,
-): Promise<unknown> {
-  for (const host of hosts) {
-    const url = `${host}${path}`;
-    let response: FetchResponse;
-    try {
-      response = await fetchImpl(url);
-    } catch {
-      continue;
-    }
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status} from ${url}`);
-    }
-    return response.json();
-  }
-  throw new Error(`could not reach any host: ${hosts.join(', ')}`);
-}
 
 /**
  * Bybit v5 kline rows arrive as string arrays, newest first:

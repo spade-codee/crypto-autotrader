@@ -3,7 +3,6 @@ import Decimal from 'decimal.js';
 import {
   closedCandles,
   fetchDailyCandles,
-  getJson,
   parseKlineResponse,
 } from '../../src/data/bybit.js';
 import type { Candle } from '../../src/types.js';
@@ -138,55 +137,5 @@ describe('fetchDailyCandles', () => {
     });
     expect(candles.map((c) => c.time)).toEqual([0, DAY]);
     expect(urls).toHaveLength(2);
-  });
-});
-
-describe('getJson', () => {
-  /** A fake fetch keyed by host: 'down' throws like a DNS failure, a number is an HTTP status. */
-  function fakeFetch(behaviour: Record<string, 'down' | number>) {
-    const calls: string[] = [];
-    const impl = async (url: string) => {
-      calls.push(url);
-      const host = new URL(url).host;
-      const b = behaviour[host];
-      if (b === 'down' || b === undefined) {
-        throw new TypeError('fetch failed');
-      }
-      return { ok: b >= 200 && b < 300, status: b, json: async () => ({ host }) };
-    };
-    return { impl, calls };
-  }
-
-  it('uses the first host when it answers', async () => {
-    const { impl, calls } = fakeFetch({ 'a.test': 200, 'b.test': 200 });
-    const body = await getJson(['https://a.test', 'https://b.test'], '/x', impl);
-    expect(body).toEqual({ host: 'a.test' });
-    expect(calls).toHaveLength(1);
-  });
-
-  it('falls back to the next host when a host cannot be reached', async () => {
-    // This is the real situation in Nigeria: api.bybit.com fails DNS resolution
-    // on blocked networks while api.bytick.com answers.
-    const { impl, calls } = fakeFetch({ 'a.test': 'down', 'b.test': 200 });
-    const body = await getJson(['https://a.test', 'https://b.test'], '/x', impl);
-    expect(body).toEqual({ host: 'b.test' });
-    expect(calls).toEqual(['https://a.test/x', 'https://b.test/x']);
-  });
-
-  it('does not fall back when a host answers with an HTTP error', async () => {
-    // The exchange responded, so the problem is the request, not reachability.
-    // Retrying elsewhere would hide a real error.
-    const { impl, calls } = fakeFetch({ 'a.test': 429, 'b.test': 200 });
-    await expect(getJson(['https://a.test', 'https://b.test'], '/x', impl)).rejects.toThrow(
-      'HTTP 429 from https://a.test/x',
-    );
-    expect(calls).toHaveLength(1);
-  });
-
-  it('names every host it tried when none can be reached', async () => {
-    const { impl } = fakeFetch({ 'a.test': 'down', 'b.test': 'down' });
-    await expect(getJson(['https://a.test', 'https://b.test'], '/x', impl)).rejects.toThrow(
-      'could not reach any host: https://a.test, https://b.test',
-    );
   });
 });
