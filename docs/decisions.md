@@ -34,6 +34,7 @@ are still open.
 | 17 | Billing currency | USDT | DECIDED 2026-09-17 |
 | 18 | Timing of the legal opinion | Month one recommended | **OPEN** |
 | 19 | Phase 0 verdict and MA period | Passes, claims narrowed; MA-125, range 100–150 | **RECOMMENDED — founder to review** |
+| 20 | Exchange access and API key security | Own Bybit client; spot-only permission allowlist; sealed vault | DECIDED 2026-09-17 |
 
 **What blocks what:** Phase 0 is complete and #16 is decided, so Phase 1 is unblocked. The legal
 opinion (#18) gates opening the pilot to anyone other than the founder.
@@ -181,7 +182,8 @@ The load-bearing choices:
 
 **Founder's read:** almost everyone in the community uses Bybit and Binance.
 
-**Chosen: Bybit first, Binance second**, behind a single adapter interface built on CCXT.
+**Chosen: Bybit first, Binance second**, behind a single adapter interface. (Originally planned
+on CCXT; replaced by an own client in Phase 1 — see #20.)
 
 **Why not Binance first:** it discontinued all naira services in March 2024 and remains in
 legal conflict with Nigeria.
@@ -214,13 +216,13 @@ Confirm the app supports API key creation before designing that flow.
 The instinct in trading software is Python. It was rejected because the architecture's central
 guarantee — a single strategy implementation shared by backtest and production — cannot be
 enforced across two languages. A moving average over roughly 4,000 daily candles does not need
-pandas. CCXT is first-class in TypeScript, types are shared from backend to frontend, and one
+pandas. Types are shared from backend to frontend, and one
 person maintains one toolchain.
 
 Python remains fine for throwaway research that never becomes execution code.
 
-**Stack:** Node 22 LTS, Hono, Postgres, Drizzle, `decimal.js` with Postgres `NUMERIC`, `pg-boss`,
-CCXT behind an adapter, Zod, React + Vite + Tailwind + shadcn/ui, `lightweight-charts`,
+**Stack:** Node 24 LTS, Hono, Postgres (PGlite in development and tests), Drizzle, `decimal.js`
+with Postgres `NUMERIC`, `pg-boss`, an own Bybit client (CCXT was dropped — #20), Zod, React + Vite + Tailwind + shadcn/ui, `lightweight-charts`,
 `better-auth`, `systemd`, Caddy, Sentry, Healthchecks.io, a Telegram bot for ops alerts, and
 Resend. Rationale for each is in `docs/stack-and-setup.md`.
 
@@ -470,6 +472,23 @@ too little spot history to tune on, no warm-up in the out-of-sample test, and a 
 ignored fees. Left in place, the spot-only data would have made the strategy look far better
 than it is: on 2022 onward, MA-200 appeared to double buy-and-hold's growth at half the
 drawdown. Details in the Phase 0 plan's execution notes.
+
+## 20. Exchange access and API key security — DECIDED 2026-09-17
+
+Full design: `docs/superpowers/specs/2026-09-17-phase-1-exchange-adapter-design.md`.
+
+- **Our own Bybit client, not CCXT.** CCXT declares every price, amount, and balance as a
+  JavaScript `number` (verified in its source), which breaks the no-floats rule. This reverses
+  the CCXT choice in #9.
+- **Keys are validated against an allowlist:** the only permission allowed is `Spot: SpotTrade`.
+  Anything else is rejected with the exact permission to remove, so a dangerous permission Bybit
+  adds in future is refused rather than silently accepted.
+- **Mainnet keys must be IP-restricted to our servers.** A stolen key is useless elsewhere.
+- **Credentials are sealed with AES-256-GCM**, bound to their owner, under a versioned master key
+  that never enters git.
+- **A key is re-validated every time it is used**, because permissions can be widened on the
+  exchange after the key was stored.
+- **The founder enters keys in their own terminal with hidden input.** No agent ever handles them.
 
 ## Corrections made along the way
 

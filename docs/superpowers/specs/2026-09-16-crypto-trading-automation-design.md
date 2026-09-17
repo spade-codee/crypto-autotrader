@@ -260,7 +260,9 @@ instead of a user's.
 - **Backend:** Node/Bun. Worker process separate from the web application, so a web deploy
   cannot interrupt an execution cycle.
 - **Database:** Postgres. The ledger needs transactional integrity.
-- **Exchange access:** CCXT, wrapped behind our own adapter interface.
+- **Exchange access:** our own Bybit v5 client behind an adapter interface. CCXT was the original
+  choice and was dropped in Phase 1 because it returns floats — see
+  `2026-09-17-phase-1-exchange-adapter-design.md`.
 - **Secrets:** managed KMS for the vault's envelope key.
 
 ---

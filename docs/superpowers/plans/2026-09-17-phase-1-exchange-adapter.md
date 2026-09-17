@@ -3208,3 +3208,58 @@ git push
 - [ ] `grep -rn "parseFloat\|Number(.*walletBalance" src/` finds nothing
 - [ ] `grep -rn "from '../vault\|from '../../vault" src/exchange/` finds nothing — the exchange layer never depends on the vault
 - [ ] The branch is merged to `master` only after the founder confirms Task 15
+
+---
+
+## Execution notes — 2026-09-17
+
+Tasks 1–14 and 16 were executed on branch `phase-1-exchange-adapter`; **Task 15 awaits the
+founder**. The suite ends at 156 tests. Where the code differs from the task text above, the code
+and these notes are authoritative.
+
+**Deviations**
+
+1. **Tests share one database per file (Tasks 8 and 13).** The plan opened a fresh PGlite database
+   for every test through `openTestVault()`. Starting PGlite takes about four seconds, so the
+   seven-test vault file took 30 seconds. `tests/helpers/vault.ts` now provides
+   `useTestDatabase()`: one in-memory database per file, emptied before each test. The vault file
+   dropped to under 7 seconds and the whole suite runs in about 8. `openTestVault()` was removed,
+   and a guard test, "starts every test with an empty database", proves the isolation holds —
+   which makes the vault file 8 tests rather than 7.
+2. **One accepted development-only advisory (Task 1).** `npm audit --omit=dev` reports 0
+   vulnerabilities, as the plan requires. The full audit reports four moderate findings, all
+   GHSA-67mh-4wv8-2f99 in esbuild 0.18.20, pulled in by `drizzle-kit` through
+   `@esbuild-kit/core-utils`. The advisory concerns esbuild's development server, which
+   `drizzle-kit` never starts — it uses esbuild only to transpile its config and schema. The only
+   offered fix is a forced breaking change, so it was accepted.
+3. **Stale references corrected beyond Task 16's list.** CCXT and Node 22 also appeared in
+   `README.md`, `docs/decisions.md` #8 and #9, the language section of `docs/stack-and-setup.md`,
+   and the original design spec. All now point to the own Bybit client and Node 24. The README's
+   stage description and next-step link were also out of date.
+
+**Verification beyond the unit tests**
+
+- **Live testnet check with a made-up key (Task 10).** A signed request to Bybit testnet returned
+  `retCode 10003, "API key is invalid."` — Bybit accepted the synchronised timestamp and request
+  format and rejected only the key. Both the time request and the signed request fell back from
+  `api-testnet.bybit.com`, which is DNS-blocked on the founder's network, to
+  `api-testnet.bytick.com`. This does **not** prove the signature is correct, because Bybit rejects
+  an unknown key before checking signatures; the pinned vector and Task 15 cover that.
+- **Command smoke tests (Task 14).** Piped input to `key:add` is refused before anything is opened.
+  `key:check` without a master key explains how to create one and creates no database. In a scratch
+  folder with a throwaway master key, `vault:init` wrote `.env.local` and refused to overwrite it,
+  and `key:check` created an on-disk PGlite database, applied the migration, and reported that no
+  key was stored. The scratch folder was deleted afterwards. **No `.env.local` was created in the
+  repository** — the founder's master key is theirs to create and back up.
+
+**Definition of done, status**
+
+| Check | Result |
+|---|---|
+| `npm test` | 156 passed, none skipped |
+| `npm run typecheck` | No errors |
+| `npm audit --omit=dev` | 0 vulnerabilities |
+| No floats for money in `src/` | None found |
+| `src/exchange/` never imports `src/vault/` | None found |
+| Task 15 — founder's testnet verification | **Pending** |
+| Merge to `master` | After Task 15 |

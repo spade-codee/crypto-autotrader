@@ -22,7 +22,9 @@ Given one language, TypeScript wins:
 - The strategy is a moving average over daily candles: roughly 4,000 data points and about
   100 lines of arithmetic. This workload does not need pandas. The Python advantage is real
   for machine learning and heavy statistics, and irrelevant here.
-- CCXT, the exchange library, is first-class in TypeScript.
+- Exchange access needs no library: Bybit request signing is a few dozen lines, and owning it
+  keeps every amount a string until it becomes a `Decimal`. (CCXT was the original choice and was
+  dropped in Phase 1 because it returns floats — see the Exchange access row below.)
 - Frontend and backend share types. An `Order` or `Position` type is defined once.
 - One runtime, one package manager, one deployment story, one debugger — which matters when
   one person maintains all of it.
@@ -39,13 +41,13 @@ becomes the single source of truth. Research code is not execution code.
 | Layer | Choice | Why |
 |---|---|---|
 | Language | TypeScript, `strict: true` | Above |
-| Runtime | Node 22 LTS | Bun is fine for frontend tooling; for a long-running process that moves money, Node's maturity with Postgres drivers and process supervision is worth more than the speed |
+| Runtime | Node 24 LTS | Node 22 reaches end-of-life in April 2027, around when the pilot opens. Bun is fine for frontend tooling; for a long-running process that moves money, Node's maturity with Postgres drivers and process supervision is worth more than the speed |
 | API | Hono | Small, fast, excellent TypeScript inference; this API is not big enough to need Fastify's plugin ecosystem |
-| Database | Postgres | The ledger needs real transactions |
+| Database | Postgres; PGlite in development and tests | The ledger needs real transactions. PGlite is Postgres compiled to WebAssembly, so neither development machine needs a database installed |
 | ORM | Drizzle | TypeScript-first, generates honest SQL, trivial escape hatch to raw SQL for reporting queries |
 | Money math | `decimal.js` + Postgres `NUMERIC` | See section 3 — this is not optional |
 | Jobs / scheduling | `pg-boss` | Postgres-backed queue, so no Redis to run and pay for. In-process `node-cron` is disqualified: it dies with the process and leaves no record of whether a cycle ran |
-| Exchange access | CCXT, behind our own adapter | Bybit now, Binance later, one interface |
+| Exchange access | Our own Bybit v5 client | CCXT types every amount as a JavaScript `number`, which breaks the no-floats rule. Bybit signing is a few dozen lines. Binance later gets a second client behind the same interface. See `docs/superpowers/specs/2026-09-17-phase-1-exchange-adapter-design.md` |
 | Validation | Zod | Validate every exchange response; never trust a third-party payload's shape |
 | Frontend | React + Vite + Tailwind + shadcn/ui | Static build, no server process — see section 3.4 for why not Next.js |
 | Marketing site (later) | Astro | Static output for the public landing and track-record pages, served by the same Caddy |

@@ -1,7 +1,8 @@
 # crypto-autotrader
 
-Non-custodial crypto trading automation for the Nigerian market. **Design and research stage —
-no application code yet.**
+Non-custodial crypto trading automation for the Nigerian market. **Early build:** the strategy
+backtest (Phase 0) and a read-only, encrypted Bybit connection (Phase 1) exist. Nothing places
+orders yet.
 
 Users connect their own exchange account with a trade-only API key, with withdrawals disabled.
 The software runs a mechanical BTC trend-following strategy on their account. Funds never leave
@@ -16,14 +17,14 @@ the user's exchange.
 | **Start here** | [`docs/decisions.md`](docs/decisions.md) — every decision, why it was made, and what is still open |
 | Agent orientation | [`CLAUDE.md`](CLAUDE.md) |
 | Design spec | [`docs/superpowers/specs/`](docs/superpowers/specs/) |
-| Next build step | [`docs/superpowers/plans/2026-09-16-phase-0-backtest.md`](docs/superpowers/plans/2026-09-16-phase-0-backtest.md) |
+| Current phase | [`docs/superpowers/plans/2026-09-17-phase-1-exchange-adapter.md`](docs/superpowers/plans/2026-09-17-phase-1-exchange-adapter.md) |
 | Stack and setup | [`docs/stack-and-setup.md`](docs/stack-and-setup.md) |
 | Brand | [`docs/brand.md`](docs/brand.md) |
 | Research | [`docs/research/`](docs/research/) |
 
 ## Setting up a new machine
 
-1. Install **Node 22 LTS**, **Git**, and the **GitHub CLI**.
+1. Install **Node 24 LTS**, **Git**, and the **GitHub CLI**.
 
 2. Sign in to GitHub and clone:
 
