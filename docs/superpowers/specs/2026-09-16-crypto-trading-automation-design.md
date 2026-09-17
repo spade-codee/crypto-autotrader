@@ -94,7 +94,9 @@ at this stage.
 **Rule:** hold the asset while its price is above a long moving average; hold stablecoin
 when it is below.
 
-- Asset: **BTC only** for v1. Most liquid, simplest. ETH follows once the system is proven.
+- Asset: **BTC only** for v1. Most liquid, simplest. **Another asset needs its own evidence** —
+  tested on ETH with no re-tuning, the BTC filter gave far weaker protection, and ETH's best periods
+  were entirely different (`docs/research/phase-0-findings.md`, *Robustness checks*).
 - Timeframe: **daily candles.** One execution cycle per day.
 - Venue: **Bybit spot** first. Binance second, behind the same adapter interface.
 - **Spot only. No leverage, no futures, no margin.**

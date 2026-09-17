@@ -463,6 +463,13 @@ then confirmed out-of-sample, where 100–175 all held up.
 - **It sharpens #16.** Users already pay for protection with lower returns in bull markets; a fee
   is a second, guaranteed cost on top.
 
+**Robustness checks, 2026-09-17** (`docs/research/phase-0-findings.md`). A vote across
+MA-100/125/150 reproduces MA-125, which is expected by construction, so MA-125 stays. On ETH, with
+the BTC-chosen period and no re-tuning, the filter still reduced the worst drawdown in both
+periods — 48% against 68% out-of-sample — so the effect is not unique to BTC. But the protection
+was much weaker than on BTC, and ETH's own best periods were entirely different. **Evidence
+supports BTC only; any other asset needs its own evidence.**
+
 **How much weight it bears:** thin. MA-125 made 27 round trips in seven years, one trade produced
 most of the in-sample result, and nearby periods behave quite differently. The evidence is
 necessary, not sufficient.

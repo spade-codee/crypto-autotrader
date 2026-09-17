@@ -4,7 +4,8 @@ import { runBacktest } from '../backtest/engine.js';
 import { DEFAULT_COSTS } from '../backtest/costs.js';
 import { formatComparison } from '../backtest/report.js';
 import { parseCandleCsv } from '../data/csv.js';
-import { LONG_HISTORY, SPOT, type Dataset } from '../data/datasets.js';
+import { ASSETS, parseAsset, type Dataset } from '../data/datasets.js';
+import { majorityVote } from '../strategy/ensemble.js';
 import { buyAndHold, trendFilter } from '../strategy/trendFilter.js';
 import type { Candle } from '../types.js';
 
@@ -12,7 +13,12 @@ const DAY = 86_400_000;
 const CAPITAL = new Decimal(process.env.CAPITAL ?? 1000);
 const SPLIT = new Date(process.env.SPLIT ?? '2023-01-01T00:00:00Z').getTime();
 const PERIODS = [20, 30, 50, 75, 100, 125, 150, 175, 200, 225, 250, 300];
-const MAX_PERIOD = Math.max(...PERIODS);
+/** The region chosen on BTC in-sample. The vote tests whether one exact period was lucky. */
+const VOTE_PERIODS = [100, 125, 150];
+const MAX_PERIOD = Math.max(...PERIODS, ...VOTE_PERIODS);
+
+const ASSET = parseAsset(process.env.ASSET);
+const { spot: SPOT, longHistory: LONG_HISTORY } = ASSETS[ASSET];
 
 const iso = (time: number) => new Date(time).toISOString().slice(0, 10);
 
@@ -21,21 +27,26 @@ async function load(dataset: Dataset): Promise<Candle[]> {
 }
 
 /**
- * Runs every period plus buy-and-hold over one evaluation window. Every row is
- * measured over identical dates, and every strategy has at least a full period
- * of warm-up history before the window opens.
+ * Runs every period, the vote, and buy-and-hold over one evaluation window.
+ * Every row is measured over identical dates, and every strategy has at least a
+ * full period of warm-up history before the window opens.
  */
 function sweep(candles: Candle[], evaluateFrom: number, heading: string): void {
   const last = candles[candles.length - 1]!.time;
   console.log(`\n=== ${heading} ===`);
   console.log(`evaluated ${iso(evaluateFrom)} to ${iso(last)}, warm-up from ${iso(candles[0]!.time)}\n`);
 
-  const results = PERIODS.map((period) =>
-    runBacktest(candles, trendFilter({ maPeriod: period }), DEFAULT_COSTS, CAPITAL, `MA-${period}`, {
-      evaluateFrom,
-    }),
+  const run = (strategy: Parameters<typeof runBacktest>[1], label: string) =>
+    runBacktest(candles, strategy, DEFAULT_COSTS, CAPITAL, label, { evaluateFrom });
+
+  const results = PERIODS.map((period) => run(trendFilter({ maPeriod: period }), `MA-${period}`));
+  results.push(
+    run(
+      majorityVote(VOTE_PERIODS.map((maPeriod) => trendFilter({ maPeriod }))),
+      `Vote ${VOTE_PERIODS[0]}-${VOTE_PERIODS[VOTE_PERIODS.length - 1]}`,
+    ),
   );
-  results.push(runBacktest(candles, buyAndHold, DEFAULT_COSTS, CAPITAL, 'Buy & Hold', { evaluateFrom }));
+  results.push(run(buyAndHold, 'Buy & Hold'));
 
   console.log(formatComparison(results));
 }
@@ -57,12 +68,12 @@ async function main(): Promise<void> {
   }
 
   console.log(
-    `Costs: ${DEFAULT_COSTS.feeRate.times(100)}% fee, ${DEFAULT_COSTS.slippageRate.times(100)}% slippage, both sides`,
+    `${ASSET}. Costs: ${DEFAULT_COSTS.feeRate.times(100)}% fee, ${DEFAULT_COSTS.slippageRate.times(100)}% slippage, both sides`,
   );
 
   sweep(inSample, inSampleFrom, `IN-SAMPLE — ${LONG_HISTORY.symbol} ${LONG_HISTORY.category} (choose the period here)`);
   sweep(long, SPLIT, `OUT-OF-SAMPLE — ${LONG_HISTORY.symbol} ${LONG_HISTORY.category} (verify it here — do NOT choose here)`);
-  sweep(spot, SPLIT, `OUT-OF-SAMPLE — ${SPOT.symbol} ${SPOT.category} (same window on the traded market)`);
+  sweep(spot, SPLIT, `OUT-OF-SAMPLE — ${SPOT.symbol} ${SPOT.category} (same window on the spot market)`);
 
   console.log(
     [
@@ -78,6 +89,10 @@ async function main(): Promise<void> {
       '     product promise; matching or beating CAGR is a bonus, not the point.',
       '  5. The two out-of-sample tables should broadly agree. If they do not, the',
       '     long-history proxy is not standing in for spot as well as assumed.',
+      `  6. The Vote row should resemble its neighbours. If it differs sharply,`,
+      '     results depend on one exact period rather than on the trend itself.',
+      '  7. For any asset other than BTC, do NOT re-choose a period here. Judge',
+      '     the period chosen on BTC; re-tuning per asset is curve fitting.',
       '',
     ].join('\n'),
   );

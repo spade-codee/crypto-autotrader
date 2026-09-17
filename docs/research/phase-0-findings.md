@@ -194,8 +194,64 @@ Four patterns:
 
 This result is necessary evidence, not sufficient.
 
+## Robustness checks — 2026-09-17
+
+Both checks recommended below were run. Reproduce with `npm run fetch`, then `ASSET=BTC npm run sweep`
+and `ASSET=ETH npm run sweep`.
+
+### Does the result depend on one exact period?
+
+A majority vote across MA-100, MA-125 and MA-150 was added to the sweep.
+
+| | Vote 100–150 | MA-125 |
+|---|---|---|
+| BTC in-sample | 55.6% CAGR, 33.6% max drawdown, Sharpe 1.20 | 59.1%, 34.4%, 1.24 |
+| BTC out-of-sample | 41.5%, 28.4%, 1.14 | 42.0%, 27.4%, 1.15 |
+
+**The vote adds little independent evidence.** A majority vote of three moving-average thresholds is
+LONG exactly when price sits above at least two of them, which in a trending market is decided by
+the middle one — so the vote largely reproduces MA-125 by construction. The meaningful evidence
+against a lucky single period remains that every period from 100 to 175 held up out-of-sample on
+BTC. **MA-125 stays the recommendation**: it performs the same and is simpler to explain.
+
+### Does the effect exist beyond BTC?
+
+ETH was tested with **the period chosen on BTC and no re-tuning** — re-choosing a period per asset
+would itself be curve fitting. Data: Bybit ETHUSD inverse perpetual from 2019-01-25 (2,792 daily
+candles) and ETHUSDT spot from 2021-07-05 (1,900). Both files have zero gaps and zero OHLC
+violations, year-end closes for 2021–2024 sit within 0.16% of widely reported values, and the
+perpetual tracks spot closely — median daily divergence 0.057%, and MA-100/125/150/200 signals
+agreeing on 99.89–100% of days.
+
+| ETH | MA-125 | Buy and hold |
+|---|---|---|
+| In-sample, 2019-11-21 to 2022-12-31 — max drawdown | **67.1%** | 79.4% |
+| In-sample — CAGR / Sharpe | 58.5% / 1.00 | **85.5% / 1.16** |
+| Out-of-sample, 2023-01-01 to 2026-09-16 — max drawdown | **48.3%** | 67.6% |
+| Out-of-sample — CAGR / Sharpe | **30.9% / 0.84** | 20.8% / 0.61 |
+
+The out-of-sample result on ETH spot agrees: 31.3% CAGR, 47.6% max drawdown, Sharpe 0.85.
+
+What this shows:
+
+1. **The drawdown reduction is not unique to BTC.** On an asset it was never tuned on, the BTC
+   filter cut the worst drawdown in both periods, and out-of-sample it beat holding on every
+   measure.
+2. **But the protection is much weaker on ETH.** It roughly halved BTC's worst drawdown; on ETH it
+   trimmed it by about 15% in-sample and 30% out-of-sample, still leaving losses of 48–67%. No user
+   would experience that as protection.
+3. **The period does not transfer.** Choosing on ETH's own in-sample data, 100–150 was among the
+   *worst* regions; the best ETH periods were very short (MA-30) or very long (MA-300). There is no
+   shared plateau.
+
+**Consequence for the product:** the evidence supports BTC only. The design spec's assumption that
+"ETH follows once the system is proven" does not hold — a proven BTC system says little about ETH.
+Any additional asset needs its own evidence first, and its own honest description of how much
+protection it offers.
+
 ## Optional next research — does not block Phase 1
 
-- **Blend 100, 125, and 150** into one signal, to reduce dependence on a single period.
-- **Run the same test on ETH** as an out-of-asset check. If the effect only exists for BTC, it may
+- ~~**Blend 100, 125, and 150** into one signal, to reduce dependence on a single period.~~ Done —
+  see *Robustness checks*.
+- ~~**Run the same test on ETH** as an out-of-asset check.~~ Done — see *Robustness checks*. If the effect only exists for BTC, it may
   be an artefact of BTC's particular history.
