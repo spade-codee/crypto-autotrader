@@ -22,7 +22,7 @@ are still open.
 | 5 | First market | Nigeria | DECIDED |
 | 6 | Positioning and pricing | SaaS tool; free pilot, then flat monthly fee | **REOPENED** |
 | 7 | Architecture | Eight components, pure strategy engine | DECIDED |
-| 8 | First exchange | Bybit, then Binance | DECIDED — verify access |
+| 8 | First exchange | Bybit, then Binance | DECIDED — access verified 2026-09-17 |
 | 9 | Language | TypeScript everywhere | DECIDED |
 | 10 | Hosting | Founder's existing VPS | DECIDED |
 | 11 | Frontend | Vite SPA, not Next.js | DECIDED |
@@ -30,13 +30,13 @@ are still open.
 | 13 | Typography | IBM Plex Sans + IBM Plex Mono | DECIDED |
 | 14 | Name | Keel chosen, then rejected | **OPEN** |
 | 15 | Build order | Phase 0 offline backtest first | DECIDED |
-| 16 | Target account size and fee model | Three-way fork | **OPEN — blocking** |
-| 17 | Billing currency | USDT recommended | **OPEN** |
+| 16 | Target account size and fee model | Place trades; flat yearly fee; free below an account-size threshold | DECIDED 2026-09-17 — price and threshold set by the pilot |
+| 17 | Billing currency | USDT | DECIDED 2026-09-17 |
 | 18 | Timing of the legal opinion | Month one recommended | **OPEN** |
 | 19 | Phase 0 verdict and MA period | Passes, claims narrowed; MA-125, range 100–150 | **RECOMMENDED — founder to review** |
 
-**What blocks what:** Phase 0 is complete. Phase 1 onward waits for #16, because it changes who
-the product is for — and #19 makes that decision sharper.
+**What blocks what:** Phase 0 is complete and #16 is decided, so Phase 1 is unblocked. The legal
+opinion (#18) gates opening the pilot to anyone other than the founder.
 
 ---
 
@@ -189,6 +189,22 @@ latest reporting, **web access is carrier-dependent** — available on some netw
 others — while **mobile apps and naira P2P work**. That is onboarding friction, not a dead end,
 but the current reality should be confirmed directly before building the adapter.
 
+**Verified 2026-09-17 from the founder's network:**
+
+| Host | Result |
+|---|---|
+| `api.bybit.com`, `api-testnet.bybit.com` | Blocked — DNS resolution fails |
+| `bybit.com`, `www.bybit.com`, `testnet.bybit.com` | Blocked — DNS resolution fails |
+| `api.bytick.com`, `api-testnet.bytick.com` | Reachable |
+| `testnet.bytick.com` | Reachable — testnet API keys can be created here |
+| `www.bytick.com`, `www.bybitglobal.com` | Reachable, but refuse scripted requests; likely fine in a browser |
+
+The API is fully usable through Bybit's official alternate domain, and the code falls back to
+it automatically. **Onboarding implication for Phase 4:** a user on a blocked network cannot
+open `bybit.com` to create an API key. Onboarding must direct them to a route that works —
+the Bybit mobile app, which reporting says functions on blocked networks, or a working mirror.
+Confirm the app supports API key creation before designing that flow.
+
 ## 9. Language — DECIDED
 
 **Chosen: TypeScript everywhere.**
@@ -317,7 +333,38 @@ Two properties of that plan matter most:
 - **Parameters are chosen in-sample and verified out-of-sample**, from a broad plateau of
   working values rather than the single best one. Picking the best number is curve fitting.
 
-## 16. Target account size and fee model — OPEN, blocking
+## 16. Target account size and fee model — DECIDED 2026-09-17
+
+**Decided: the product places trades for users, and charges a flat yearly fee in USDT.
+Accounts below a size threshold use it free.** The exact price and threshold are set during
+the pilot, which exists to measure what people will actually pay.
+
+Why, in light of the Phase 0 result (#19):
+
+- **Profit share charges for the wrong thing.** The product's value is losses avoided. In the
+  2021–22 crash its worst drop was 34% against buy-and-hold's 77% — when it earned its keep —
+  yet a profit share would have charged nothing, because the account still fell. Revenue would
+  also arrive in lumps: one large trend per cycle, then months below each user's high-water
+  mark, exactly when users are most upset. And it most resembles regulated fund management.
+- **Signals-only removes what works.** The strategy changes position roughly 5–10 times a
+  year, and every change is a frightening moment. Automating those moments is the product.
+- **A flat fee matches what the product is — insurance** — which is sold as a flat premium,
+  and it keeps revenue steady through the bear markets when users need it most.
+- **A free tier is affordable**, because each user costs one daily check and a few trades a
+  year. Small accounts become word of mouth and track record rather than revenue.
+- **Yearly rather than monthly** means fewer payments to fail, and no charge in a quiet month
+  where nothing visibly happened.
+
+**Accepted weakness:** for someone who would hold calmly through every crash, any fee makes
+this a worse deal. The fee is only earned from people who would otherwise panic-sell. That is
+the product's premise, and the pilot has to prove it.
+
+**Why Phase 1 needed only part of this decision:** flat fee versus profit share changes no
+Phase 1 code. Placing trades versus sending signals does, because a signals-only product needs
+no user API keys at all.
+
+The research that informed the decision follows.
+
 
 Two research agents, working independently, reached the same arithmetic:
 
@@ -359,12 +406,12 @@ OKX's Signal Bot plus a TradingView webhook can replicate it — so the value is
 a verifiable track record, and local distribution. The likeliest long-term threat is Bybit or
 Bitget shipping a Nigerian-marketed spot-trend template.
 
-## 17. Billing currency — OPEN, recommended
+## 17. Billing currency — DECIDED 2026-09-17
 
 Naira cards are routinely declined for recurring international subscriptions under CBN foreign
 exchange caps. Users already hold USDT in the very exchange account being connected.
 
-**Recommended: bill in USDT.** None of the eight international competitors researched designs
+**Decided: bill in USDT.** None of the eight international competitors researched designs
 around this failure point.
 
 ## 18. Timing of the legal opinion — OPEN, recommended

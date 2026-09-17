@@ -27,16 +27,18 @@ first phase, product research, and a full decision log.
 | Product research | Complete — and it **reopened the business model** |
 | Name | **Undecided** — "Keel" was rejected after a verified conflict |
 
-**Decisions waiting on the founder:**
+**Decided 2026-09-17:** the product places trades for users, with a flat yearly fee in USDT and a
+free tier below an account-size threshold. The pilot sets the price and threshold.
+`docs/decisions.md` #16 and #17.
 
-1. **Target account size and fee model** — flat fee at $3,000+ accounts, profit share at small
-   accounts, or signals only. This is the blocking one. See `docs/decisions.md` #16. Phase 0
-   sharpened it: users already give up return in bull markets, so a fee is a second cost.
-2. **Review the Phase 0 verdict** — `docs/research/phase-0-findings.md`. See `docs/decisions.md` #19.
-3. **The name** — Duro is recommended. See `docs/brand.md` section 2.
-4. Billing in USDT, and moving the legal opinion to month one — both recommended. `docs/decisions.md` #17 and #18.
-5. **Upgrade Node on both machines** to 22.12+ (or 24) before Phase 1. One machine runs Node 20,
-   which reached end-of-life in April 2026; `vitest` was held at 4.1.11 because 5.x needs 22.12+.
+**Waiting on the founder:**
+
+1. **Review the Phase 0 verdict** — `docs/research/phase-0-findings.md`. See `docs/decisions.md` #19.
+2. **The name** — Duro is recommended. See `docs/brand.md` section 2.
+3. **The legal opinion, in month one** — it gates opening the pilot to anyone but the founder.
+   `docs/decisions.md` #18.
+4. **Upgrade Node on both machines** to Node 24 LTS. One machine runs Node 20, which reached
+   end-of-life in April 2026; `vitest` is held at 4.1.11 because 5.x needs Node 22.12+.
 
 ## Read in this order
 
@@ -54,10 +56,11 @@ first phase, product research, and a full decision log.
 **Phase 0 is done.** To reproduce its result on any machine: `npm install`, `npm run fetch`, then
 `npm run sweep`.
 
-**Do not start Phase 1 or later** until the founder resolves the fee-model decision. It changes
-who the product is for, and therefore onboarding, pricing, and licensing exposure.
+**Phase 1 is unblocked** — the read-only Bybit adapter, encrypted key vault, and key
+validation. Its design is agreed with the founder before any plan is written, so check
+`docs/superpowers/specs/` and `docs/superpowers/plans/` for Phase 1 documents before starting.
 
-Work that does not depend on that decision, if the founder asks for it:
+Other work, if the founder asks for it:
 
 - The optional research in `docs/research/phase-0-findings.md` — blending MA-100/125/150 into one
   signal, and repeating the test on ETH as an out-of-asset check.

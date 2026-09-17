@@ -11,7 +11,8 @@
 > 1. **Target account size and pricing.** A flat monthly fee cannot be carried by $100–$1,000
 >    accounts: $10/month is 12% of a $1,000 account a year and 40% of a $300 one. The viable
 >    flat-fee segment starts around $3,000. Profit share fits small accounts but is what
->    triggers portfolio-management classification. **Open decision** — `docs/decisions.md` #16.
+>    triggers portfolio-management classification. **Decided 2026-09-17:** place trades, flat yearly
+>    fee in USDT, free below an account-size threshold — `docs/decisions.md` #16.
 > 2. **Regulatory exposure.** SEC Nigeria VASP rules cover activity "for or on behalf of another
 >    person", and no software carve-out was located. The legal opinion should move to month
 >    one rather than wait for the pilot — `docs/decisions.md` #18.
