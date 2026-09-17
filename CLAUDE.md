@@ -22,39 +22,60 @@ first phase, product research, and a full decision log.
 | Area | State |
 |---|---|
 | Design | Approved |
-| Phase 0 implementation plan | **In progress on branch `phase-0-backtest`** — check it out and continue; do not restart from `master` |
+| Phase 0 — strategy proof | **Complete** on branch `phase-0-backtest`. 67 tests. Result in `docs/research/phase-0-findings.md` |
+| Phase 0 result | **Passes, with claims narrowed.** Out-of-sample, MA-125 cut max drawdown to 27.4% from buy-and-hold's 53.1%, but gave up ~9 points of annual growth. Insurance, not a return enhancer |
 | Product research | Complete — and it **reopened the business model** |
 | Name | **Undecided** — "Keel" was rejected after a verified conflict |
 
 **Decisions waiting on the founder:**
 
 1. **Target account size and fee model** — flat fee at $3,000+ accounts, profit share at small
-   accounts, or signals only. This is the blocking one. See `docs/decisions.md` #16.
-2. **The name** — Duro is recommended. See `docs/brand.md` section 2.
-3. Billing in USDT, and moving the legal opinion to month one — both recommended. `docs/decisions.md` #17 and #18.
+   accounts, or signals only. This is the blocking one. See `docs/decisions.md` #16. Phase 0
+   sharpened it: users already give up return in bull markets, so a fee is a second cost.
+2. **Review the Phase 0 verdict** — `docs/research/phase-0-findings.md`. See `docs/decisions.md` #19.
+3. **The name** — Duro is recommended. See `docs/brand.md` section 2.
+4. Billing in USDT, and moving the legal opinion to month one — both recommended. `docs/decisions.md` #17 and #18.
+5. **Upgrade Node on both machines** to 22.12+ (or 24) before Phase 1. One machine runs Node 20,
+   which reached end-of-life in April 2026; `vitest` was held at 4.1.11 because 5.x needs 22.12+.
 
 ## Read in this order
 
 1. **`docs/decisions.md`** — every decision, the alternatives, the reasoning, and what is still open. Start here.
-2. `docs/superpowers/specs/2026-09-16-crypto-trading-automation-design.md` — the design spec. Read its 2026-09-17 update note first.
-3. `docs/superpowers/plans/2026-09-16-phase-0-backtest.md` — the next thing to build.
-4. `docs/stack-and-setup.md` — stack choices, and the operational pitfalls that cost real money.
-5. `docs/brand.md` — palette, typography, voice rules, and name status.
-6. `docs/research/` — validation, competitor teardown, naming, landing copy.
+2. `docs/research/phase-0-findings.md` — whether the strategy works, and what that means for the product.
+3. `docs/superpowers/specs/2026-09-16-crypto-trading-automation-design.md` — the design spec. Read its 2026-09-17 update note first.
+4. `docs/superpowers/plans/2026-09-16-phase-0-backtest.md` — what Phase 0 built. Its closing
+   *Execution notes* explain where the code deliberately differs from the plan.
+5. `docs/stack-and-setup.md` — stack choices, and the operational pitfalls that cost real money.
+6. `docs/brand.md` — palette, typography, voice rules, and name status.
+7. `docs/research/` — validation, competitor teardown, naming, landing copy.
 
 ## What to do next
 
-**Phase 0 can start now.** It does not depend on any open decision, because the strategy has to
-work regardless of who it is eventually sold to.
-
-Execute `docs/superpowers/plans/2026-09-16-phase-0-backtest.md` task by task, using the
-`superpowers:subagent-driven-development` or `superpowers:executing-plans` skill as the plan's
-header specifies. Its deliverable is a decision rather than code:
-`docs/research/phase-0-findings.md`, recording whether the trend filter reduces drawdown against
-buy-and-hold on **out-of-sample** data.
+**Phase 0 is done.** To reproduce its result on any machine: `npm install`, `npm run fetch`, then
+`npm run sweep`.
 
 **Do not start Phase 1 or later** until the founder resolves the fee-model decision. It changes
 who the product is for, and therefore onboarding, pricing, and licensing exposure.
+
+Work that does not depend on that decision, if the founder asks for it:
+
+- The optional research in `docs/research/phase-0-findings.md` — blending MA-100/125/150 into one
+  signal, and repeating the test on ETH as an out-of-asset check.
+- The waitlist landing page, once a name is chosen — copy is drafted in `docs/research/landing-copy.md`.
+
+## Running the code
+
+| Command | Does |
+|---|---|
+| `npm test` | Unit tests (Vitest) |
+| `npm run typecheck` | `tsc --noEmit` |
+| `npm run fetch` | Downloads Bybit spot and long-history daily candles into `data/` (gitignored) |
+| `npm run backtest` | MA-200 against buy-and-hold on both datasets. Set `MA_PERIOD` to change |
+| `npm run sweep` | Every period, in-sample and out-of-sample — the Phase 0 result |
+
+**Bybit is DNS-blocked on Nigerian networks.** `api.bybit.com` fails to resolve, while Bybit's
+official alternate domain `api.bytick.com` answers. The fetcher falls back automatically; set
+`BYBIT_API_BASE` to force one host.
 
 ## Working across two machines
 
@@ -124,7 +145,15 @@ docs/
   superpowers/
     specs/                    design spec
     plans/                    implementation plans, one per phase
-  research/                   validation, competitors, naming, landing copy
+  research/                   validation, competitors, naming, landing copy, Phase 0 findings
+src/
+  types.ts, math.ts           shared types; exact Decimal mean
+  strategy/trendFilter.ts     THE strategy — pure, reused unchanged in production
+  backtest/                   engine (next-open execution, warm-up), costs, metrics, report
+  data/                       Bybit fetcher with host fallback, CSV storage, dataset definitions
+  cli/                        fetch, backtest, sweep
+tests/                        mirrors src/
+data/                         downloaded candles — gitignored, rebuild with npm run fetch
 setup/
   update-subagents.ps1        installs or updates the VoltAgent subagent collection
 ```

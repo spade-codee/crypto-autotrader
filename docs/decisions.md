@@ -33,9 +33,10 @@ are still open.
 | 16 | Target account size and fee model | Three-way fork | **OPEN — blocking** |
 | 17 | Billing currency | USDT recommended | **OPEN** |
 | 18 | Timing of the legal opinion | Month one recommended | **OPEN** |
+| 19 | Phase 0 verdict and MA period | Passes, claims narrowed; MA-125, range 100–150 | **RECOMMENDED — founder to review** |
 
-**What blocks what:** Phase 0 is blocked by nothing and can start now. Phase 1 onward should
-wait for #16, because it changes who the product is for.
+**What blocks what:** Phase 0 is complete. Phase 1 onward waits for #16, because it changes who
+the product is for — and #19 makes that decision sharper.
 
 ---
 
@@ -381,6 +382,45 @@ originally sequenced. Worth raising with the lawyer: Cornix appears to serve thi
 without Nigerian registration. That is market intelligence, not a legal defence.
 
 ---
+
+## 19. Phase 0 verdict and moving-average period — RECOMMENDED, founder to review
+
+Full analysis: `docs/research/phase-0-findings.md`.
+
+**The strategy passes the bar Phase 0 set** — that it must reduce drawdown against buy-and-hold
+on data the parameter choice never saw.
+
+| Out-of-sample, 2023-01 to 2026-09 | MA-125 | Buy and hold |
+|---|---|---|
+| Max drawdown | **27.4%** | 53.1% |
+| Annual growth (CAGR) | 42.0% | **50.9%** |
+| Sharpe | **1.15** | 1.11 |
+
+**Recommended period: 125 days**, with 100–150 as the defensible range. Chosen in-sample
+(2019–2022) as the middle of the only region with Sharpe at least 0.95 and drawdown at most 45%,
+then confirmed out-of-sample, where 100–175 all held up.
+
+**What it means:**
+
+- It is **drawdown insurance, not a way to beat the market.** In a mostly bullish period it gave
+  up about 9 points of annual growth to halve the worst drawdown. This confirms the brand rule
+  never to state or imply a return.
+- **Most trades lose** — about 70% of round trips — and a few large trends pay for everything.
+  Users must be told this up front, or they will leave during the losing runs.
+- Its worst out-of-sample stretch was **choppy sideways markets**, not a crash. The promise is
+  smaller crashes, not no losses.
+- **It sharpens #16.** Users already pay for protection with lower returns in bull markets; a fee
+  is a second, guaranteed cost on top.
+
+**How much weight it bears:** thin. MA-125 made 27 round trips in seven years, one trade produced
+most of the in-sample result, and nearby periods behave quite differently. The evidence is
+necessary, not sufficient.
+
+**Three methodology flaws in the original plan were fixed before these numbers were produced** —
+too little spot history to tune on, no warm-up in the out-of-sample test, and a win rate that
+ignored fees. Left in place, the spot-only data would have made the strategy look far better
+than it is: on 2022 onward, MA-200 appeared to double buy-and-hold's growth at half the
+drawdown. Details in the Phase 0 plan's execution notes.
 
 ## Corrections made along the way
 

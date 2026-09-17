@@ -1816,3 +1816,58 @@ git commit -m "docs: record Phase 0 backtest findings and go/no-go"
 That last check matters more than it looks. It is what makes the Phase 0 strategy code
 reusable unchanged in Phase 3, and it is the mechanical guarantee behind the spec's promise
 that the backtest and production run the same strategy.
+
+---
+
+## Execution notes — 2026-09-17
+
+Phase 0 was executed in full on branch `phase-0-backtest`. The code deliberately differs from this
+plan in the places below. Each was found while executing, and each is covered by tests or verified
+against live data. Where they conflict, **the code and these notes are authoritative, not the
+task text above.**
+
+**Errors in the plan itself**
+
+1. **Task 1, step 5 cannot pass as written.** With no source files yet, `tsc --noEmit` exits with
+   TS18003, "No inputs were found". Type checking becomes meaningful from Task 2.
+2. **Bybit spot history starts on 2021-07-05, not 2018** (Task 10's comment). That is too little
+   history to choose a parameter on one period and verify it on another.
+
+**Methodology fixes** — these change results, and matter most
+
+3. **Out-of-sample warm-up.** As written, Task 13 ran each window on its own candles, so a
+   strategy started with no history: a 200-day average sat in cash for the first 200 days of 2023
+   while buy-and-hold was invested, penalising longer periods for reasons unrelated to the
+   strategy. `runBacktest` gained an `evaluateFrom` option. Strategies see earlier candles, but
+   trades and equity are recorded only from the evaluation start.
+4. **Identical in-sample dates.** In-sample evaluation starts once the longest period (300 days) has
+   a full window, so every row, buy-and-hold included, covers the same dates.
+5. **Long-history proxy.** Because of item 2, `npm run fetch` also downloads the Bybit BTCUSD
+   inverse perpetual from 2018-11-14, and the sweep chooses and checks on it. It was validated
+   against spot across 1,900 overlapping days: median close divergence 0.05%, and MA-100/200
+   signals identical on 100% of days. The sweep repeats its out-of-sample table on spot data as a
+   standing check.
+6. **Win rate is judged net of fees.** The plan compared sell price with buy price, which counts a
+   trade that lost money to fees as a win and flatters strategies that trade often.
+7. **Unfinished candles are excluded.** Bybit returns the current day's candle while it is still
+   forming. Minor in a backtest, but trading on it in production would be a real bug.
+
+**Robustness and environment**
+
+8. **Bybit host fallback.** `api.bybit.com` fails DNS resolution on Nigerian networks under the NCC
+   block; Bybit's alternate domain `api.bytick.com` answers. Requests fall back only on connection
+   failure, never on an HTTP error.
+9. **CSV parsing accepts CRLF.** A CSV re-saved on Windows made the plan's parser throw a
+   `DecimalError`.
+10. **`vitest` 4.1.11 instead of 2.x.** 2.x carried five advisories (one critical) through vite and
+    esbuild. 5.x requires Node 22.12+, which one development machine lacked. `npm audit` now
+    reports 0 vulnerabilities.
+11. **Metrics was built before the engine** (plan Tasks 7 and 6 swapped), so no commit has a failing
+    test.
+12. **Dataset definitions live in `src/data/datasets.ts`**, not in the fetch CLI, so importing them
+    never triggers a download. The fetcher takes an options object, which made its pagination
+    unit-testable.
+
+**Verified as the plan assumed** — Bybit's kline endpoint, given only `start`, returns the *oldest*
+candles from that date, so the plan's forward pagination was correct. It was checked against the
+live API rather than changed on suspicion.
