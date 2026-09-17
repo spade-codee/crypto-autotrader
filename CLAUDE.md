@@ -22,7 +22,7 @@ first phase, product research, and a full decision log.
 | Area | State |
 |---|---|
 | Design | Approved |
-| Phase 0 — strategy proof | **Complete** on branch `phase-0-backtest`. 67 tests. Result in `docs/research/phase-0-findings.md` |
+| Phase 0 — strategy proof | **Complete and merged to `master`.** 67 tests. Result in `docs/research/phase-0-findings.md` |
 | Phase 0 result | **Passes, with claims narrowed.** Out-of-sample, MA-125 cut max drawdown to 27.4% from buy-and-hold's 53.1%, but gave up ~9 points of annual growth. Insurance, not a return enhancer |
 | Product research | Complete — and it **reopened the business model** |
 | Name | **Undecided** — "Keel" was rejected after a verified conflict |
