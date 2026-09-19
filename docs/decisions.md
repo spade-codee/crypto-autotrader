@@ -243,6 +243,15 @@ network and tries to create a key in API Management.
 positions, for false representation of the user's location. A product whose onboarding depends on
 users getting around a geo-fence would not survive a regulator or a press story.
 
+**The licensed alternatives, researched 2026-09-19** (`docs/research/exchange-alternatives.md`):
+**neither qualifies as documented.** Quidax has the right market — an order book, 0.1% fees, and
+a strategy result at its costs indistinguishable from Bybit's — but its API keys come from
+merchant accounts and have no permissions, so every key can withdraw. Busha has the right
+connection model — OAuth2 that users approve and can revoke, with a sandbox — but executing a
+trade requires the same scope that sends money out, and its roughly 3.9% quoted spread cuts the
+strategy to 18.6% a year with a 44.1% worst drop. Both gaps can only be closed by the exchange,
+so the next step is to ask them; the research lists the exact questions.
+
 ## 9. Language — DECIDED
 
 **Chosen: TypeScript everywhere.**

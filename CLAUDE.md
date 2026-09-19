@@ -38,7 +38,9 @@ free tier below an account-size threshold. The pilot sets the price and threshol
 0. **The Bybit key test** — log in at `www.bytick.com` and try to create a key in API
    Management. It decides `docs/decisions.md` #8: whether a Nigerian user can create an API
    key at all. If they can, a read-only key finishes Phase 1 Task 15 — see the note at the top
-   of Task 15. Testnet sign-up is refused from Nigerian networks.
+   of Task 15. Testnet sign-up is refused from Nigerian networks. The licensed alternatives,
+   Quidax and Busha, both fail as documented; `docs/research/exchange-alternatives.md` lists
+   the questions to put to them.
 1. **Review the Phase 0 verdict** — `docs/research/phase-0-findings.md`. See `docs/decisions.md` #19.
 2. **The name** — Duro is recommended. See `docs/brand.md` section 2.
 3. **The legal opinion, in month one** — it gates opening the pilot to anyone but the founder.
@@ -56,7 +58,8 @@ free tier below an account-size threshold. The pilot sets the price and threshol
    *Execution notes* explain where the code deliberately differs from the plan.
 5. `docs/stack-and-setup.md` — stack choices, and the operational pitfalls that cost real money.
 6. `docs/brand.md` — palette, typography, voice rules, and name status.
-7. `docs/research/` — validation, competitor teardown, naming, landing copy.
+7. `docs/research/` — validation, competitor teardown, naming, landing copy, and the licensed
+   exchange alternatives to Bybit.
 
 ## What to do next
 
@@ -73,10 +76,12 @@ What remains: **Task 15, which the founder runs** because it needs a real API ke
 them for one, and never read their terminal while they enter it. Bybit testnet refuses sign-ups
 from Nigeria (2026-09-19), so it runs on mainnet with a **read-only** key if the founder can
 create one at `www.bytick.com`; the note at the top of Task 15 has the steps. **If they cannot,
-Bybit is not viable for Nigerian users** and `docs/decisions.md` #8 needs a new exchange. Once they confirm it passed,
-record the outcome in the Phase 1 spec (section 10) and merge the branch to `master`. **Then
-merge `research-robustness`**, which is built on this branch: it tests the trend filter across
-neighbouring periods and on ETH, and concludes the evidence supports BTC only.
+Bybit is not viable for Nigerian users** and `docs/decisions.md` #8 needs a new exchange — and
+neither licensed exchange qualifies as documented (`docs/research/exchange-alternatives.md`).
+Once they confirm it passed, record the outcome in the Phase 1 spec (section 10) and merge the
+branch to `master`. **Then merge `research-robustness`**, which is built on this branch: it tests
+the trend filter across neighbouring periods and on ETH, and concludes the evidence supports BTC
+only.
 
 Other work, if the founder asks for it:
 
@@ -181,7 +186,8 @@ docs/
   superpowers/
     specs/                    design spec
     plans/                    implementation plans, one per phase
-  research/                   validation, competitors, naming, landing copy, Phase 0 findings
+  research/                   validation, competitors, naming, landing copy, Phase 0 findings,
+                              exchange alternatives
 src/
   types.ts, math.ts           shared types; exact Decimal mean
   strategy/trendFilter.ts     THE strategy — pure, reused unchanged in production
