@@ -25,7 +25,7 @@ exists yet.** The repository also holds the design, product research, and a full
 | Design | Approved |
 | Phase 0 — strategy proof | **Complete and merged to `master`.** 67 tests. Result in `docs/research/phase-0-findings.md` |
 | Phase 0 result | **Passes, with claims narrowed.** Out-of-sample, MA-125 cut max drawdown to 27.4% from buy-and-hold's 53.1%, but gave up ~9 points of annual growth. Insurance, not a return enhancer |
-| Phase 1 — read-only Bybit connection | **Code complete** on branch `phase-1-exchange-adapter`, 156 tests. **Awaiting the founder's testnet check (plan Task 15)** before merging |
+| Phase 1 — read-only Bybit connection | **Code complete** on branch `phase-1-exchange-adapter`, 156 tests. **Awaiting the founder's check (plan Task 15)** before merging. Bybit testnet refuses sign-ups from Nigeria, so it moves to a read-only mainnet key |
 | Product research | Complete. It reopened the business model, which was re-decided 2026-09-17 |
 | Name | **Undecided** — "Keel" was rejected after a verified conflict |
 
@@ -35,8 +35,10 @@ free tier below an account-size threshold. The pilot sets the price and threshol
 
 **Waiting on the founder:**
 
-0. **Run Phase 1 Task 15 on testnet** — create a spot-only testnet key at testnet.bytick.com and
-   run `vault:init`, `key:add`, `key:check`, `balance`. Steps are in the Phase 1 plan.
+0. **The Bybit key test** — log in at `www.bytick.com` and try to create a key in API
+   Management. It decides `docs/decisions.md` #8: whether a Nigerian user can create an API
+   key at all. If they can, a read-only key finishes Phase 1 Task 15 — see the note at the top
+   of Task 15. Testnet sign-up is refused from Nigerian networks.
 1. **Review the Phase 0 verdict** — `docs/research/phase-0-findings.md`. See `docs/decisions.md` #19.
 2. **The name** — Duro is recommended. See `docs/brand.md` section 2.
 3. **The legal opinion, in month one** — it gates opening the pilot to anyone but the founder.
@@ -67,8 +69,11 @@ connection: signed client, permission-allowlist key validation, encrypted vault,
 - Spec: `docs/superpowers/specs/2026-09-17-phase-1-exchange-adapter-design.md`
 - Plan: `docs/superpowers/plans/2026-09-17-phase-1-exchange-adapter.md` — read its execution notes
 
-What remains: **Task 15, which the founder runs** because it needs a real testnet API key — never
-ask them for one, and never read their terminal while they enter it. Once they confirm it passed,
+What remains: **Task 15, which the founder runs** because it needs a real API key — never ask
+them for one, and never read their terminal while they enter it. Bybit testnet refuses sign-ups
+from Nigeria (2026-09-19), so it runs on mainnet with a **read-only** key if the founder can
+create one at `www.bytick.com`; the note at the top of Task 15 has the steps. **If they cannot,
+Bybit is not viable for Nigerian users** and `docs/decisions.md` #8 needs a new exchange. Once they confirm it passed,
 record the outcome in the Phase 1 spec (section 10) and merge the branch to `master`. **Then
 merge `research-robustness`**, which is built on this branch: it tests the trend filter across
 neighbouring periods and on ETH, and concludes the evidence supports BTC only.

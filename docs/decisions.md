@@ -22,7 +22,7 @@ are still open.
 | 5 | First market | Nigeria | DECIDED |
 | 6 | Positioning and pricing | SaaS tool; free pilot, then a flat fee — refined by #16 | DECIDED |
 | 7 | Architecture | Eight components, pure strategy engine | DECIDED |
-| 8 | First exchange | Bybit, then Binance | DECIDED — access verified 2026-09-17 |
+| 8 | First exchange | Bybit, then Binance | **REOPENED 2026-09-19** — can Nigerian users create an API key at all? One test decides |
 | 9 | Language | TypeScript everywhere | DECIDED |
 | 10 | Hosting | Founder's existing VPS | DECIDED |
 | 11 | Frontend | Vite SPA, not Next.js | DECIDED |
@@ -178,7 +178,7 @@ The load-bearing choices:
 - **Staged testing:** unit tests, then a backtest with fees and slippage, then 2–4 weeks of
   paper trading, then live on the founder's money, then volunteers, then the pilot.
 
-## 8. First exchange — DECIDED, verify access before Phase 1
+## 8. First exchange — REOPENED 2026-09-19, one test decides it
 
 **Founder's read:** almost everyone in the community uses Bybit and Binance.
 
@@ -200,7 +200,7 @@ but the current reality should be confirmed directly before building the adapter
 | `api.bybit.com`, `api-testnet.bybit.com` | Blocked — DNS resolution fails |
 | `bybit.com`, `www.bybit.com`, `testnet.bybit.com` | Blocked — DNS resolution fails |
 | `api.bytick.com`, `api-testnet.bytick.com` | Reachable |
-| `testnet.bytick.com` | Reachable — testnet API keys can be created here |
+| `testnet.bytick.com` | Reachable — but sign-up is refused; see *Checked 2026-09-19* |
 | `www.bytick.com`, `www.bybitglobal.com` | Reachable, but refuse scripted requests; likely fine in a browser |
 
 The API is fully usable through Bybit's official alternate domain, and the code falls back to
@@ -208,6 +208,40 @@ it automatically. **Onboarding implication for Phase 4:** a user on a blocked ne
 open `bybit.com` to create an API key. Onboarding must direct them to a route that works —
 the Bybit mobile app, which reporting says functions on blocked networks, or a working mirror.
 Confirm the app supports API key creation before designing that flow.
+
+**Checked 2026-09-19 — the onboarding plan above does not work.**
+
+- **Testnet sign-up is refused from the founder's network.** The form at `testnet.bytick.com`
+  loads, but submitting it returns a message that the service is "not available to you due to
+  regulatory restrictions". The table above said testnet keys can be created there; that
+  overstated a check which only confirmed the host was reachable.
+- **Nigeria is not a restricted jurisdiction.** Bybit's *Service Restricted Countries* page
+  (updated 2026-09-01) excludes the US, Chinese Mainland, Hong Kong, Singapore, Canada, North
+  Korea, Cuba, Iran, Uzbekistan, Russian-controlled Ukraine, Sevastopol, Sudan, and Syria. The
+  refusal is narrower than a country ban, most likely a geo-fence on web registration.
+- **API keys can only be created on the website, never in the app** — Bybit's help centre,
+  updated 2025-11-25. Onboarding through the app is therefore impossible, and the product cannot
+  work without a key.
+- **Bybit holds no Nigerian licence.** TechCabal (2025-10-30) reports that it serves Nigeria
+  through its mobile app without a licence or a place in the SEC's ARIP programme. Only
+  **Quidax** and **Busha** hold provisional SEC licences, both through ARIP. This goes straight
+  into the legal opinion (#18): the product would be directing Nigerian users to an unlicensed
+  exchange.
+- **The API is unaffected.** Mainnet and testnet APIs answer normally from the founder's network,
+  and `www.bytick.com` pages load in a browser.
+
+**The test that decides this:** an existing Bybit user logs in at `www.bytick.com` from a Nigerian
+network and tries to create a key in API Management.
+
+- **If it works,** onboarding runs through `bytick.com` and Bybit stays, subject to the legal
+  opinion. Phase 1 Task 15 then runs on mainnet with a read-only key.
+- **If it is refused,** a Nigerian user cannot create the key this product needs without a VPN,
+  and Bybit cannot be the first exchange. The licensed exchanges become the candidates, starting
+  with one question: do they offer API keys that can trade but not withdraw?
+
+**Not a VPN.** Bybit's terms allow immediate termination of an account, and liquidation of its
+positions, for false representation of the user's location. A product whose onboarding depends on
+users getting around a geo-fence would not survive a regulator or a press story.
 
 ## 9. Language — DECIDED
 
