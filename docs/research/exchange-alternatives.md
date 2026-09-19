@@ -1,6 +1,6 @@
 # Licensed Nigerian exchanges: Quidax and Busha
 
-Researched 2026-09-19, after Bybit refused testnet sign-up from the founder's network and it
+Researched 2026-09-19, after Bybit refused to create an API key on the founder's account and it
 emerged that Bybit API keys can only be created on its website and that Bybit holds no Nigerian
 licence (`docs/decisions.md` #8). Quidax and Busha are the only exchanges holding provisional SEC
 licences, both through the ARIP programme.
@@ -41,7 +41,7 @@ different way, and in both cases only the exchange can close the gap.
 | 4. BTC/USDT round-trip cost, live | ~0.2% fees, ~0 spread | ~0.2% fees + ~0.2% spread | **~3.9% spread** |
 | Strategy out-of-sample at that cost | 42.0% CAGR, 27.4% max DD | 41.3%, 27.8% | **18.6%, 44.1%** |
 | 5. Daily candles | Yes | Yes | No crypto candles |
-| 6. Test without real money | Testnet, sign-up refused from Nigeria | None documented | **Sandbox** |
+| 6. Test without real money | Testnet, sign-up untested from Nigeria | None documented | **Sandbox** |
 | Request authentication | HMAC-SHA256 signature | Static bearer key | OAuth2 bearer JWT, ~1 hour |
 
 Costs were measured from public endpoints on Saturday 2026-09-19 around 11:00 UTC. The strategy

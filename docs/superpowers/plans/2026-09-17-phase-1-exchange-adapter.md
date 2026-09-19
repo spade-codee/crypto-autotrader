@@ -3042,10 +3042,11 @@ git push
 
 ## Task 15: Founder verification on testnet
 
-> **2026-09-19: the testnet route does not work from Nigeria.** Submitting the sign-up form at
-> `testnet.bytick.com` is refused with a regulatory-restriction message, although Nigeria is not
-> on Bybit's restricted list. If the founder can create a key at `www.bytick.com`, run this task
-> on **mainnet with a read-only key** instead. A read-only key can read balances but cannot trade
+> **2026-09-19: try testnet first; a mainnet read-only key is the fallback.** Creating an API key
+> on the founder's own Bybit account was refused with a regulatory-restriction message, most
+> likely because the account had not completed identity verification. Testnet sign-up has not
+> been tried. If it works, run this task as written. Otherwise, once the account is verified,
+> run it on **mainnet with a read-only key** instead. A read-only key can read balances but cannot trade
 > or withdraw, so nothing can move. Differences from the steps below:
 >
 > - **Step 1:** at `www.bytick.com`, API Management, create a system-generated **Read-Only** key

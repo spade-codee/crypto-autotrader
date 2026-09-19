@@ -25,7 +25,7 @@ exists yet.** The repository also holds the design, product research, and a full
 | Design | Approved |
 | Phase 0 — strategy proof | **Complete and merged to `master`.** 67 tests. Result in `docs/research/phase-0-findings.md` |
 | Phase 0 result | **Passes, with claims narrowed.** Out-of-sample, MA-125 cut max drawdown to 27.4% from buy-and-hold's 53.1%, but gave up ~9 points of annual growth. Insurance, not a return enhancer |
-| Phase 1 — read-only Bybit connection | **Code complete** on branch `phase-1-exchange-adapter`, 156 tests. **Awaiting the founder's check (plan Task 15)** before merging. Bybit testnet refuses sign-ups from Nigeria, so it moves to a read-only mainnet key |
+| Phase 1 — read-only Bybit connection | **Code complete** on branch `phase-1-exchange-adapter`, 156 tests. **Awaiting the founder's check (plan Task 15)** before merging. Bybit refused API key creation on the founder's unverified account; testnet is untested |
 | Product research | Complete. It reopened the business model, which was re-decided 2026-09-17 |
 | Name | **Undecided** — "Keel" was rejected after a verified conflict |
 
@@ -35,10 +35,11 @@ free tier below an account-size threshold. The pilot sets the price and threshol
 
 **Waiting on the founder:**
 
-0. **The Bybit key test** — log in at `www.bytick.com` and try to create a key in API
-   Management. It decides `docs/decisions.md` #8: whether a Nigerian user can create an API
-   key at all. If they can, a read-only key finishes Phase 1 Task 15 — see the note at the top
-   of Task 15. Testnet sign-up is refused from Nigerian networks. The licensed alternatives,
+0. **The Bybit key test** — Bybit refused to create an API key on the founder's account, most
+   likely because identity verification is incomplete. Complete Standard verification and
+   Google Authenticator, then retry at `www.bytick.com`. It decides `docs/decisions.md` #8:
+   whether a verified Nigerian user can create an API key. Meanwhile, try testnet sign-up for
+   Phase 1 Task 15 — it has not been tried. The licensed alternatives,
    Quidax and Busha, both fail as documented; `docs/research/exchange-alternatives.md` lists
    the questions to put to them.
 1. **Review the Phase 0 verdict** — `docs/research/phase-0-findings.md`. See `docs/decisions.md` #19.
@@ -73,10 +74,10 @@ connection: signed client, permission-allowlist key validation, encrypted vault,
 - Plan: `docs/superpowers/plans/2026-09-17-phase-1-exchange-adapter.md` — read its execution notes
 
 What remains: **Task 15, which the founder runs** because it needs a real API key — never ask
-them for one, and never read their terminal while they enter it. Bybit testnet refuses sign-ups
-from Nigeria (2026-09-19), so it runs on mainnet with a **read-only** key if the founder can
-create one at `www.bytick.com`; the note at the top of Task 15 has the steps. **If they cannot,
-Bybit is not viable for Nigerian users** and `docs/decisions.md` #8 needs a new exchange — and
+them for one, and never read their terminal while they enter it. Try testnet first; if it is
+refused, the task runs on mainnet with a **read-only** key once the founder's account is
+verified — the note at the top of Task 15 has the steps. **If a verified account still cannot
+create a key, Bybit is not viable for Nigerian users** and `docs/decisions.md` #8 needs a new exchange — and
 neither licensed exchange qualifies as documented (`docs/research/exchange-alternatives.md`).
 Once they confirm it passed, record the outcome in the Phase 1 spec (section 10) and merge the
 branch to `master`. **Then merge `research-robustness`**, which is built on this branch: it tests
