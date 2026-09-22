@@ -596,7 +596,9 @@ Full design: `docs/superpowers/specs/2026-09-22-phase-2-paper-engine-design.md`.
 
 - **The strategy controls the whole of a dedicated account**, ideally a Bybit sub-account. Every
   BTC and USDT in it belongs to the strategy, so the exchange stays the single source of truth —
-  and it is exactly what the backtest tested. *Rejected:* a fixed amount inside a shared account,
+  and it is exactly what the backtest tested. Phase 4 onboarding must tell beginners plainly which
+  funds that means, and keep connecting an account separate from activating trading. *Rejected:*
+  a fixed amount inside a shared account,
   which would make our database the source of truth for the strategy's slice; and a percentage of
   the account, which would sell BTC the user thinks of as their own and stop matching the backtest.
 - **A run that cannot happen on time catches up as soon as possible**, before the next daily
@@ -612,6 +614,12 @@ Full design: `docs/superpowers/specs/2026-09-22-phase-2-paper-engine-design.md`.
   with `pg-boss`, which needs a Postgres server now; `node-cron`, already ruled out.
 - **Phase 2 trades a paper account on live Bybit prices**, so it needs no Bybit key. Real Bybit
   orders follow as Phase 2b.
+
+**Design review, same day.** A review of the spec added four safeguards, all adopted: outstanding
+orders are resolved whatever their day, so abandoning a run never discards whether its order
+executed; being at the target is judged on total balances, and unexplained locked funds freeze
+the account; every request and every tick has a deadline, and an unanswered order counts as
+uncertain rather than failed; and the whole candle window is validated before any signal.
 
 ## Corrections made along the way
 

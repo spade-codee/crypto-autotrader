@@ -3,6 +3,9 @@
 - **Date:** 2026-09-22
 - **Status:** design approved in conversation, section by section; this document awaits the
   founder's review
+- **Revised:** 2026-09-22, after a design review: outstanding orders are resolved across days,
+  exposure counts locked funds, every request and every tick has a deadline, and the whole candle
+  window is validated
 - **Parent spec:** `2026-09-16-crypto-trading-automation-design.md` — sections 4 to 7, and 9
 - **Builds on:** Phase 1 (`2026-09-17-phase-1-exchange-adapter-design.md`) and the robustness
   research (`docs/research/phase-0-findings.md`)
@@ -67,6 +70,7 @@ same function and constant the backtest uses.
 | `src/exchange/trading.ts` | `TradingAccount` interface and its types |
 | `src/paper/fill.ts` | Pure: fill a market order against an order book |
 | `src/paper/paperAccount.ts` | `PaperAccount`, which implements `TradingAccount`; its state lives in `paper_balances` and `paper_orders` |
+| `src/engine/candleWindow.ts` | Pure: is a candle window long enough, current, ordered, consecutive, and valid? |
 | `src/engine/cycleDate.ts` | Pure: which daily candle a moment belongs to, when a run is due, late, or abandoned |
 | `src/engine/sizing.ts` | Pure: target and balances in, the one order needed out, or none |
 | `src/engine/reconcile.ts` | Pure: does an account match a target? |
@@ -80,6 +84,7 @@ same function and constant the backtest uses.
 | `src/alerts/telegram.ts`, `src/alerts/heartbeat.ts` | `Alerter` and `Heartbeat`, each with a log-only fallback when not configured |
 | `src/cli/*` | `cycle`, `paper-init`, `status`, `pause`, `resume`, `unfreeze`, `kill-switch`, `paper-report` |
 | `deploy/systemd/` | `crypto-autotrader-cycle.service` and `.timer` |
+| `src/net/http.ts` | Modified: every request gets a deadline |
 | `drizzle/0001_*.sql` | The new tables |
 
 ### The trading interface
@@ -143,8 +148,9 @@ than 30 minutes after it was due, and **abandoned** if it has not completed by t
 4. **Who needs a run?** Active users — not paused, not frozen — whose run for the current cycle
    date has not completed. If there are none, exit. This step touches no network, so every tick
    after the day's work is done costs almost nothing.
-5. **Candles.** Fetch the last 250 closed daily candles. The newest must be the one for the
-   current cycle date; if not, the data is stale, so try again at the next tick.
+5. **Candles.** Fetch the last 250 closed daily candles and validate the whole window before
+   using any of it (section 4.1). Invalid or stale data means try again at the next tick; the
+   first failure of the day alerts.
 6. **Signal.** Evaluate the strategy and record a `SIGNAL` event once per cycle date: the target,
    the close, and the moving average.
 7. **Each user in turn**, as below.
@@ -153,27 +159,60 @@ than 30 minutes after it was due, and **abandoned** if it has not completed by t
 
 **For each user:**
 
-1. **Recover first.** If the ledger holds an `ORDER_INTENT` for this user and day with no
-   `ORDER_RESULT`, ask the account for that client order ID. Found: continue at step 6 with that
-   order's state. Not found: the order never reached the account, so carry on from step 2.
-2. **Read balances** from the account. Any borrowing freezes the account.
+1. **Resolve every outstanding order, from any day.** An `ORDER_INTENT` without a matching
+   `ORDER_RESULT` is outstanding whatever its cycle date: an order sent at 23:50 and interrupted
+   is still outstanding after midnight. For each, oldest first, ask the account for its client
+   order ID and record exactly one `ORDER_RESULT` under the intent's own cycle date:
+   - **found and settled:** record it. Anything but `FILLED` freezes the account;
+   - **found and still pending:** an order is in flight, so do nothing more for this user this
+     tick and try again at the next. One still pending an hour after its intent was recorded
+     freezes the account;
+   - **not found:** the order never reached the account, so record `NOT_PLACED`.
+
+   The run goes on only when nothing is outstanding. If today's own order was among them and
+   filled, go straight to step 7.
+2. **Read balances** from the account. Any borrowing freezes the account. So does **locked BTC
+   or USDT**: with every order of ours resolved, a lock can only come from an order the engine
+   did not place, which means someone is trading the dedicated account by hand. Other coins are
+   ignored.
 3. **Size** the order (section 5). No order needed: go to step 7.
 4. **Risk Guard** (section 6). A veto freezes the account.
-5. **Record `ORDER_INTENT`**, then place the order. The intention is written first so that a crash
-   between placing and recording is recovered by step 1, never repeated.
+5. **Record `ORDER_INTENT`**, then place the order. The intention is written first, so a crash
+   between placing and recording is recovered by step 1, never repeated. **A placement that times
+   out or fails without a definite answer is uncertain, not failed:** its intent stays
+   outstanding, and step 1 of the next tick settles it through the client order ID.
 6. **Record `ORDER_RESULT`.** Anything but `FILLED` freezes the account. A `PENDING` order is polled
-   for up to 60 seconds, and one still pending after that freezes the account too. Paper orders
-   never pend.
+   for up to 60 seconds; if it is still pending, its intent stays outstanding and step 1 of the
+   next tick takes over. Paper orders never pend.
 7. **Reconcile.** Re-read the balances. If the account matches the target, record `RECONCILED`,
    mark the run `completed`, flag it late if it was, and send the one-line summary. If not, freeze.
 
 **Nothing can be bought twice.** The client order ID is built from who, which day, and what for,
 and the account rejects a repeated ID, exactly as Bybit does.
 
+### 4.1 A valid candle window
+
+The strategy returns FLAT when it has too little history, so a truncated or corrupted fetch would
+sell everything. Before the signal is computed, the window must pass every check:
+
+- **Long enough:** at least `CHOSEN_MA_PERIOD` (125) candles.
+- **Current:** the newest candle is the one for the current cycle date.
+- **Ordered and unique:** open times strictly increase.
+- **Consecutive:** each candle opens exactly one day after the one before it.
+- **Valid prices:** every open, high, low, and close is finite and above zero; the low is at
+  most the open and the close, and the high is at least both.
+
+A failure is handled like stale data: try again at the next tick, and record the reason.
+
 ## 5. Sizing and reconciliation
 
-Let `free(coin)` be the wallet balance minus the locked amount, `P` the order book's mid price, and
-the account value `V = free(USDT) + free(BTC) × P`.
+Each coin has two views. `available(coin)`, the wallet balance minus the locked amount, is what
+can be traded. `total(coin)`, the whole wallet balance, is what the account is exposed to. `P` is
+the order book's mid price, and the account value is `V = total(USDT) + total(BTC) × P`.
+
+**Orders are sized from available funds; being at the target is judged on totals**, so a lock can
+never make an account look emptier than it is. Step 2 of section 4 freezes on any lock before
+sizing, so the two views agree whenever an order is sized.
 
 **Borrowing.** Any coin with a borrowed amount above zero freezes the account. The engine never
 trades on borrowed funds; a Unified Trading Account can borrow automatically, so this is checked
@@ -181,16 +220,16 @@ every run.
 
 **At the target** means the amount left in the wrong coin is too small to matter:
 
-- LONG: `free(USDT) ≤ max(minOrderAmt, 0.5% × V)`
-- FLAT: `free(BTC) × P ≤ max(minOrderAmt, 0.5% × V)`
+- LONG: `total(USDT) ≤ max(minOrderAmt, 0.5% × V)`
+- FLAT: `total(BTC) × P ≤ max(minOrderAmt, 0.5% × V)`
 
 The 0.5% tolerance absorbs rounding and the buy headroom below.
 
 **The order**, when the account is not at the target:
 
-- LONG: buy with `quoteAmount = roundDown(free(USDT) × 0.999, quotePrecision)`. The 0.1% headroom
-  means an order can never exceed the free balance.
-- FLAT: sell `baseQty = roundDown(free(BTC), basePrecision)`.
+- LONG: buy with `quoteAmount = roundDown(available(USDT) × 0.999, quotePrecision)`. The 0.1%
+  headroom means an order can never exceed the available balance.
+- FLAT: sell `baseQty = roundDown(available(BTC), basePrecision)`.
 
 If the order would fall below `minOrderQty` or `minOrderAmt`, there is nothing to do. An account
 too small to trade at all gets a notice, not a freeze.
@@ -206,8 +245,8 @@ failed.
 2. **The account is active** — not paused, not frozen.
 3. **One order per account per day.** No `ORDER_INTENT` exists for this user and day under a
    different client order ID. Recovering the same order is allowed.
-4. **Within the free balance.** A buy's USDT is at most `free(USDT)`; a sell's BTC is at most
-   `free(BTC)`.
+4. **Within the available balance.** A buy's USDT is at most `available(USDT)`; a sell's BTC is
+   at most `available(BTC)`.
 5. **Within the exchange's limits.** At least `minOrderQty` and `minOrderAmt`; at most
    `maxMarketOrderQty`.
 6. **Within the optional cap.** If `MAX_ORDER_USDT` is set, the order's value is at most that. It is
@@ -245,9 +284,12 @@ All money is `Decimal` in code and `NUMERIC` in the database. In JSON payloads, 
 strings.
 
 - **`ledger_events`** — append-only: id, time, user (null for events that concern everyone, such
-  as `SIGNAL`), cycle date, type, payload. A database trigger rejects every `UPDATE` and `DELETE`.
-  Types: `SIGNAL`, `ORDER_INTENT`, `ORDER_RESULT`, `RECONCILED`, `RUN_COMPLETED`, `RUN_FAILED`,
-  `RUN_ABANDONED`, `FROZEN`, `UNFROZEN`, `PAUSED`, `RESUMED`, `KILL_SWITCH_SKIP`, `TOO_SMALL`.
+  as `SIGNAL`), cycle date, type, payload. A database trigger rejects every `UPDATE`, `DELETE`,
+  and `TRUNCATE`. Types: `ACCOUNT_OPENED`, `SIGNAL`, `ORDER_INTENT`, `ORDER_RESULT`, `RECONCILED`,
+  `RUN_COMPLETED`, `RUN_FAILED`, `RUN_ABANDONED`, `FROZEN`, `UNFROZEN`, `PAUSED`, `RESUMED`,
+  `KILL_SWITCH_SKIP`, `TOO_SMALL`. Every `ORDER_INTENT` is eventually matched by exactly one
+  `ORDER_RESULT` for the same client order ID, recorded under the intent's own cycle date —
+  `NOT_PLACED` when the order never reached the account.
 - **`account_state`** — mutable, one row per user: `active`, `paused`, or `frozen`, with a reason.
   Every change is also written to the ledger.
 - **`cycle_runs`** — mutable, one row per user and cycle date: status (`pending`, `completed`,
@@ -263,13 +305,16 @@ strings.
 | Situation | What happens |
 |---|---|
 | Bybit unreachable, a server error, or a timeout **before** any order intent | Try again at the next tick. The first failure of the day alerts |
-| Stale candles | Try again at the next tick |
+| Stale or invalid candles (section 4.1) | Try again at the next tick. The first failure of the day alerts |
+| A request stalls | It is abandoned after 10 seconds and handled like any failed request |
 | An unexpected error in our code **before** any order intent | Try again at the next tick, with an alert. Nothing has happened, so retrying is safe |
-| A crash **after** an order intent | The next tick recovers through the client order ID |
+| A crash, or a placement that times out or gets no definite answer, **after** an order intent | **Uncertain, not failed.** The next tick settles it through the client order ID, even after midnight |
+| An order still pending | Nothing more for that account until it settles. Still pending an hour after its intent: **freeze** |
+| Locked BTC or USDT that is not one of our orders | **Freeze**: the dedicated account is being traded by hand |
 | Risk Guard veto, rejected order, partial fill, reconciliation mismatch, or borrowing | **Freeze**, and alert |
 | A frozen or paused account | Skipped every day, with a daily reminder, until the founder lifts it |
 | Kill switch on | No trading for anyone; one alert per day |
-| Still not completed at the next close | **Abandoned**, with an alert. The new day's run takes over |
+| Still not completed at the next close | **Abandoned**, with an alert. The new day's run takes over, but only after any outstanding order from the abandoned day is settled and recorded |
 | No successful run for a day, for any reason — including the VPS being off | Healthchecks.io alerts, independently of the engine |
 
 **Unfreezing** records the founder's reason. If the day's run has not completed, the next tick runs
@@ -282,6 +327,12 @@ message goes to the log.
   cycle` from the repository directory as a dedicated user. `crypto-autotrader-cycle.timer` uses
   `OnCalendar=*:02/15` and `Persistent=true`. systemd never starts a second copy while one is
   running, and the lock guards against a manual command overlapping a tick.
+- **Deadlines.** Node's `fetch` otherwise waits up to five minutes for a stalled request, and
+  systemd applies no start timeout to a oneshot service by default, so a hung tick could hold the
+  lock and silently lose the day. Every request to Bybit is abandoned after 10 seconds, and every
+  request to Telegram or Healthchecks.io after 5. A tick still running after 5 minutes exits with
+  an error, and the unit's `TimeoutStartSec=10min` stops it if even that fails. A tick stopped
+  part-way is safe to rerun: its intents are outstanding, and its lock is detected as stale.
 - **Settings**, in `.env.local` or the environment:
 
 | Setting | Default | Notes |
@@ -314,8 +365,11 @@ message goes to the log.
 
 ## 11. Testing
 
-- **Unit tests** for every pure unit: cycle dates, sizing and its invariant, reconciliation,
-  every Risk Guard rule, client order IDs, walking the book, fees, and rounding.
+- **Unit tests** for every pure unit: cycle dates, sizing and its invariant, reconciliation on
+  totals, every Risk Guard rule, client order IDs, walking the book, fees, and rounding. The
+  candle-window validator is tested for a short, stale, out-of-order, duplicated, and gapped
+  window, and for each kind of invalid price. `getJson` is tested to give up on a stalled
+  request within its deadline.
 - **Paper account tests:** duplicate IDs, rule enforcement, partial fills on a thin book, fees in
   the right coin, and atomicity.
 - **Scenario tests** for the full tick, with a fake clock, fake market data, a paper account, and a
@@ -323,6 +377,12 @@ message goes to the log.
   crash right after an order is sent, with recovery and no duplicate; a partial fill; a
   reconciliation mismatch; borrowing; a Risk Guard veto; freeze, then unfreeze and same-day catch-
   up; pause; the kill switch; abandonment at the next close; a late completion; alerts sent once.
+  From the design review: **an order interrupted before midnight and settled after it**, recorded
+  under its own day, with no duplicate; an order still pending, then settled; an order still
+  pending after an hour; **a placement that times out after the order was accepted**, and one
+  that times out before it arrived; a stalled request that gives up within its deadline; and
+  **locked BTC with a FLAT target**, and locked USDT, each freezing rather than passing as at the
+  target.
 - **The parity test.** Replay real daily candles from a committed fixture — BTCUSDT spot, 2023 and
   2024 — through the live tick one day at a time, with the clock at 00:02 UTC and a synthetic order
   book at the next candle's open. Run the backtest engine over the same candles. The **daily
@@ -351,8 +411,14 @@ The rest of the parent spec's 2–4 weeks of paper trading then continues while 
   confirmed off. Testnet first, then mainnet with the founder's own money.
 - **Phase 3:** production Postgres, a compiled build, `MAX_ORDER_USDT` set small, `SERVER_IPS` set
   to the VPS address.
-- **Phase 4:** onboarding that asks each user to create a dedicated sub-account; pause and
-  unfreeze from the dashboard; a job queue if many users make one worthwhile.
+- **Phase 4:** onboarding built around the dedicated account, written for beginners:
+  - say plainly that the strategy controls **every BTC and USDT in the connected account**, and
+    nothing outside it — which is why a separate sub-account is recommended, with the steps to
+    create one;
+  - make **connecting** an account and **activating trading** separate steps. Connecting
+    validates the key and shows the balances. Activating shows the exact amounts the strategy
+    will take over and requires an explicit confirmation;
+  - pause and unfreeze from the dashboard, and a job queue if many users make one worthwhile.
 
 ## 14. Changes to other documents
 
