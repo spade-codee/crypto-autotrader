@@ -3042,6 +3042,28 @@ git push
 
 ## Task 15: Founder verification on testnet
 
+> **2026-09-19: try testnet first; a mainnet read-only key is the fallback.** Creating an API key
+> on the founder's own Bybit account was refused with a regulatory-restriction message, most
+> likely because the account had not completed identity verification. Testnet sign-up has not
+> been tried. If it works, run this task as written. Otherwise, once the account is verified,
+> run it on **mainnet with a read-only key** instead. A read-only key can read balances but cannot trade
+> or withdraw, so nothing can move. Differences from the steps below:
+>
+> - **Step 1:** at `www.bytick.com`, API Management, create a system-generated **Read-Only** key
+>   restricted to the founder's current public IP (`curl.exe -s https://api.ipify.org`).
+> - **Step 2:** run `vault:init` first — it refuses to run if `.env.local` exists — then, in the
+>   same terminal, set `$env:BYBIT_ENV = 'mainnet'` and `$env:SERVER_IPS = '<that IP>'` before
+>   `key:add`. Session variables, not `.env.local`, so the machine does not stay on mainnet.
+>   Expect `It cannot place trades.` plus a warning saying so — correct for a read-only key.
+> - **Step 4:** make the second key **Read-Only** too, with a Derivatives permission ticked. It
+>   should be refused, naming that permission. **Never create a withdrawal-enabled key on a real
+>   account.** If Bybit lists no permissions on read-only keys, skip this step; the refusal logic
+>   is unit-tested.
+> - **If the IP check fails,** the public IP changed, which is common on Nigerian networks. Check
+>   it again and update the key.
+>
+> See `docs/decisions.md` #8.
+
 **This task is done by the founder, in their own terminal.** The executing agent explains the
 steps and records the outcome, but never asks for, sees, or types a key or secret, and never reads
 the terminal while a key is being entered.
