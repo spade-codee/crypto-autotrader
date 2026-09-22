@@ -39,8 +39,6 @@ export type EngineConfig = {
   tradingMode: 'paper';
   userId: string;
   dbDir: string;
-  /** Beside the database directory, never inside it: PGlite owns that directory. */
-  lockFile: string;
   killSwitchFile: string;
   paperFeeRate: Decimal;
   maxOrderUsdt: Decimal | null;
@@ -98,7 +96,6 @@ export function readEngineConfig(env: Record<string, string | undefined> = proce
     tradingMode: 'paper',
     userId,
     dbDir,
-    lockFile: `${dbDir.replace(/[\\/]+$/, '')}.lock`,
     killSwitchFile: killSwitchFileFrom(env),
     paperFeeRate: decimalSetting('PAPER_FEE_RATE', env.PAPER_FEE_RATE, '0.001', (d) => d.gte(0) && d.lt('0.01'), 'at least 0 and below 0.01')!,
     maxOrderUsdt: decimalSetting('MAX_ORDER_USDT', env.MAX_ORDER_USDT, null, (d) => d.gt(0), 'above zero'),

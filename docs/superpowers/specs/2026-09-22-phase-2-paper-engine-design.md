@@ -157,8 +157,15 @@ than 30 minutes after it was due, and **abandoned** if it has not completed by t
 
 **Every tick:**
 
-1. **Take the lock.** If another command holds it, wait up to 60 seconds, then exit. A lock left by
-   a process that no longer exists is detected by its PID and removed.
+1. **Take the lock.** Every command that opens the database holds the same lock — the engine's
+   and the key commands alike, because opening the database on disk takes it — named for the
+   database directory however its path is written. If another command holds it, wait up to 60
+   seconds, then exit. The lock is a name the operating system owns, a named pipe on Windows and
+   an abstract socket on Linux, and it is freed the moment its holder exits, however it exits, so
+   no stale lock is ever left to detect or take over. The lock is given up only after the
+   database has closed. (Revised after the code review: the first version was a lock file,
+   removed by PID when its holder died, and two processes could race to take it over; the key
+   commands did not take it at all.)
 2. **Kill switch.** If the file exists, record it once per day, alert once, and stop.
 3. **Abandon stale runs.** Any `cycle_runs` row still `pending` for an earlier cycle date becomes
    `abandoned`, with an alert.
@@ -412,7 +419,8 @@ message goes to the log.
   lock and silently lose the day. Every request to Bybit is abandoned after 10 seconds, and every
   request to Telegram or Healthchecks.io after 5. A tick still running after 5 minutes exits with
   an error, and the unit's `TimeoutStartSec=10min` stops it if even that fails. A tick stopped
-  part-way is safe to rerun: its intents are outstanding, and its lock is detected as stale.
+  part-way is safe to rerun: its intents are outstanding, and the operating system has already
+  freed its lock.
 - **Settings**, in `.env.local` or the environment:
 
 | Setting | Default | Notes |

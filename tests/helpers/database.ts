@@ -1,6 +1,6 @@
 import { sql } from 'drizzle-orm';
 import { afterAll, beforeAll, beforeEach } from 'vitest';
-import { openDatabase, type Database } from '../../src/db/client.js';
+import { openMemoryDatabase, type Database } from '../../src/db/client.js';
 import {
   accountState,
   alertLog,
@@ -42,7 +42,7 @@ export function useTestDatabase(): () => Database {
   let opened: { db: Database; close: () => Promise<void> } | undefined;
 
   beforeAll(async () => {
-    opened = await openDatabase();
+    opened = await openMemoryDatabase();
   });
   beforeEach(async () => {
     await emptyAllTables(opened!.db);

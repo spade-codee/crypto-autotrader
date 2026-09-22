@@ -15,7 +15,6 @@ describe('readEngineConfig', () => {
       tradingMode: 'paper',
       userId: 'founder',
       dbDir: 'data/db',
-      lockFile: 'data/db.lock',
       killSwitchFile: 'data/KILL_SWITCH',
       maxOrderUsdt: null,
       telegram: null,
@@ -56,10 +55,6 @@ describe('readEngineConfig', () => {
     expect(() => readEngineConfig({ ...BASE, PAPER_FEE_RATE: 'abc' })).toThrow('PAPER_FEE_RATE');
     expect(() => readEngineConfig({ ...BASE, PAPER_FEE_RATE: '0.5' })).toThrow('PAPER_FEE_RATE');
     expect(() => readEngineConfig({ ...BASE, MAX_ORDER_USDT: '-1' })).toThrow('MAX_ORDER_USDT');
-  });
-
-  it('puts the lock beside the database directory, never inside it', () => {
-    expect(readEngineConfig({ ...BASE, DB_DIR: '/var/lib/autotrader/db/' }).lockFile).toBe('/var/lib/autotrader/db.lock');
   });
 });
 

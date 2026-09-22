@@ -1,4 +1,3 @@
-import { mkdirSync } from 'node:fs';
 import { HealthcheckHeartbeat, NoHeartbeat, type Heartbeat } from '../alerts/heartbeat.js';
 import { LogAlerter, TelegramAlerter, type Alerter } from '../alerts/telegram.js';
 import { openDatabase, type Database } from '../db/client.js';
@@ -6,7 +5,6 @@ import type { CycleDeps } from '../engine/cycle.js';
 import { Ledger } from '../ledger/ledger.js';
 import { BybitPublicMarket } from '../market/bybitPublic.js';
 import { KillSwitch } from '../ops/killSwitch.js';
-import { acquireLock } from '../ops/lock.js';
 import { PaperAccount } from '../paper/paperAccount.js';
 import { AccountStates } from '../state/accountState.js';
 import { AlertLog } from '../state/alertLog.js';
@@ -33,18 +31,25 @@ export type Engine = {
   close: () => Promise<void>;
 };
 
+export type EngineOptions = {
+  /** Settings to read instead of the environment and .env.local. For tests. */
+  env?: Record<string, string | undefined>;
+  /** How long to wait for another command to finish with the database. */
+  lockWaitMs?: number;
+};
+
 /**
- * Loads the settings, takes the database lock, and wires the engine's real
- * dependencies. PGlite must never be opened by two processes at once, so every
- * command that touches the database goes through here.
+ * Loads the settings, opens the database, and wires the engine's real
+ * dependencies. openDatabase holds the database lock until close(), the same
+ * lock the key commands take, so no two commands ever have the database open.
  */
-export async function openEngine(): Promise<Engine> {
-  loadLocalEnv();
-  const config = readEngineConfig(process.env);
-  const release = await acquireLock(config.lockFile);
+export async function openEngine(options: EngineOptions = {}): Promise<Engine> {
+  if (options.env === undefined) {
+    loadLocalEnv();
+  }
+  const config = readEngineConfig(options.env ?? process.env);
+  const database = await openDatabase(config.dbDir, { lockWaitMs: options.lockWaitMs });
   try {
-    mkdirSync(config.dbDir, { recursive: true });
-    const database = await openDatabase(config.dbDir);
     const { db } = database;
     const ledger = new Ledger(db);
     const accounts = new AccountStates(db);
@@ -87,16 +92,10 @@ export async function openEngine(): Promise<Engine> {
       market,
       alerter,
       paperAccount,
-      close: async () => {
-        try {
-          await database.close();
-        } finally {
-          release();
-        }
-      },
+      close: database.close,
     };
   } catch (error) {
-    release();
+    await database.close();
     throw error;
   }
 }

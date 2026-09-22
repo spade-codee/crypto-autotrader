@@ -7,6 +7,4 @@ dist/
 data/*.csv
 coverage/
 data/db/
-data/db.lock
-data/*.tmp
 data/KILL_SWITCH
