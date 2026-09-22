@@ -6,7 +6,9 @@
 - **Revised:** 2026-09-22, after a design review: outstanding orders are resolved across days,
   exposure counts locked funds, every request and every tick has a deadline, and the whole candle
   window is validated. A second pass the same day separated inconclusive order lookups from
-  confirmed non-submission, and gave every retry its own client order ID (section 4.2)
+  confirmed non-submission, and gave every retry its own client order ID (section 4.2). A third
+  made non-submission something only the exchange adapter can prove: elapsed time and an empty
+  lookup never authorize a new order
 - **Parent spec:** `2026-09-16-crypto-trading-automation-design.md` — sections 4 to 7, and 9
 - **Builds on:** Phase 1 (`2026-09-17-phase-1-exchange-adapter-design.md`) and the robustness
   research (`docs/research/phase-0-findings.md`)
@@ -120,11 +122,18 @@ export type OrderState = {
 };
 
 /**
- * The account's answer about one client order ID. NOT_FOUND means the account is
- * certain it holds no such order. Anything uncertain — a timeout, an error, a
- * partial answer — throws instead, and the engine treats it as inconclusive.
+ * The account's answer about one client order ID:
+ * - FOUND: the order exists, in this state;
+ * - ABSENT: the adapter can PROVE no such order exists or ever will. The paper
+ *   account can, because its database is the whole truth;
+ * - NOT_VISIBLE: the adapter looked and did not see it, but cannot prove it
+ *   absent. An exchange that is slow to show new orders answers this way.
+ * A lookup that fails — a timeout, an error — throws.
  */
-export type OrderLookup = { kind: 'FOUND'; state: OrderState } | { kind: 'NOT_FOUND' };
+export type OrderLookup =
+  | { kind: 'FOUND'; state: OrderState }
+  | { kind: 'ABSENT' }
+  | { kind: 'NOT_VISIBLE' };
 
 export interface TradingAccount {
   getBalances(): Promise<CoinBalance[]>;      // the Phase 1 type
@@ -175,10 +184,12 @@ than 30 minutes after it was due, and **abandoned** if it has not completed by t
    - **found and still pending:** an order is in flight, so do nothing more for this user this
      tick and try again at the next. One still pending an hour after its intent was recorded
      freezes the account;
-   - **not found, and the intent is at least 5 minutes old:** confirmed non-submission, so
-     record `NOT_PLACED`;
-   - **not found, but the intent is younger than 5 minutes:** inconclusive, because the order
-     may still be on its way. Record nothing and wait for the next tick;
+   - **absent — the adapter proves the order does not exist:** confirmed non-submission, so
+     record `NOT_PLACED`. Only the adapter's proof counts: elapsed time and an empty lookup
+     never do;
+   - **not visible — the adapter looked but cannot prove absence:** inconclusive. Record
+     nothing, place nothing, and ask again at the next tick. One still not visible an hour
+     after its intent freezes the account, for a person to check the exchange;
    - **the lookup fails or times out:** inconclusive. Record nothing; the intent stays
      outstanding, and the next tick asks again.
 
@@ -227,8 +238,10 @@ A failure is handled like stale data: try again at the next tick, and record the
   writing its intent recomputes the same attempt, and therefore the same ID.
 - **The ledger rule:** each client order ID appears in exactly one `ORDER_INTENT` and, once
   settled, exactly one `ORDER_RESULT`. A retry never reuses an ID.
-- **A retry needs confirmed non-submission.** Attempt *k + 1* is possible only when attempts 1
-  to *k* were all recorded `NOT_PLACED`. Any other result ends the day's ordering: `FILLED`
+- **A retry needs proven non-submission.** Attempt *k + 1* is possible only when attempts 1
+  to *k* were all recorded `NOT_PLACED`, and `NOT_PLACED` is recorded only when the adapter
+  proves an order absent. Elapsed time and an empty lookup never authorize a new order ID.
+  Any other result ends the day's ordering: `FILLED`
   goes to reconciliation, and anything else freezes the account. So at most one order a day
   can ever execute.
 - **At most three attempts a day.** Needing a fourth freezes the account: orders are not
@@ -237,7 +250,7 @@ A failure is handled like stale data: try again at the next tick, and record the
 **Why a new ID rather than the same one.** Reusing the ID would give it two intents and two
 results. If the first attempt then turned up late, its fill could not be attributed to either.
 A new ID keeps every order's history unambiguous. The protection it gives up — the exchange
-refusing a repeated ID — is covered three ways: non-submission must be confirmed, not assumed;
+refusing a repeated ID — is covered three ways: non-submission must be proven by the adapter, never inferred from time or an empty lookup;
 sizing always reads real balances, so an order that did execute makes the account already at
 its target; and the attempt cap bounds the worst case.
 
@@ -313,7 +326,10 @@ failed.
 - **Fees:** `PAPER_FEE_RATE`, default 0.1% — Bybit's spot taker fee. On a buy it comes off the BTC
   received; on a sell, off the USDT received.
 - **Atomicity:** balance changes and the order row are written in one transaction.
-- `getBalances` reports no locked and no borrowed amounts. `getOrder` reads `paper_orders`.
+- `getBalances` reports no locked and no borrowed amounts. `getOrder` reads `paper_orders` and
+  answers `FOUND` or `ABSENT`, never `NOT_VISIBLE`: its database is the whole truth, and each
+  order is written in the same transaction as its balances, so a missing row proves the order
+  was never placed.
 
 ## 8. Ledger and state
 
@@ -347,7 +363,8 @@ strings.
 | An unexpected error in our code **before** any order intent | Try again at the next tick, with an alert. Nothing has happened, so retrying is safe |
 | A crash, or a placement that times out or gets no definite answer, **after** an order intent | **Uncertain, not failed.** The next tick settles it through the client order ID, even after midnight |
 | An order still pending | Nothing more for that account until it settles. Still pending an hour after its intent: **freeze** |
-| The account says an order does not exist | At least 5 minutes after its intent: confirmed, so record `NOT_PLACED`; a retry gets a new ID. Sooner: inconclusive, so wait |
+| The adapter proves an order absent | Confirmed non-submission: record `NOT_PLACED`; a retry gets a new ID |
+| The adapter cannot see an order, and cannot prove it absent | Inconclusive: nothing is recorded, and **no replacement is placed**. Still not visible an hour after its intent: **freeze**, for a person to check the exchange |
 | An order lookup fails or times out | Inconclusive: nothing is recorded, the intent stays outstanding, and the next tick asks again |
 | Orders keep failing to arrive | The fourth attempt in a day is vetoed and the account **frozen** |
 | Locked BTC or USDT that is not one of our orders | **Freeze**: the dedicated account is being traded by hand |
@@ -422,10 +439,12 @@ message goes to the log.
   pending after an hour; **a placement that times out after the order was accepted**, and one
   that times out before it arrived; a stalled request that gives up within its deadline; and
   **locked BTC with a FLAT target**, and locked USDT, each freezing rather than passing as at the
-  target. From the recovery clarification: **an order that never arrived** — an early lookup
-  that is inconclusive and records nothing, a later one that confirms `NOT_PLACED`, and a retry
-  under a new ID that fills, with every ID holding exactly one intent and one result; a lookup
-  that fails, recording nothing; and a fourth attempt in a day, which freezes.
+  target. From the recovery clarifications: **an order that never arrived** — a lookup that
+  cannot see it records nothing and places nothing, and only the adapter's proof of absence
+  records `NOT_PLACED` and lets a retry under a new ID fill, with every ID holding exactly one
+  intent and one result; **an order that becomes visible late**, for which no replacement is
+  ever placed; an order that stays invisible for an hour, which freezes; a lookup that fails,
+  recording nothing; and a fourth attempt in a day, which freezes.
 - **The parity test.** Replay real daily candles from a committed fixture — BTCUSDT spot, 2023 and
   2024 — through the live tick one day at a time, with the clock at 00:02 UTC and a synthetic order
   book at the next candle's open. Run the backtest engine over the same candles. The **daily
@@ -450,8 +469,10 @@ The rest of the parent spec's 2–4 weeks of paper trading then continues while 
 - **Phase 2b — Bybit orders.** A `BybitTradingAccount`: orders through `/v5/order/create` with
   `orderLinkId` set to the client order ID and `marketUnit` set to `quoteCoin` for buys; order
   state from the open-orders endpoint, then order history; fees from the execution list. Its
-  `getOrder` may return `NOT_FOUND` only when both endpoints authoritatively lack the order, and
-  must throw on anything less certain. The key is
+  `getOrder` returns `ABSENT` only when the adapter can prove the order was never created, and
+  `NOT_VISIBLE` whenever it simply cannot see it; failures throw. An exchange lookup rarely
+  proves a negative, so Phase 2b must also give the founder a way to record a human-verified
+  outcome for an order stuck `NOT_VISIBLE`, before any real order is placed. The key is
   re-validated before every use, as Phase 1 requires. The account's automatic borrowing must be
   confirmed off. Testnet first, then mainnet with the founder's own money.
 - **Phase 3:** production Postgres, a compiled build, `MAX_ORDER_USDT` set small, `SERVER_IPS` set

@@ -1128,11 +1128,18 @@ export type OrderState = {
 };
 
 /**
- * The account's answer about one client order ID. NOT_FOUND means the account
- * is certain it holds no such order. Anything uncertain — a timeout, an error,
- * a partial answer — must throw instead; the engine treats that as inconclusive.
+ * The account's answer about one client order ID:
+ * - FOUND: the order exists, in this state;
+ * - ABSENT: the adapter can PROVE no such order exists or ever will. The paper
+ *   account can, because its database is the whole truth;
+ * - NOT_VISIBLE: the adapter looked and did not see it, but cannot prove it
+ *   absent. An exchange that is slow to show new orders answers this way.
+ * A lookup that fails — a timeout, an error — throws.
  */
-export type OrderLookup = { kind: 'FOUND'; state: OrderState } | { kind: 'NOT_FOUND' };
+export type OrderLookup =
+  | { kind: 'FOUND'; state: OrderState }
+  | { kind: 'ABSENT' }
+  | { kind: 'NOT_VISIBLE' };
 
 /** An account the engine can trade: the paper account now, Bybit in Phase 2b. */
 export interface TradingAccount {
@@ -3346,7 +3353,7 @@ describe('placing orders', () => {
     const { account, market } = await open();
     market.fail.book = new Error('the request timed out');
     await expect(account.placeMarketOrder(buy('o1', '100'))).rejects.toThrow('timed out');
-    expect(await account.getOrder('o1')).toEqual({ kind: 'NOT_FOUND' });
+    expect(await account.getOrder('o1')).toEqual({ kind: 'ABSENT' });
     expect(await holding(account, 'USDT')).toBe('1000');
   });
 });
@@ -3354,14 +3361,14 @@ describe('placing orders', () => {
 describe('looking up orders', () => {
   it('is certain an unknown ID was never placed', async () => {
     const { account } = await open();
-    expect(await account.getOrder('never-sent')).toEqual({ kind: 'NOT_FOUND' });
+    expect(await account.getOrder('never-sent')).toEqual({ kind: 'ABSENT' });
   });
 
   it("does not show another account's orders", async () => {
     const { account: founder } = await open('founder');
     const { account: other } = await open('other');
     await other.placeMarketOrder(buy('theirs', '100'));
-    expect(await founder.getOrder('theirs')).toEqual({ kind: 'NOT_FOUND' });
+    expect(await founder.getOrder('theirs')).toEqual({ kind: 'ABSENT' });
   });
 
   it('reports no locks and no borrowing', async () => {
@@ -3481,9 +3488,10 @@ function ruleProblem(order: MarketOrderRequest, rules: InstrumentRules): string 
  * book. It behaves like Bybit spot wherever the engine could notice: it
  * enforces the instrument's rules and the balance, refuses a repeated client
  * order ID, charges the taker fee in the coin received, and cancels whatever
- * the book cannot fill. Its database is the whole truth, so NOT_FOUND from
- * getOrder is always certain; a database error throws, which the engine
- * treats as inconclusive.
+ * the book cannot fill. Its database is the whole truth, and each order is
+ * written in the same transaction as its balances, so a missing order is
+ * proven absent: getOrder answers FOUND or ABSENT, never NOT_VISIBLE. A
+ * database error throws, which the engine treats as inconclusive.
  */
 export class PaperAccount implements TradingAccount {
   /**
@@ -3543,7 +3551,7 @@ export class PaperAccount implements TradingAccount {
       .select()
       .from(paperOrders)
       .where(and(eq(paperOrders.clientOrderId, clientOrderId), eq(paperOrders.userId, this.#userId)));
-    return rows[0] === undefined ? { kind: 'NOT_FOUND' } : { kind: 'FOUND', state: toState(rows[0]) };
+    return rows[0] === undefined ? { kind: 'ABSENT' } : { kind: 'FOUND', state: toState(rows[0]) };
   }
 
   async placeMarketOrder(order: MarketOrderRequest): Promise<OrderState> {
@@ -4381,6 +4389,22 @@ export function lookupFails(inner: TradingAccount, times: number): TradingAccoun
   };
 }
 
+/** Its order lookups answer NOT_VISIBLE `times` times before answering for real — an exchange slow to show orders. */
+export function hidesOrders(inner: TradingAccount, times: number): TradingAccount {
+  let left = times;
+  return {
+    getBalances: () => inner.getBalances(),
+    placeMarketOrder: (order) => inner.placeMarketOrder(order),
+    getOrder: async (id) => {
+      if (left > 0) {
+        left -= 1;
+        return { kind: 'NOT_VISIBLE' };
+      }
+      return inner.getOrder(id);
+    },
+  };
+}
+
 /** Reports every order FILLED without moving any balance: a reconciliation mismatch. */
 export function fillsWithoutMoving(inner: TradingAccount): TradingAccount {
   return {
@@ -4596,6 +4620,7 @@ import {
   failsBeforePlacing,
   fillsWithoutMoving,
   harness,
+  hidesOrders,
   lookupFails,
   openFounder,
   ran,
@@ -4841,23 +4866,25 @@ describe('orders whose outcome is uncertain', () => {
     expect(await h.ledger.ofType('ORDER_RESULT', 'founder')).toHaveLength(1);
   });
 
-  it('treats an early not-found as inconclusive, then retries under a new ID once non-submission is confirmed', async () => {
+  it('retries under a new ID only once the account proves the first order absent', async () => {
     const h = await setup();
     // The order never reaches the account.
     h.wrap = failsBeforePlacing;
     const [first] = ran(await runTick(h.deps));
     expect(first!.result).toBe('RETRY_LATER');
 
-    // Two minutes later — a manual run — the account has no such order, but it
-    // is too soon to rule out an order still on its way: inconclusive.
-    h.wrap = (account) => account;
-    h.clock.now += 2 * MINUTE;
-    const [early] = ran(await runTick(h.deps));
-    expect(early!.result).toBe('WAITING');
+    // Fifteen minutes later the account still cannot see the order, and cannot
+    // prove it absent. Time and an empty lookup prove nothing: no result, no new order.
+    const hidden = hidesOrders(h.paper(), 1);
+    h.wrap = () => hidden;
+    h.clock.now += 15 * MINUTE;
+    const [unsure] = ran(await runTick(h.deps));
+    expect(unsure!.result).toBe('WAITING');
     expect(await h.ledger.ofType('ORDER_RESULT', 'founder')).toHaveLength(0);
+    expect(await h.ledger.ofType('ORDER_INTENT', 'founder')).toHaveLength(1);
 
-    // At the next tick the non-submission is confirmed. The retry gets a new ID and fills.
-    h.clock.now += 13 * MINUTE;
+    // At the next tick the account proves the order absent. The retry gets a new ID and fills.
+    h.clock.now += 15 * MINUTE;
     const [later] = ran(await runTick(h.deps));
     expect(later!.result).toBe('COMPLETED');
 
@@ -4875,8 +4902,42 @@ describe('orders whose outcome is uncertain', () => {
       [ids[1], 'FILLED'],
     ]);
     // Exactly one order ever reached the account.
-    expect((await h.paper().getOrder(ids[0]!)).kind).toBe('NOT_FOUND');
+    expect((await h.paper().getOrder(ids[0]!)).kind).toBe('ABSENT');
     expect((await h.paper().getOrder(ids[1]!)).kind).toBe('FOUND');
+  });
+
+  it('places no replacement for an order that becomes visible late', async () => {
+    const h = await setup();
+    // The order reaches the account, but the placement times out and the
+    // account then cannot see the order for two lookups.
+    const delayed = hidesOrders(failsAfterPlacing(h.paper()), 2);
+    h.wrap = () => delayed;
+    ran(await runTick(h.deps));
+    for (const minutes of [15, 30]) {
+      h.clock.now = tickTimeAfter(DAY_ONE) + minutes * MINUTE;
+      const [unsure] = ran(await runTick(h.deps));
+      expect(unsure!.result, `after ${minutes} minutes`).toBe('WAITING');
+    }
+    h.clock.now = tickTimeAfter(DAY_ONE) + 45 * MINUTE;
+    const [settled] = ran(await runTick(h.deps));
+    expect(settled!.result).toBe('COMPLETED');
+
+    expect(await h.ledger.ofType('ORDER_INTENT', 'founder')).toHaveLength(1);
+    expect((await h.ledger.ofType('ORDER_RESULT', 'founder')).map((e) => e.payload.status)).toEqual(['FILLED']);
+    // No replacement order ever reached the account.
+    expect((await h.paper().getOrder(clientOrderId('founder', DAY_ONE, 'ENTER_LONG', 2))).kind).toBe('ABSENT');
+  });
+
+  it('freezes, for a person to check, an order that stays invisible for an hour', async () => {
+    const h = await setup();
+    const hidden = hidesOrders(failsAfterPlacing(h.paper()), Number.POSITIVE_INFINITY);
+    h.wrap = () => hidden;
+    ran(await runTick(h.deps));
+    h.clock.now += 61 * MINUTE;
+    const [user] = ran(await runTick(h.deps));
+    expect(user!.result).toBe('FROZEN');
+    expect(user!.detail).toContain('check the exchange by hand');
+    expect(await h.ledger.ofType('ORDER_INTENT', 'founder')).toHaveLength(1);
   });
 
   it('records nothing when the lookup itself fails', async () => {
@@ -4971,10 +5032,11 @@ import { sizeOrder, type SizedOrder } from './sizing.js';
 export const PENDING_FREEZE_AFTER_MS = 60 * 60_000;
 
 /**
- * How old an intent must be before the account's "no such order" counts as
- * confirmed non-submission. Any sooner, the order may still be on its way.
+ * An order the account still cannot see this long after its intent freezes the
+ * account for a person to check. Time never proves absence, so the engine
+ * waits rather than retries.
  */
-export const NOT_FOUND_CONFIRM_AFTER_MS = 5 * 60_000;
+export const NOT_VISIBLE_FREEZE_AFTER_MS = 60 * 60_000;
 
 export type CycleDeps = {
   ledger: Ledger;
@@ -5189,9 +5251,10 @@ type Settlement = { kind: 'CLEAR'; todaysFill: OrderState | null } | Stop;
 
 /**
  * Step 1: gives every outstanding intent, from any day, exactly one recorded
- * result — or stops. See spec sections 4 and 4.2 for the three lookup outcomes.
- * A lookup that throws is inconclusive: it records nothing and propagates to
- * runUser, which retries at the next tick.
+ * result — or stops. Only the adapter's proof of absence records NOT_PLACED;
+ * elapsed time and an empty lookup never do (spec sections 4 and 4.2). A lookup
+ * that throws is inconclusive: it records nothing and propagates to runUser,
+ * which retries at the next tick.
  */
 async function settleOutstanding(run: Run, account: TradingAccount): Promise<Settlement> {
   const { deps, userId, date, at } = run;
@@ -5201,10 +5264,7 @@ async function settleOutstanding(run: Run, account: TradingAccount): Promise<Set
     const intentDate = intent.cycleDate ?? date;
     const age = at.getTime() - intent.occurredAt.getTime();
     const lookup = await account.getOrder(id);
-    if (lookup.kind === 'NOT_FOUND') {
-      if (age < NOT_FOUND_CONFIRM_AFTER_MS) {
-        return waiting(run, `order ${id} was not found yet and may still be on its way; it is checked again at the next run`);
-      }
+    if (lookup.kind === 'ABSENT') {
       await deps.ledger.append({
         occurredAt: at,
         userId,
@@ -5213,6 +5273,21 @@ async function settleOutstanding(run: Run, account: TradingAccount): Promise<Set
         payload: { clientOrderId: id, status: 'NOT_PLACED' },
       });
       continue;
+    }
+    if (lookup.kind === 'NOT_VISIBLE') {
+      if (age >= NOT_VISIBLE_FREEZE_AFTER_MS) {
+        return {
+          kind: 'STOPPED',
+          outcome: await freeze(
+            run,
+            `order ${id} from ${intentDate} has not been visible for over an hour, and the account cannot prove it was never placed; check the exchange by hand`,
+          ),
+        };
+      }
+      return waiting(
+        run,
+        `order ${id} from ${intentDate} is not visible yet; no replacement is placed until the account can say what happened to it`,
+      );
     }
     const { state } = lookup;
     if (state.status === 'PENDING') {

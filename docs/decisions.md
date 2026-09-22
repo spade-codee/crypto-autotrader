@@ -619,7 +619,10 @@ Full design: `docs/superpowers/specs/2026-09-22-phase-2-paper-engine-design.md`.
 orders are resolved whatever their day, so abandoning a run never discards whether its order
 executed; being at the target is judged on total balances, and unexplained locked funds freeze
 the account; every request and every tick has a deadline, and an unanswered order counts as
-uncertain rather than failed; and the whole candle window is validated before any signal.
+uncertain rather than failed; and the whole candle window is validated before any signal. Two
+further passes followed: every retry gets its own client order ID, and non-submission counts
+only when the exchange adapter can prove it — elapsed time and an empty lookup never authorize a
+new order.
 
 ## Corrections made along the way
 
