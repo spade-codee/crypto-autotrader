@@ -71,3 +71,6 @@ export type BacktestResult = {
   equityCurve: EquityPoint[];
   metrics: Metrics;
 };
+
+/** Whether an account may trade. Only `active` accounts do. */
+export type AccountStatus = 'active' | 'paused' | 'frozen';
