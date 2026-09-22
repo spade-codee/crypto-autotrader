@@ -26,7 +26,7 @@ exists yet.** The repository also holds the design, product research, and a full
 | Phase 0 — strategy proof | **Complete and merged to `master`.** 67 tests. Result in `docs/research/phase-0-findings.md` |
 | Phase 0 result | **Passes, with claims narrowed.** Out-of-sample, MA-125 cut max drawdown to 27.4% from buy-and-hold's 53.1%, but gave up ~9 points of annual growth. Insurance, not a return enhancer |
 | Phase 1 — read-only Bybit connection | **Code complete** on branch `phase-1-exchange-adapter`, 156 tests. **Awaiting the founder's check (plan Task 15)** before merging. Bybit refused API key creation on the founder's unverified account; testnet is untested |
-| Phase 2 — paper-trading engine | **Design written** on branch `phase-2-paper-engine`, awaiting the founder's review. Trades a paper account on live Bybit prices, so it needs no key |
+| Phase 2 — paper-trading engine | **Design approved and plan written** on branch `phase-2-paper-engine`; implementation next. Trades a paper account on live Bybit prices, so it needs no key |
 | Product research | Complete. It reopened the business model, which was re-decided 2026-09-17 |
 | Name | **Undecided** — "Keel" was rejected after a verified conflict |
 
@@ -87,8 +87,8 @@ the trend filter across neighbouring periods and on ETH, and concludes the evide
 only.
 
 **Phase 2 is designed on branch `phase-2-paper-engine`**, built on `research-robustness`: the
-daily engine, trading a paper account on live Bybit prices. The spec awaits the founder's
-review; the implementation plan comes next. **Merge order:** `phase-1-exchange-adapter`, then
+daily engine, trading a paper account on live Bybit prices. The spec is approved and the plan,
+`docs/superpowers/plans/2026-09-22-phase-2-paper-engine.md`, is ready to execute task by task. **Merge order:** `phase-1-exchange-adapter`, then
 `research-robustness`, then `phase-2-paper-engine`.
 
 Other work, if the founder asks for it:

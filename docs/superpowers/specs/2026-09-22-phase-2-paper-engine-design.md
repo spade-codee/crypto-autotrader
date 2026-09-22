@@ -1,8 +1,8 @@
 # Phase 2 — Paper-trading engine: design
 
 - **Date:** 2026-09-22
-- **Status:** design approved in conversation, section by section; this document awaits the
-  founder's review
+- **Status:** approved by the founder, 2026-09-22. Implementation plan:
+  `docs/superpowers/plans/2026-09-22-phase-2-paper-engine.md`
 - **Revised:** 2026-09-22, after a design review: outstanding orders are resolved across days,
   exposure counts locked funds, every request and every tick has a deadline, and the whole candle
   window is validated. A second pass the same day separated inconclusive order lookups from
