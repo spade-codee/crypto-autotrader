@@ -1,0 +1,13 @@
+[Unit]
+Description=crypto-autotrader: a tick every 15 minutes
+
+[Timer]
+# 2, 17, 32, and 47 minutes past every hour: the first tick after the daily
+# close is two minutes after it.
+OnCalendar=*:02/15
+# A tick missed while the machine was off runs at boot.
+Persistent=true
+AccuracySec=30s
+
+[Install]
+WantedBy=timers.target

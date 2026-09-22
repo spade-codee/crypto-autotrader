@@ -1,0 +1,17 @@
+[Unit]
+Description=crypto-autotrader: one engine tick (paper trading)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=autotrader
+Group=autotrader
+WorkingDirectory=/opt/crypto-autotrader
+ExecStart=/usr/bin/npm run --silent cycle
+# systemd applies no start timeout to oneshot services by default, and a hung
+# tick would hold the database lock and silently lose the day. The command
+# stops itself after 5 minutes; this is the outer bound.
+TimeoutStartSec=10min
+NoNewPrivileges=true
+PrivateTmp=true
