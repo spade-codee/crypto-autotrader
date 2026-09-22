@@ -36,6 +36,7 @@ are still open.
 | 19 | Phase 0 verdict and MA period | Passes, claims narrowed; MA-125, range 100–150 | **RECOMMENDED — founder to review** |
 | 20 | Exchange access and API key security | Own Bybit client; spot-only permission allowlist; sealed vault | DECIDED 2026-09-17 |
 | 21 | Which assets are tradable | BTC only; meme coins excluded on evidence; an asset must pass the out-of-asset check | **RECOMMENDED — founder to review** |
+| 22 | Phase 2 execution rules | Whole dedicated account; catch up missed runs; founder-only unfreeze; systemd timer | DECIDED 2026-09-22 |
 
 **What blocks what:** Phase 0 is complete and #16 is decided, so Phase 1 is unblocked. The legal
 opinion (#18) gates opening the pilot to anyone other than the founder.
@@ -588,6 +589,29 @@ to zero are absent from the data, which flatters the category rather than the co
 
 **If the founder wants to overrule this,** the bar is evidence on that specific asset, not
 enthusiasm for it, and the marketing cannot describe the result as protection.
+
+## 22. Phase 2 execution rules — DECIDED 2026-09-22
+
+Full design: `docs/superpowers/specs/2026-09-22-phase-2-paper-engine-design.md`.
+
+- **The strategy controls the whole of a dedicated account**, ideally a Bybit sub-account. Every
+  BTC and USDT in it belongs to the strategy, so the exchange stays the single source of truth —
+  and it is exactly what the backtest tested. *Rejected:* a fixed amount inside a shared account,
+  which would make our database the source of truth for the strategy's slice; and a percentage of
+  the account, which would sell BTC the user thinks of as their own and stop matching the backtest.
+- **A run that cannot happen on time catches up as soon as possible**, before the next daily
+  close, and is abandoned after that. Skipping usually means trading 24 hours late anyway.
+  *Rejected:* skipping to the next close; waiting for the founder's approval, which stalls
+  overnight and does not scale.
+- **Only the founder lifts a freeze**, with a recorded reason. *Rejected:* retrying automatically
+  at the next run, which repeats a bug every day; one automatic retry, which adds a rule for little
+  gain.
+- **The engine is a one-shot command on a systemd timer**, every 15 minutes, replacing `pg-boss`
+  until Phase 4. systemd survives crashes and reboots and catches up missed runs, every run is
+  recorded, and it suits PGlite, which only one process may open. *Rejected:* an always-on worker
+  with `pg-boss`, which needs a Postgres server now; `node-cron`, already ruled out.
+- **Phase 2 trades a paper account on live Bybit prices**, so it needs no Bybit key. Real Bybit
+  orders follow as Phase 2b.
 
 ## Corrections made along the way
 

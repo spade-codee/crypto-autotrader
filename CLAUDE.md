@@ -26,6 +26,7 @@ exists yet.** The repository also holds the design, product research, and a full
 | Phase 0 — strategy proof | **Complete and merged to `master`.** 67 tests. Result in `docs/research/phase-0-findings.md` |
 | Phase 0 result | **Passes, with claims narrowed.** Out-of-sample, MA-125 cut max drawdown to 27.4% from buy-and-hold's 53.1%, but gave up ~9 points of annual growth. Insurance, not a return enhancer |
 | Phase 1 — read-only Bybit connection | **Code complete** on branch `phase-1-exchange-adapter`, 156 tests. **Awaiting the founder's check (plan Task 15)** before merging. Bybit refused API key creation on the founder's unverified account; testnet is untested |
+| Phase 2 — paper-trading engine | **Design written** on branch `phase-2-paper-engine`, awaiting the founder's review. Trades a paper account on live Bybit prices, so it needs no key |
 | Product research | Complete. It reopened the business model, which was re-decided 2026-09-17 |
 | Name | **Undecided** — "Keel" was rejected after a verified conflict |
 
@@ -55,6 +56,7 @@ free tier below an account-size threshold. The pilot sets the price and threshol
 2. `docs/research/phase-0-findings.md` — whether the strategy works, and what that means for the product.
 3. `docs/superpowers/specs/2026-09-16-crypto-trading-automation-design.md` — the design spec. Read its 2026-09-17 update note first.
 3a. `docs/superpowers/specs/2026-09-17-phase-1-exchange-adapter-design.md` — Phase 1's security design: key allowlist, vault, signing.
+3b. `docs/superpowers/specs/2026-09-22-phase-2-paper-engine-design.md` — Phase 2: the daily engine, the paper account, the Risk Guard, and failure handling.
 4. `docs/superpowers/plans/2026-09-16-phase-0-backtest.md` — what Phase 0 built. Its closing
    *Execution notes* explain where the code deliberately differs from the plan.
 5. `docs/stack-and-setup.md` — stack choices, and the operational pitfalls that cost real money.
@@ -83,6 +85,11 @@ Once they confirm it passed, record the outcome in the Phase 1 spec (section 10)
 branch to `master`. **Then merge `research-robustness`**, which is built on this branch: it tests
 the trend filter across neighbouring periods and on ETH, and concludes the evidence supports BTC
 only.
+
+**Phase 2 is designed on branch `phase-2-paper-engine`**, built on `research-robustness`: the
+daily engine, trading a paper account on live Bybit prices. The spec awaits the founder's
+review; the implementation plan comes next. **Merge order:** `phase-1-exchange-adapter`, then
+`research-robustness`, then `phase-2-paper-engine`.
 
 Other work, if the founder asks for it:
 
