@@ -339,7 +339,12 @@ failed.
   - an order breaking the instrument's rules or exceeding the free balance is rejected;
   - otherwise it fills against the **live** order book, fetched at that moment: a buy walks up the
     asks spending its USDT, a sell walks down the bids selling its BTC. If the book runs out, the
-    order fills partially and the rest is cancelled.
+    order fills partially and the rest is cancelled;
+  - **the instrument's limits are enforced again on that execution**, independently of the Risk
+    Guard, because the market can move between the Risk Guard's book and the account's: a buy
+    that would receive more than `maxMarketOrderQty` or less than `minOrderQty`, or a sell that
+    would raise less than `minOrderAmt`, is rejected with the balances untouched. (Added after
+    the code review: the first version let both through.)
 - **Fees:** `PAPER_FEE_RATE`, default 0.1% — Bybit's spot taker fee. On a buy it comes off the BTC
   received; on a sell, off the USDT received.
 - **Atomicity:** balance changes and the order row are written in one transaction.

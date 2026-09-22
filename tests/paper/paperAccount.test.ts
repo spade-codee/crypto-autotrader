@@ -6,7 +6,7 @@ import { PaperAccount } from '../../src/paper/paperAccount.js';
 import { AccountStates } from '../../src/state/accountState.js';
 import { useTestDatabase } from '../helpers/database.js';
 import { FakeMarket } from '../helpers/fakeMarket.js';
-import { bookAround } from '../helpers/market.js';
+import { bookAround, RULES } from '../helpers/market.js';
 
 const database = useTestDatabase();
 const AT = new Date('2026-09-22T00:02:00Z');
@@ -121,6 +121,66 @@ describe('placing orders', () => {
   it('rejects an amount with more decimal places than the exchange allows', async () => {
     const { account } = await open();
     expect((await account.placeMarketOrder(buy('o1', '10.00000001'))).rejectReason).toContain('decimal places');
+  });
+
+  it('rejects a buy whose fill would exceed the maximum market order, changing nothing', async () => {
+    const { account, market } = await open();
+    market.rules = { ...RULES, maxMarketOrderQty: new Decimal('0.001') };
+    // 850.085 USDT at 85,008.5 would buy 0.01 BTC, ten times the maximum.
+    const state = await account.placeMarketOrder(buy('o1', '850.085'));
+    expect(state).toMatchObject({ status: 'REJECTED', rejectReason: 'above the maximum market order of 0.001 BTC' });
+    expect(await holding(account, 'USDT')).toBe('1000');
+    expect(await holding(account, 'BTC')).toBe('0');
+    const lookup = await account.getOrder('o1');
+    expect(lookup.kind === 'FOUND' && lookup.state.status).toBe('REJECTED');
+  });
+
+  it('rejects a sell worth less than the minimum order value, changing nothing', async () => {
+    const { account } = await open();
+    await account.placeMarketOrder(buy('o1', '850.085'));
+    // 0.000001 BTC at a bid of 84,991.5 is worth 0.0849915 USDT; the minimum is 5.
+    const state = await account.placeMarketOrder(sell('o2', '0.000001'));
+    expect(state).toMatchObject({ status: 'REJECTED', rejectReason: 'below the minimum order value of 5 USDT' });
+    expect(await holding(account, 'BTC')).toBe('0.00999');
+    expect(await holding(account, 'USDT')).toBe('149.915');
+  });
+
+  it('rejects a buy one step over the maximum market order, and fills one of exactly the maximum', async () => {
+    const { account, market } = await open();
+    market.rules = { ...RULES, maxMarketOrderQty: new Decimal('0.01') };
+    // At an ask of 85,008.5, 850.1700085 USDT would buy 0.010001 BTC: one step over.
+    expect((await account.placeMarketOrder(buy('o1', '850.1700085'))).rejectReason).toBe(
+      'above the maximum market order of 0.01 BTC',
+    );
+    expect(await holding(account, 'USDT')).toBe('1000');
+    // 850.085 USDT buys exactly 0.01 BTC: the maximum itself is allowed.
+    expect((await account.placeMarketOrder(buy('o2', '850.085'))).status).toBe('FILLED');
+  });
+
+  it('fills a sell worth exactly the minimum order value, and rejects one worth less', async () => {
+    const { account, market } = await open();
+    market.book = {
+      symbol: 'BTCUSDT',
+      time: 0,
+      asks: [{ price: new Decimal('50010'), qty: new Decimal('5') }],
+      bids: [{ price: new Decimal('50000'), qty: new Decimal('5') }],
+    };
+    await account.placeMarketOrder(buy('o1', '100'));
+    const btcBefore = await holding(account, 'BTC');
+    // 0.0001 BTC at 50,000 is worth exactly 5 USDT; 0.000099 BTC is worth 4.95.
+    expect((await account.placeMarketOrder(sell('o2', '0.0001'))).status).toBe('FILLED');
+    const under = await account.placeMarketOrder(sell('o3', '0.000099'));
+    expect(under.rejectReason).toBe('below the minimum order value of 5 USDT');
+    expect(await holding(account, 'BTC')).toBe(new Decimal(btcBefore).minus('0.0001').toFixed());
+  });
+
+  it('fills a buy of exactly the minimum quantity, and rejects one that buys less', async () => {
+    const { account, market } = await open();
+    market.rules = { ...RULES, minOrderQty: new Decimal('0.001') };
+    // At 85,008.5: 85.0085 USDT buys exactly 0.001 BTC; 84.9 USDT buys 0.000998.
+    expect((await account.placeMarketOrder(buy('o1', '85.0085'))).status).toBe('FILLED');
+    const under = await account.placeMarketOrder(buy('o2', '84.9'));
+    expect(under.rejectReason).toBe('below the minimum quantity of 0.001 BTC');
   });
 
   it('fills what the book can take and cancels the rest', async () => {

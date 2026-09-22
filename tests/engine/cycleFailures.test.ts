@@ -1,5 +1,7 @@
 import Decimal from 'decimal.js';
+import { eq } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
+import { paperBalances } from '../../src/db/schema.js';
 import { runTick } from '../../src/engine/cycle.js';
 import { clientOrderId } from '../../src/engine/orderId.js';
 import { lastDay, trendingCandles } from '../helpers/candles.js';
@@ -19,7 +21,7 @@ import {
   withBalances,
   type Harness,
 } from '../helpers/engine.js';
-import { balances, bookAround } from '../helpers/market.js';
+import { balances, bookAround, RULES } from '../helpers/market.js';
 
 const database = useTestDatabase();
 const UP = trendingCandles('2026-01-01', 300, 'up');
@@ -225,6 +227,32 @@ describe('frozen, paused, and stopped accounts', () => {
     expect(h.alerts.messages).toHaveLength(1);
     expect(await h.ledger.ofType('KILL_SWITCH_SKIP', null)).toHaveLength(1);
     expect(await h.ledger.ofType('ORDER_INTENT', 'founder')).toHaveLength(0);
+  });
+});
+
+describe('when the market moves between the Risk Guard and the fill', () => {
+  it('rejects a buy that would now exceed the maximum market order, and freezes, changing nothing', async () => {
+    const h = await setup();
+    // At 79,900 the buy is 0.012501 BTC, within a 0.0126 maximum; at 79,100 it would be 0.012628.
+    h.market.rules = { ...RULES, maxMarketOrderQty: new Decimal('0.0126') };
+    h.market.books = [bookAround(PRICE), bookAround('79100')];
+    const [user] = ran(await runTick(h.deps));
+    expect(user!.result).toBe('FROZEN');
+    expect(user!.detail).toContain('above the maximum market order of 0.0126 BTC');
+    expect((await h.ledger.ofType('ORDER_RESULT', 'founder')).map((e) => e.payload.status)).toEqual(['REJECTED']);
+    expect(await holdings(h)).toEqual({ btc: '0', usdt: '1000' });
+  });
+
+  it('rejects a sell that would now be worth less than the minimum, and freezes, changing nothing', async () => {
+    const h = await setup(DOWN);
+    await database().update(paperBalances).set({ free: '0.00025' }).where(eq(paperBalances.coin, 'BTC'));
+    await database().update(paperBalances).set({ free: '0' }).where(eq(paperBalances.coin, 'USDT'));
+    // 0.00025 BTC is worth 5.025 USDT at 20,100, but only 4.9745 at the next book's bid.
+    h.market.books = [bookAround(DOWN[DOWN.length - 1]!.close), bookAround('19900')];
+    const [user] = ran(await runTick(h.deps));
+    expect(user!.result).toBe('FROZEN');
+    expect(user!.detail).toContain('below the minimum order value of 5 USDT');
+    expect(await holdings(h)).toEqual({ btc: '0.00025', usdt: '0' });
   });
 });
 

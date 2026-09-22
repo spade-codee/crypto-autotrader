@@ -13,7 +13,7 @@ import type {
 } from '../exchange/trading.js';
 import { requireUsableBook } from '../market/orderBook.js';
 import type { InstrumentRules, MarketData } from '../market/types.js';
-import { fillBuy, fillSell } from './fill.js';
+import { fillBuy, fillSell, type Fill } from './fill.js';
 
 const ZERO = new Decimal(0);
 const SIDES: readonly string[] = ['BUY', 'SELL'];
@@ -91,6 +91,28 @@ function ruleProblem(order: MarketOrderRequest, rules: InstrumentRules): string 
   }
   if (order.baseQty.gt(rules.maxMarketOrderQty)) {
     return `above the maximum market order of ${rules.maxMarketOrderQty.toFixed()} ${rules.baseCoin}`;
+  }
+  return null;
+}
+
+/**
+ * The instrument's limits, judged on what the order would execute against the
+ * account's own book. That book is fetched at execution, and the market can move
+ * after the Risk Guard judged its own: a buy can grow past the maximum as the
+ * price falls, and a sell can shrink below the minimum value.
+ */
+function executionProblem(order: MarketOrderRequest, fill: Fill, rules: InstrumentRules): string | null {
+  if (order.side === 'BUY') {
+    if (fill.filledBaseQty.gt(rules.maxMarketOrderQty)) {
+      return `above the maximum market order of ${rules.maxMarketOrderQty.toFixed()} ${rules.baseCoin}`;
+    }
+    if (fill.filledBaseQty.lt(rules.minOrderQty)) {
+      return `below the minimum quantity of ${rules.minOrderQty.toFixed()} ${rules.baseCoin}`;
+    }
+    return null;
+  }
+  if (fill.filledQuoteAmount.lt(rules.minOrderAmt)) {
+    return `below the minimum order value of ${rules.minOrderAmt.toFixed()} ${rules.quoteCoin}`;
   }
   return null;
 }
@@ -191,6 +213,10 @@ export class PaperAccount implements TradingAccount {
         : fillSell(book.bids, order.baseQty);
     if (fill.filledBaseQty.isZero()) {
       return this.#store(order, rejected(order, feeCoin, 'the order book had nothing to fill it with'), []);
+    }
+    const beyondLimits = executionProblem(order, fill, rules);
+    if (beyondLimits !== null) {
+      return this.#store(order, rejected(order, feeCoin, beyondLimits), []);
     }
     const fee =
       order.side === 'BUY' ? fill.filledBaseQty.times(this.#feeRate) : fill.filledQuoteAmount.times(this.#feeRate);
