@@ -29,7 +29,7 @@ device; a private hosting decision remains open.
 - The source spec's unconditional resumed-purchase sentence versus checking the next
   daily signal and safety conditions. The source wording remains in the preview pending review.
 - Full visual, keyboard and state-transition QA, especially both colour schemes and Android.
-- Founder selection of avatar/art direction and typography before final visual polish.
+- Selection of a specific avatar pack and typography before final visual polish.
 
 Initial verification: JavaScript syntax checks passed. A headless Chrome smoke check
 visited all 28 scenario/tab combinations at 375px: no script errors or horizontal
@@ -37,6 +37,15 @@ overflow. Pause and the full three-question onboarding flow reached their expect
 This does not replace the remaining visual, accessibility or factual review.
 
 ## Visual exploration, 22 September 2026
+
+**Founder-selected direction:** soft 3D human profile characters, like Memoji.
+Confirmed explicitly in the design discussion on 22 September. This selects a visual
+style, not Apple's assets, a specific pack, a purchase or a new profile backend.
+
+Design proposal to explore: one consistent family with varied skin tones, hairstyles,
+facial hair and glasses; small portraits in the greeting and larger portraits in Account.
+An initial preset picker can be tried with sample-only state. Typography and the exact
+avatar pack are still open; no paid asset has been acquired or integrated.
 
 Candidate references, not adopted dependencies:
 
