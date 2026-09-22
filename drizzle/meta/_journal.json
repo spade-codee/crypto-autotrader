@@ -8,6 +8,20 @@
       "when": 1789648802581,
       "tag": "0000_exchange_credentials",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1790064999327,
+      "tag": "0001_paper_engine",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790065011845,
+      "tag": "0002_ledger_append_only",
+      "breakpoints": true
     }
   ]
 }
