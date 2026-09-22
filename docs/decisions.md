@@ -37,6 +37,7 @@ are still open.
 | 20 | Exchange access and API key security | Own Bybit client; spot-only permission allowlist; sealed vault | DECIDED 2026-09-17 |
 | 21 | Which assets are tradable | BTC only; meme coins excluded on evidence; an asset must pass the out-of-asset check | **RECOMMENDED — founder to review** |
 | 22 | Phase 2 execution rules | Whole dedicated account; catch up missed runs; founder-only unfreeze; systemd timer | DECIDED 2026-09-22 |
+| 23 | Where the multi-user practice pilot sits | Keep it in Phase 4, bring it forward, or run a small founder-operated version | **OPEN** — decide after the prototype sessions and the Bybit key test |
 
 **What blocks what:** Phase 0 is complete and #16 is decided, so Phase 1 is unblocked. The legal
 opinion (#18) gates opening the pilot to anyone other than the founder.
@@ -642,6 +643,26 @@ The rest were fixes with no decision to make: a database lock the operating syst
 by every command that opens the database, including the key commands; the paper account
 enforcing the instrument's limits on its own execution; and a fresh signature for every host a
 signed request tries, with the clock offset timed on the host that answered.
+
+## 23. Where the multi-user practice pilot sits — OPEN
+
+The founder's draft product plan (`docs/product/2026-09-22-product-plan-draft.md`) sequences
+customer releases: A, a clickable prototype; B, a private practice pilot for invited users; C, a
+controlled live pilot; D, a paid release. Release A is agreed and specified in
+`docs/superpowers/specs/2026-09-22-customer-prototype-design.md`.
+
+**The question is where B goes.** Practice accounts for invited users need sign-in, separate
+accounts, and a read API — work the build order (#15) places in Phase 4, after the founder trades
+live in Phase 3.
+
+| Option | Upside | Downside |
+|---|---|---|
+| Keep it in Phase 4 | The build order stands; the multi-user work is built once, on an engine proven live | Invited users see nothing for months |
+| Bring it forward, before real orders | Learning from real users starts sooner | Sign-in and per-user accounts get built before the engine has placed a real order |
+| A small founder-operated version | Early learning with almost no new infrastructure: the founder opens practice accounts with the existing commands and shares summaries | Nothing self-service; it tests the strategy's story more than the product |
+
+**Decide after** the prototype sessions and the Bybit key test (#8). **Ask the lawyer** whether a
+practice-only pilot counts as opening the pilot beyond the founder (#18).
 
 ## Corrections made along the way
 

@@ -32,6 +32,11 @@ exchange account. They connect it with a trade-only API key, choose a strategy, 
 limit, and press Start. The software executes the strategy on their account on a schedule.
 They can pause or stop at any time.
 
+> **Update 2026-09-22:** there is no risk-limit setting. The strategy controls the whole of a
+> dedicated account (`docs/decisions.md` #22), so the funds the user puts in that account are
+> the limit, and they confirm those funds explicitly when activating — a separate step from
+> connecting. See also section 2's "sets their own risk parameters".
+
 This is the crypto analogue of forex copy-trading (ZuluTrade, MT5 MAM), with one important
 difference: the trade decisions come from a published mechanical strategy, not from a human
 signal provider.

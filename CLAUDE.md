@@ -29,6 +29,7 @@ user-facing code.** The repository also holds the design, product research, and 
 | Phase 1 — read-only Bybit connection | **Code complete** on branch `phase-1-exchange-adapter`, 156 tests. **Awaiting the founder's check (plan Task 15)** before merging. Bybit refused API key creation on the founder's unverified account; testnet is untested |
 | Phase 2 — paper-trading engine | **Code complete** on branch `phase-2-paper-engine`, 508 tests, after a code review whose six findings were all fixed — see the plan's execution notes. **Awaiting deployment to the VPS** (plan Task 21, the founder's). The phase completes after 14 clean days of paper trading (spec section 12). Trades a paper account on live Bybit prices, so it needs no key |
 | Product research | Complete. It reopened the business model, which was re-decided 2026-09-17 |
+| Customer experience prototype | **Scope agreed 2026-09-22** on branch `product-prototype`: a clickable phone mock-up with sample data, to test with 5–10 people. Spec written; not built. No production customer code or deployment until its sessions are done |
 | Name | **Undecided** — "Keel" was rejected after a verified conflict |
 
 **Decided 2026-09-17:** the product places trades for users, with a flat yearly fee in USDT and a
@@ -63,6 +64,7 @@ free tier below an account-size threshold. The pilot sets the price and threshol
 3. `docs/superpowers/specs/2026-09-16-crypto-trading-automation-design.md` — the design spec. Read its 2026-09-17 update note first.
 3a. `docs/superpowers/specs/2026-09-17-phase-1-exchange-adapter-design.md` — Phase 1's security design: key allowlist, vault, signing.
 3b. `docs/superpowers/specs/2026-09-22-phase-2-paper-engine-design.md` — Phase 2: the daily engine, the paper account, the Risk Guard, and failure handling.
+3c. `docs/superpowers/specs/2026-09-22-customer-prototype-design.md` — the customer experience prototype and its facilitator guide, with the requirements it reveals for live customers. Its input, the founder's draft product plan, is `docs/product/2026-09-22-product-plan-draft.md`.
 4. `docs/superpowers/plans/2026-09-16-phase-0-backtest.md` — what Phase 0 built. Its closing
    *Execution notes* explain where the code deliberately differs from the plan.
 5. `docs/stack-and-setup.md` — stack choices, and the operational pitfalls that cost real money.
@@ -99,6 +101,12 @@ the daily engine, trading a paper account on live Bybit prices. Spec:
 Runbook: `docs/deploy-vps.md`. What remains is the founder's: deploy it (plan Task 21), then
 fourteen clean days of paper trading and the report (Task 23). **Merge order:**
 `phase-1-exchange-adapter`, then `research-robustness`, then `phase-2-paper-engine`.
+
+**The customer experience prototype is scoped on branch `product-prototype`**, separate from the
+engine: `docs/superpowers/specs/2026-09-22-customer-prototype-design.md`. It is a throwaway
+mock-up with sample data, not product code, and it never touches the engine or real accounts.
+Next: an implementation plan for it, then building it, then the founder's sessions. Where the
+multi-user practice pilot goes is open: `docs/decisions.md` #23.
 
 Other work, if the founder asks for it:
 
@@ -225,6 +233,7 @@ docs/
   stack-and-setup.md          stack, pitfalls, accounts checklist
   brand.md                    brand system and name status
   deploy-vps.md               the VPS runbook
+  product/                    the founder's draft product plan — input, not decisions
   superpowers/
     specs/                    design spec
     plans/                    implementation plans, one per phase
