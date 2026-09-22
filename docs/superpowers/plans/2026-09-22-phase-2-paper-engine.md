@@ -7011,12 +7011,53 @@ engine as code complete and awaiting deployment.
 - **Live smoke test.** The first tick bought 0.01161 BTC at 86,045.90 for 998.99 USDT, and was
   recorded as late — correctly, since it ran 8 hours 46 minutes after the daily close.
 
+### Code review of the implementation — 2026-09-22
+
+A review found six defects before deployment. Each was reproduced, fixed at its cause, and given
+regression tests; the suite grew from 455 tests to 508. Where a test first passed, a planted
+defect proved it could fail.
+
+1. **Stale-lock takeover race** (`src/ops/lock.ts`). The file lock read a dead holder's PID, then
+   deleted the lock file by path; a deterministic reproduction had a second contender take over
+   inside that gap, leaving two holders. Accepting this as a limitation, as the notes above first
+   did, was wrong. The lock is now a name the operating system owns — a named pipe on Windows, an
+   abstract socket on Linux — freed the moment its holder exits, so there is no stale lock and no
+   takeover. Tests: `tests/ops/lock.test.ts`, including four processes racing for a holder killed
+   with SIGKILL, each proving it held the lock alone.
+2. **The key commands bypassed the lock** (`src/cli/context.ts`). `openDatabase(dir)` now takes
+   the lock, named for the canonical directory, releases it only after the database has closed,
+   and is the only way to open a database on disk; tests use `openMemoryDatabase()`. Tests:
+   `tests/cli/databaseLock.test.ts` and `tests/db/client.test.ts`.
+3. **The kill switch could be missed** (`src/engine/cycle.ts`). It was read before awaiting the
+   ticker. It is now read after every awaited request and again at the submission boundary, and
+   it stops a run without freezing it. Tests: "the kill switch, turned on during a run" in
+   `tests/engine/cycleFailures.test.ts`.
+4. **The paper account missed instrument limits** (`src/paper/paperAccount.ts`). It now enforces
+   `maxMarketOrderQty`, `minOrderQty`, and `minOrderAmt` on what it would actually execute
+   against its own book. Tests: the limit and boundary cases in `tests/paper/paperAccount.test.ts`,
+   and "when the market moves between the Risk Guard and the fill" in the engine's failure tests.
+5. **Signed requests reused expired headers on the fallback host** (`src/exchange/bybit/client.ts`,
+   `src/net/http.ts`). Every host attempt is now signed as it is sent, and the clock offset is
+   timed on the attempt that answered — a stalled primary had also shifted it five seconds.
+   Tests: `tests/exchange/bybit/client.test.ts` and `tests/net/http.test.ts`.
+6. **Order books lost their market and timestamp** (`src/market/bybitPublic.ts`,
+   `src/market/orderBook.ts`). The parser now requires the requested symbol, a valid timestamp,
+   and positive prices and sizes; the engine and the paper account refuse a book more than 5
+   seconds old or 2 seconds ahead of the clock. Tests: `tests/market/`, "order books that cannot
+   be trusted" in the engine's failure tests, and the stale and wrong-market cases in the paper
+   account's tests.
+
 ### Known limitations, accepted for Phase 2
 
-- **The lock's stale-holder removal can race** when two commands start within microseconds of
-  each other and both find a dead holder. systemd never runs two ticks at once, and the founder
-  is the only other user, so this is accepted. Phase 3's move to ordinary Postgres removes the
-  lock altogether.
+- **The lock is proven on Windows only, so far.** Its Linux form, an abstract socket, runs the
+  same code with a different address; `docs/deploy-vps.md` has `npm test` run on the VPS before
+  deployment to prove it there. The lock refuses to run on other systems, such as macOS.
+- **Any local process could claim the lock's name first**, since abstract sockets have no
+  permissions. The engine would then wait, fail, and alert through the missing heartbeat. The VPS
+  has no other users, so this is accepted.
+- **A key command holds the lock while the founder types a key.** `key:add` opens the database
+  before prompting, so a tick that starts meanwhile waits up to 60 seconds, then exits and runs
+  again 15 minutes later. No key is used on the VPS in Phase 2.
 - **Tiny decimals in ledger payloads use exponent notation.** `Decimal#toJSON` writes values
   below 1e-7 as, for example, `2.99e-7`. They stay exact and parse back unchanged, and no
   realistic BTC order reaches that range, since Bybit's minimum order is 5 USDT.

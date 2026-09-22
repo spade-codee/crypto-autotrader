@@ -8,7 +8,12 @@
   window is validated. A second pass the same day separated inconclusive order lookups from
   confirmed non-submission, and gave every retry its own client order ID (section 4.2). A third
   made non-submission something only the exchange adapter can prove: elapsed time and an empty
-  lookup never authorize a new order
+  lookup never authorize a new order. A code review of the implementation, also that day, led to
+  six fixes: a database lock the operating system frees, held by every command that opens the
+  database (section 4, step 1); the kill switch read up to the submission boundary, stopping a
+  run without freezing it (sections 4 and 6); the paper account enforcing the instrument's limits
+  on its own execution (section 7); order books checked for their market and freshness (section 9);
+  and a fresh signature for every host attempt, which matters from Phase 2b
 - **Parent spec:** `2026-09-16-crypto-trading-automation-design.md` — sections 4 to 7, and 9
 - **Builds on:** Phase 1 (`2026-09-17-phase-1-exchange-adapter-design.md`) and the robustness
   research (`docs/research/phase-0-findings.md`)

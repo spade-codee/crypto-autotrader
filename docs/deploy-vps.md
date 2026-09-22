@@ -20,6 +20,17 @@ At least one must print `200`. If both print `403`, Bybit refuses this server's 
 it refuses US addresses and some cloud providers. Stop here: the engine needs a VPS in another
 region or with another provider.
 
+Then check the clock is kept in time automatically:
+
+```bash
+timedatectl
+```
+
+It must say `System clock synchronized: yes`. The engine refuses an order book more than 5 seconds
+old or stamped more than 2 seconds ahead of this machine's clock, so a drifting clock stops it
+trading. Ubuntu keeps time with `systemd-timesyncd` by default; if it says `no`, run
+`sudo timedatectl set-ntp true` and check again.
+
 ## 2. Install Node 24 and git
 
 ```bash
@@ -63,6 +74,15 @@ sudo -u autotrader npm ci
 When asked to trust `github.com`, compare the fingerprint with the ones GitHub publishes under
 *GitHub's SSH key fingerprints*, then type `yes`. `npm ci` must include development dependencies:
 the commands run through `tsx`. Do not set `NODE_ENV=production`.
+
+Run the test suite once, as the engine's user:
+
+```bash
+sudo -u autotrader npm test
+```
+
+Every test must pass. Among other things, this proves the database lock on Linux: the lock is an
+abstract socket there and a named pipe on Windows, and both development machines run Windows.
 
 ## 5. Settings — the founder types these
 

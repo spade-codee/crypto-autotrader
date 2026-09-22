@@ -27,7 +27,7 @@ user-facing code.** The repository also holds the design, product research, and 
 | Phase 0 — strategy proof | **Complete and merged to `master`.** 67 tests. Result in `docs/research/phase-0-findings.md` |
 | Phase 0 result | **Passes, with claims narrowed.** Out-of-sample, MA-125 cut max drawdown to 27.4% from buy-and-hold's 53.1%, but gave up ~9 points of annual growth. Insurance, not a return enhancer |
 | Phase 1 — read-only Bybit connection | **Code complete** on branch `phase-1-exchange-adapter`, 156 tests. **Awaiting the founder's check (plan Task 15)** before merging. Bybit refused API key creation on the founder's unverified account; testnet is untested |
-| Phase 2 — paper-trading engine | **Code complete** on branch `phase-2-paper-engine`, 455 tests. **Awaiting deployment to the VPS** (plan Task 21, the founder's). The phase completes after 14 clean days of paper trading (spec section 12). Trades a paper account on live Bybit prices, so it needs no key |
+| Phase 2 — paper-trading engine | **Code complete** on branch `phase-2-paper-engine`, 508 tests, after a code review whose six findings were all fixed — see the plan's execution notes. **Awaiting deployment to the VPS** (plan Task 21, the founder's). The phase completes after 14 clean days of paper trading (spec section 12). Trades a paper account on live Bybit prices, so it needs no key |
 | Product research | Complete. It reopened the business model, which was re-decided 2026-09-17 |
 | Name | **Undecided** — "Keel" was rejected after a verified conflict |
 
@@ -135,10 +135,15 @@ Settings for the key commands, read from the environment or `.env.local`: `BYBIT
 
 The engine commands also read `TRADING_MODE` (required; only `paper` exists in Phase 2),
 `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID`, `HEALTHCHECK_URL`, `KILL_SWITCH_FILE` (default
-`data/KILL_SWITCH`), `PAPER_FEE_RATE` (default `0.001`), and `MAX_ORDER_USDT` (unset). Every
-command that opens the database holds a lock beside it, `data/db.lock`: PGlite must never be
-opened by two processes at once. Pass arguments after `--`, or npm keeps flags such as
-`--reason` for itself.
+`data/KILL_SWITCH`), `PAPER_FEE_RATE` (default `0.001`), and `MAX_ORDER_USDT` (unset). Pass
+arguments after `--`, or npm keeps flags such as `--reason` for itself.
+
+**One process at a time opens the database.** PGlite must never be opened by two, so
+`openDatabase(dir)` takes a lock named for the database directory — the key commands and the
+engine's alike — and it is the only way to open a database on disk. The lock is a name the
+operating system owns, a named pipe on Windows and an abstract socket on Linux, freed the moment
+its holder exits; there is no lock file. It works only on Windows and Linux. A second command
+waits up to 60 seconds for the first, then gives up.
 
 **Bybit is DNS-blocked on Nigerian networks.** `api.bybit.com` fails to resolve, while Bybit's
 official alternate domain `api.bytick.com` answers. The fetcher falls back automatically; set

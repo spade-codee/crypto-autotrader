@@ -624,6 +624,25 @@ further passes followed: every retry gets its own client order ID, and non-submi
 only when the exchange adapter can prove it — elapsed time and an empty lookup never authorize a
 new order.
 
+**Code review of the implementation, same day.** Six findings, all confirmed and fixed before
+deployment. Two changed a decision, recorded here:
+
+- **The kill switch stops; it never freezes.** The spec listed it among the Risk Guard's rules,
+  every one of which freezes the account, while its failure table said only "no trading for
+  anyone." A freeze would outlast the switch — turning the switch off would not resume trading —
+  so it now stops the run without freezing. It is read after every awaited request and again at
+  the **submission boundary**, the call to the account, after the intent is recorded. Before
+  that boundary nothing is sent, and a recorded intent gets its one result, `NOT_PLACED`, on the
+  engine's own proof that it never called the account. After it, the order settles like any other.
+- **An order book must be the requested market's, at most 5 seconds old, and at most 2 seconds
+  ahead of this machine's clock**, checked just before the Risk Guard and again by the paper
+  account on its own execution book. A book that fails is a retry, not a freeze.
+
+The rest were fixes with no decision to make: a database lock the operating system frees, taken
+by every command that opens the database, including the key commands; the paper account
+enforcing the instrument's limits on its own execution; and a fresh signature for every host a
+signed request tries, with the clock offset timed on the host that answered.
+
 ## Corrections made along the way
 
 Recorded so the reasoning trail stays honest.
