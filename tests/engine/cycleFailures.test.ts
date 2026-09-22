@@ -43,6 +43,13 @@ function nextDayTick(h: Harness): void {
   h.clock.now = tickTimeAfter(lastDay(NEXT));
 }
 
+/** The founder's paper balances, as text. */
+async function holdings(h: Harness): Promise<{ btc: string; usdt: string }> {
+  const balances = await h.paper().getBalances();
+  const of = (coin: string) => balances.find((b) => b.coin === coin)!.walletBalance.toFixed();
+  return { btc: of('BTC'), usdt: of('USDT') };
+}
+
 function retryReason(outcome: Awaited<ReturnType<typeof runTick>>): string {
   if (outcome.kind !== 'RETRY_LATER') {
     throw new Error(`expected RETRY_LATER, got ${outcome.kind}`);
@@ -218,6 +225,76 @@ describe('frozen, paused, and stopped accounts', () => {
     expect(h.alerts.messages).toHaveLength(1);
     expect(await h.ledger.ofType('KILL_SWITCH_SKIP', null)).toHaveLength(1);
     expect(await h.ledger.ofType('ORDER_INTENT', 'founder')).toHaveLength(0);
+  });
+});
+
+describe('the kill switch, turned on during a run', () => {
+  it('sends nothing, and freezes nothing, when turned on while the ticker is fetched', async () => {
+    const h = await setup();
+    const getTicker = h.market.getTicker.bind(h.market);
+    h.market.getTicker = async () => {
+      h.kill.on = true;
+      return getTicker();
+    };
+    const [user] = ran(await runTick(h.deps));
+    expect(user!.result).toBe('KILL_SWITCH');
+    expect(await h.ledger.ofType('ORDER_INTENT', 'founder')).toHaveLength(0);
+    expect(await holdings(h)).toEqual({ btc: '0', usdt: '1000' });
+    expect((await h.accounts.get('founder'))?.status).toBe('active');
+    expect((await h.runs.get(DAY_ONE, 'founder'))?.status).toBe('pending');
+
+    // Once the switch is off, the day's run resumes.
+    h.market.getTicker = getTicker;
+    h.kill.on = false;
+    h.clock.now += 15 * MINUTE;
+    const [resumed] = ran(await runTick(h.deps));
+    expect(resumed!.result).toBe('COMPLETED');
+  });
+
+  it('records the order as not placed when turned on between its intent and its submission', async () => {
+    const h = await setup();
+    const append = h.ledger.append.bind(h.ledger);
+    h.ledger.append = async (event) => {
+      await append(event);
+      if (event.type === 'ORDER_INTENT') {
+        h.kill.on = true;
+      }
+    };
+    const [user] = ran(await runTick(h.deps));
+    expect(user!.result).toBe('KILL_SWITCH');
+    const [intent] = await h.ledger.ofType('ORDER_INTENT', 'founder');
+    const id = String(intent!.payload.clientOrderId);
+    // The engine knows it never sent the order, so its one result is recorded at once.
+    const results = await h.ledger.ofType('ORDER_RESULT', 'founder');
+    expect(results.map((e) => [e.payload.clientOrderId, e.payload.status])).toEqual([[id, 'NOT_PLACED']]);
+    expect(await h.paper().getOrder(id)).toEqual({ kind: 'ABSENT' });
+    expect(await holdings(h)).toEqual({ btc: '0', usdt: '1000' });
+    expect((await h.accounts.get('founder'))?.status).toBe('active');
+
+    // Once the switch is off, the retry goes out under the next attempt's ID.
+    h.ledger.append = append;
+    h.kill.on = false;
+    h.clock.now += 15 * MINUTE;
+    const [resumed] = ran(await runTick(h.deps));
+    expect(resumed!.result).toBe('COMPLETED');
+    expect((await h.ledger.ofType('ORDER_INTENT', 'founder')).map((e) => e.payload.attempt)).toEqual([1, 2]);
+    expect((await h.ledger.ofType('ORDER_RESULT', 'founder')).map((e) => e.payload.status)).toEqual(['NOT_PLACED', 'FILLED']);
+  });
+
+  it('lets an order already sent settle when turned on while it is being submitted', async () => {
+    const h = await setup();
+    h.wrap = (inner) => ({
+      getBalances: () => inner.getBalances(),
+      getOrder: (id) => inner.getOrder(id),
+      placeMarketOrder: async (order) => {
+        const state = await inner.placeMarketOrder(order);
+        h.kill.on = true;
+        return state;
+      },
+    });
+    const [user] = ran(await runTick(h.deps));
+    expect(user!.result).toBe('COMPLETED');
+    expect((await h.ledger.ofType('ORDER_RESULT', 'founder')).map((e) => e.payload.status)).toEqual(['FILLED']);
   });
 });
 

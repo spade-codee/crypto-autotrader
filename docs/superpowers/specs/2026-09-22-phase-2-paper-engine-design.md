@@ -205,6 +205,14 @@ than 30 minutes after it was due, and **abandoned** if it has not completed by t
    between placing and recording is recovered by step 1, never repeated. **A placement that times
    out or fails without a definite answer is uncertain, not failed:** its intent stays
    outstanding, and step 1 of the next tick settles it through the client order ID.
+
+   **The submission boundary** is the call to the account. The kill switch is read after every
+   request the Risk Guard waits for, and once more after the intent is recorded, with nothing
+   between that read and the call. A switch turned on before the boundary sends nothing: if the
+   intent is already recorded, its one result is recorded at once as `NOT_PLACED` — the engine's
+   own proof, since it never called the account with that ID — and the run stays pending, to
+   resume if the switch is turned off before the next close. A switch turned on after the
+   boundary cannot recall an order already on its way; that order settles like any other.
 6. **Record `ORDER_RESULT`.** Anything but `FILLED` freezes the account. A `PENDING` order is polled
    for up to 60 seconds; if it is still pending, its intent stays outstanding and step 1 of the
    next tick takes over. Paper orders never pend.
@@ -239,8 +247,10 @@ A failure is handled like stale data: try again at the next tick, and record the
 - **The ledger rule:** each client order ID appears in exactly one `ORDER_INTENT` and, once
   settled, exactly one `ORDER_RESULT`. A retry never reuses an ID.
 - **A retry needs proven non-submission.** Attempt *k + 1* is possible only when attempts 1
-  to *k* were all recorded `NOT_PLACED`, and `NOT_PLACED` is recorded only when the adapter
-  proves an order absent. Elapsed time and an empty lookup never authorize a new order ID.
+  to *k* were all recorded `NOT_PLACED`, and `NOT_PLACED` is recorded only on proof: the adapter
+  proves the order absent, or the engine stopped at the submission boundary and so never called
+  the account with that ID (section 4, step 5). Elapsed time and an empty lookup never authorize
+  a new order ID.
   Any other result ends the day's ordering: `FILLED`
   goes to reconciliation, and anything else freezes the account. So at most one order a day
   can ever execute.
@@ -291,7 +301,11 @@ too small to trade at all gets a notice, not a freeze.
 Every rule must pass. A failure vetoes the order and freezes the account, listing every rule that
 failed.
 
-1. **The kill switch is off** — checked again immediately before placing.
+1. **The kill switch is off** — read after the Risk Guard's requests, and again at the submission
+   boundary (section 4, step 5). The one exception to freezing: the kill switch is a deliberate
+   stop, so it stops the run without freezing the account, and turning it off lets trading
+   resume. (Revised after the code review: the first version read the switch before awaiting the
+   ticker, and could miss a switch turned on during that request.)
 2. **The account is active** — not paused, not frozen.
 3. **One executed order per account per day.** Every earlier intent for this account today was
    confirmed `NOT_PLACED`, and this is attempt 3 or earlier (section 4.2).

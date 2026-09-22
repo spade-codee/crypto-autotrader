@@ -53,7 +53,7 @@ export type CycleDeps = {
 
 export type UserOutcome = {
   userId: string;
-  result: 'COMPLETED' | 'FROZEN' | 'TOO_SMALL' | 'WAITING' | 'RETRY_LATER';
+  result: 'COMPLETED' | 'FROZEN' | 'TOO_SMALL' | 'WAITING' | 'RETRY_LATER' | 'KILL_SWITCH';
   detail: string;
 };
 
@@ -313,15 +313,23 @@ async function placeOrder(run: Run, account: TradingAccount, order: SizedOrder, 
   const attempt = today.filter((o) => o.intent.payload.intent === intent).length + 1;
   const id = clientOrderId(userId, date, intent, attempt);
 
+  // Everything the Risk Guard needs that must be awaited is fetched first, so
+  // the kill switch is read after it: a switch turned on during these requests
+  // is seen. The kill switch stops trading; it never freezes an account.
+  const accountStatus = (await deps.accounts.get(userId))?.status ?? 'frozen';
+  const ticker = await deps.market.getTicker(deps.symbol);
+  if (deps.killSwitch.isOn()) {
+    return killSwitchStop(run, null);
+  }
   const decision = checkOrder(order, {
     killSwitchOn: deps.killSwitch.isOn(),
-    accountStatus: (await deps.accounts.get(userId))?.status ?? 'frozen',
+    accountStatus,
     priorOrderToday: today.some((o) => o.result?.payload.status !== 'NOT_PLACED'),
     attempt,
     holdings: view.holdings,
     rules: view.rules,
     book: view.book,
-    ticker: await deps.market.getTicker(deps.symbol),
+    ticker,
     signalClose: view.signalClose,
     maxOrderUsdt: deps.maxOrderUsdt,
   });
@@ -339,7 +347,16 @@ async function placeOrder(run: Run, account: TradingAccount, order: SizedOrder, 
     type: 'ORDER_INTENT',
     payload: { clientOrderId: id, intent, attempt, ...describeOrder(order), midPrice: midPrice(view.book) },
   });
-  const state = await awaitSettlement(deps, account, await account.placeMarketOrder(toRequest(id, deps.symbol, order)));
+
+  // The submission boundary. The switch is read once more after the last await,
+  // with nothing between this read and the call to the account. Turned on before
+  // this line, no order is sent; turned on after it, the order is on its way and
+  // settles like any other (spec section 4.2).
+  if (deps.killSwitch.isOn()) {
+    return killSwitchStop(run, id);
+  }
+  const placed = account.placeMarketOrder(toRequest(id, deps.symbol, order));
+  const state = await awaitSettlement(deps, account, await placed);
 
   if (state.status === 'PENDING') {
     return waiting(run, `order ${id} is still pending`);
@@ -408,6 +425,35 @@ async function freeze(run: Run, reason: string): Promise<UserOutcome> {
     `FROZE ${userId} for ${date}: ${text}. Nothing trades on this account until you check it and run: npm run unfreeze -- --reason "what you found"`,
   );
   return { userId, result: 'FROZEN', detail: text };
+}
+
+/**
+ * Stops a run because the kill switch was turned on before its order was sent.
+ * The run stays pending, so it resumes if the switch is turned off before the
+ * next close. When the order's intent is already recorded, its one result is
+ * recorded now as NOT_PLACED: this is proof, not an inference from time — the
+ * engine never called the account with this ID, and no other process can have,
+ * because each ID has exactly one intent.
+ */
+async function killSwitchStop(run: Run, unsentOrderId: string | null): Promise<Stop> {
+  const { deps, userId, date, at } = run;
+  let detail = 'the kill switch was turned on before the order was sent, so nothing was sent';
+  if (unsentOrderId !== null) {
+    await deps.ledger.append({
+      occurredAt: at,
+      userId,
+      cycleDate: date,
+      type: 'ORDER_RESULT',
+      payload: { clientOrderId: unsentOrderId, status: 'NOT_PLACED', reason: 'the kill switch was turned on before it was sent' },
+    });
+    detail = `the kill switch was turned on after order ${unsentOrderId} was recorded and before it was sent, so it was not sent`;
+  }
+  await deps.runs.recordError(date, userId, detail);
+  if (await deps.alertLog.claim(`${date}:system:kill-switch`, at)) {
+    await deps.ledger.append({ occurredAt: at, userId: null, cycleDate: date, type: 'KILL_SWITCH_SKIP', payload: {} });
+    await deps.alerter.send(`The kill switch is on, so nothing trades for ${date}. For ${userId}: ${detail}.`);
+  }
+  return { kind: 'STOPPED', outcome: { userId, result: 'KILL_SWITCH', detail } };
 }
 
 async function tooSmall(run: Run, reason: string): Promise<UserOutcome> {
