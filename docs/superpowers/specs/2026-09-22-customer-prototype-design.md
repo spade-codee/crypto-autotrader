@@ -56,7 +56,16 @@ This spec is **not** production implementation and **not** deployment.
     and result, and the last and next decision.
 - **Look:** the decided "Instrument" palette and IBM Plex fonts (`docs/brand.md` §§3–4). No
   product name, since the name is undecided (#14): a plain placeholder mark only. Light or dark
-  follows the phone's setting.
+  follows the phone's setting. The founder is revisiting typography (#13); Plex stays until they
+  decide.
+- **Profile portraits.** The founder chose soft 3D human characters as the visual direction on
+  22 September, as Codex recorded it (`prototypes/customer/README.md`, `13ac344`): one consistent
+  family with varied skin tones, hair, facial hair, and glasses. The exact pack is open and
+  nothing has been bought. Portraits show **only the user**, never the strategy, a trader, an
+  "AI", other users, or a testimonial (`docs/brand.md` §§1, 5, and the fraud context in
+  `docs/decisions.md`). They are presentational: a sample-only preset picker is fine, but there
+  is no sign-in, no profile data, and nothing stored. Keep them light, since users are often on
+  metered data.
 - **English only** for this round.
 
 ## 4. Content rules

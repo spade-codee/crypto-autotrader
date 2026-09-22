@@ -136,3 +136,12 @@ decisions already set:
 
 Fixes 1–9 before any session, 10–19 in this round, and 20–23 as you judge. Send the next commit;
 I'll re-run the same checks. D4 goes to the founder with the spec.
+
+## Addendum — `13ac344`
+
+README only; nothing factual to correct. It records the founder's choice of soft 3D human
+profile characters. That fits the constraints above as long as the portraits depict only the
+user, and the spec now describes the direction and its limits (§3, *Profile portraits*). One
+suggestion: a closing question in the sessions — *"What did the portraits make you think about
+the product?"* — would show how they land with the people this is for. The README's open item
+about the resume sentence is answered at the top of this review.

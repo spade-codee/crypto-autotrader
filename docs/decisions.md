@@ -27,7 +27,7 @@ are still open.
 | 10 | Hosting | Founder's existing VPS | DECIDED |
 | 11 | Frontend | Vite SPA, not Next.js | DECIDED |
 | 12 | Palette | "Instrument" — navy and teal | DECIDED |
-| 13 | Typography | IBM Plex Sans + IBM Plex Mono | DECIDED |
+| 13 | Typography | IBM Plex Sans + IBM Plex Mono | DECIDED — the founder is revisiting it, 2026-09-22 |
 | 14 | Name | Keel chosen, then rejected | **OPEN** |
 | 15 | Build order | Phase 0 offline backtest first | DECIDED |
 | 16 | Target account size and fee model | Place trades; flat yearly fee; free below an account-size threshold | DECIDED 2026-09-17 — price and threshold set by the pilot |
@@ -343,6 +343,10 @@ often metered data.
 The deciding argument is the numerals: the product is numbers, and Plex Mono keeps every digit
 distinct at small sizes on a phone. **Rejected:** Inter, as the invisible default. Instrument
 Sans is an acceptable warmer alternative.
+
+**Revisited, 2026-09-22.** The founder asked for typography to be brainstormed again, with the
+customer prototype's visual direction. Plex stays in use until they decide, and any alternative
+must pass the same test: every digit distinct at small sizes on a phone.
 
 ## 14. Name — OPEN
 
