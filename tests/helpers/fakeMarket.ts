@@ -10,7 +10,9 @@ type Method = 'candles' | 'book' | 'ticker' | 'rules';
 /**
  * Market data the test controls. `fail` makes a method throw, as a network
  * failure would. `books` queues order books to serve, one per call, before
- * falling back to the standing `book`.
+ * falling back to the standing `book`. Every book is stamped as it is served,
+ * `bookAgeMs` before `now()`: fresh by default, stale when positive, and from
+ * the future when negative.
  */
 export class FakeMarket implements MarketData {
   candles: Candle[] = [];
@@ -18,6 +20,8 @@ export class FakeMarket implements MarketData {
   ticker: Ticker;
   rules: InstrumentRules = RULES;
   books: OrderBook[] = [];
+  now: () => number = () => Date.now();
+  bookAgeMs = 0;
   fail: Partial<Record<Method, Error>> = {};
   calls: Record<Method, number> = { candles: 0, book: 0, ticker: 0, rules: 0 };
 
@@ -38,7 +42,8 @@ export class FakeMarket implements MarketData {
 
   async getOrderBook(): Promise<OrderBook> {
     this.#enter('book');
-    return this.books.shift() ?? this.book;
+    const book = this.books.shift() ?? this.book;
+    return { ...book, time: this.now() - this.bookAgeMs };
   }
 
   async getTicker(): Promise<Ticker> {

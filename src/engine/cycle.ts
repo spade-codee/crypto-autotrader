@@ -3,7 +3,7 @@ import type { Heartbeat } from '../alerts/heartbeat.js';
 import type { Alerter } from '../alerts/telegram.js';
 import type { MarketOrderRequest, OrderState, TradingAccount } from '../exchange/trading.js';
 import type { Ledger } from '../ledger/ledger.js';
-import { midPrice, type OrderBook } from '../market/orderBook.js';
+import { midPrice, requireUsableBook, type OrderBook } from '../market/orderBook.js';
 import type { InstrumentRules, MarketData } from '../market/types.js';
 import { mean } from '../math.js';
 import type { AccountRecord, AccountStates } from '../state/accountState.js';
@@ -321,6 +321,10 @@ async function placeOrder(run: Run, account: TradingAccount, order: SizedOrder, 
   if (deps.killSwitch.isOn()) {
     return killSwitchStop(run, null);
   }
+  // The book the order was sized on must still be this market's, and fresh,
+  // now that it is about to be judged: the requests above can take seconds.
+  // A book that is not throws, and the run retries at the next tick.
+  requireUsableBook(view.book, deps.symbol, deps.now());
   const decision = checkOrder(order, {
     killSwitchOn: deps.killSwitch.isOn(),
     accountStatus,

@@ -44,6 +44,12 @@ describe('parseInstrumentRules', () => {
     expect(() => parseInstrumentRules(INSTRUMENTS_RESULT, 'ETHUSDT')).toThrow('not ETHUSDT');
   });
 
+  it('refuses a step or limit that is not above zero', () => {
+    const item = INSTRUMENTS_RESULT.list[0]!;
+    const zeroStep = { list: [{ ...item, lotSizeFilter: { ...item.lotSizeFilter, basePrecision: '0' } }] };
+    expect(() => parseInstrumentRules(zeroStep, 'BTCUSDT')).toThrow('basePrecision that is not above zero');
+  });
+
   it('refuses a missing rule', () => {
     const item = INSTRUMENTS_RESULT.list[0]!;
     const broken = { list: [{ ...item, lotSizeFilter: { ...item.lotSizeFilter, minOrderAmt: undefined } }] };
@@ -53,14 +59,41 @@ describe('parseInstrumentRules', () => {
 
 describe('parseOrderBook', () => {
   it('sorts asks lowest first and bids highest first', () => {
-    const book = parseOrderBook(ORDERBOOK_RESULT);
+    const book = parseOrderBook(ORDERBOOK_RESULT, 'BTCUSDT');
     expect(book.asks.map((l) => l.price.toFixed())).toEqual(['85530.5', '85531']);
     expect(book.bids.map((l) => l.price.toFixed())).toEqual(['85530.4', '85530']);
     expect(book.asks[0]!.qty.toFixed()).toBe('0.126626');
   });
 
+  it('keeps the market and the time Bybit generated the book', () => {
+    const book = parseOrderBook(ORDERBOOK_RESULT, 'BTCUSDT');
+    expect(book.symbol).toBe('BTCUSDT');
+    expect(book.time).toBe(1789900000000);
+  });
+
+  it('refuses a book for another market', () => {
+    expect(() => parseOrderBook({ ...ORDERBOOK_RESULT, s: 'ETHUSDT' }, 'BTCUSDT')).toThrow('ETHUSDT, not BTCUSDT');
+    expect(() => parseOrderBook({ ...ORDERBOOK_RESULT, s: undefined }, 'BTCUSDT')).toThrow('not BTCUSDT');
+  });
+
+  it.each([undefined, '1789900000000', 0, -1, 1.5, Number.NaN])('refuses a book whose timestamp is %s', (ts) => {
+    expect(() => parseOrderBook({ ...ORDERBOOK_RESULT, ts }, 'BTCUSDT')).toThrow('timestamp');
+  });
+
   it('refuses a malformed level', () => {
-    expect(() => parseOrderBook({ a: [['1']], b: [] })).toThrow('malformed');
+    expect(() => parseOrderBook({ ...ORDERBOOK_RESULT, a: [['1']] }, 'BTCUSDT')).toThrow('malformed');
+  });
+
+  it.each([
+    ['a zero price', ['0', '1'], 'not above zero'],
+    ['a negative price', ['-85000', '1'], 'not above zero'],
+    ['a zero size', ['85000', '0'], 'not above zero'],
+    ['a negative size', ['85000', '-0.5'], 'not above zero'],
+    ['a price that is not a number', ['abc', '1'], 'invalid'],
+    ['an infinite price', ['Infinity', '1'], 'invalid'],
+    ['a missing size', ['85000', ''], 'missing'],
+  ])('refuses a level with %s', (_name, level, fragment) => {
+    expect(() => parseOrderBook({ ...ORDERBOOK_RESULT, b: [level] }, 'BTCUSDT')).toThrow(fragment);
   });
 });
 
@@ -70,6 +103,11 @@ describe('parseTicker', () => {
     expect(ticker.lastPrice.toFixed()).toBe('85530.5');
     expect(ticker.bid.toFixed()).toBe('85530.4');
     expect(ticker.ask.toFixed()).toBe('85530.5');
+  });
+
+  it('refuses a price that is not above zero', () => {
+    const zero = { list: [{ ...TICKERS_RESULT.list[0]!, lastPrice: '0' }] };
+    expect(() => parseTicker(zero, 'BTCUSDT')).toThrow('lastPrice that is not above zero');
   });
 });
 
@@ -84,6 +122,11 @@ describe('BybitPublicMarket', () => {
     const { market, urls } = marketServing(envelope(ORDERBOOK_RESULT));
     await market.getOrderBook('BTCUSDT');
     expect(urls).toEqual(['https://x.test/v5/market/orderbook?category=spot&symbol=BTCUSDT&limit=50']);
+  });
+
+  it('refuses an order book for a different market than the one asked for', async () => {
+    const { market } = marketServing(envelope({ ...ORDERBOOK_RESULT, s: 'ETHUSDT' }));
+    await expect(market.getOrderBook('BTCUSDT')).rejects.toThrow('ETHUSDT, not BTCUSDT');
   });
 
   it('asks for the spot ticker', async () => {

@@ -15,7 +15,10 @@ export const RULES: InstrumentRules = {
   maxMarketOrderQty: new Decimal('120'),
 };
 
-/** A one-level book, `spread` either side of `price`, `qty` deep on each side. */
+/**
+ * A one-level BTCUSDT book, `spread` either side of `price`, `qty` deep on each
+ * side. FakeMarket re-stamps its time as it serves it.
+ */
 export function bookAround(
   price: Decimal.Value,
   qty: Decimal.Value = '5',
@@ -24,6 +27,8 @@ export function bookAround(
   const p = new Decimal(price);
   const s = new Decimal(spread);
   return {
+    symbol: 'BTCUSDT',
+    time: 0,
     asks: [{ price: p.times(new Decimal(1).plus(s)), qty: new Decimal(qty) }],
     bids: [{ price: p.times(new Decimal(1).minus(s)), qty: new Decimal(qty) }],
   };

@@ -11,6 +11,7 @@ import type {
   OrderStatus,
   TradingAccount,
 } from '../exchange/trading.js';
+import { requireUsableBook } from '../market/orderBook.js';
 import type { InstrumentRules, MarketData } from '../market/types.js';
 import { fillBuy, fillSell } from './fill.js';
 
@@ -18,7 +19,14 @@ const ZERO = new Decimal(0);
 const SIDES: readonly string[] = ['BUY', 'SELL'];
 const STATUSES: readonly string[] = ['FILLED', 'PARTIALLY_FILLED_CANCELLED', 'REJECTED', 'PENDING'];
 
-export type PaperAccountOptions = { db: Database; userId: string; market: MarketData; feeRate: Decimal };
+export type PaperAccountOptions = {
+  db: Database;
+  userId: string;
+  market: MarketData;
+  feeRate: Decimal;
+  /** The clock its execution book's freshness is judged by. */
+  now?: () => number;
+};
 
 export type OpenPaperAccount = {
   userId: string;
@@ -134,12 +142,14 @@ export class PaperAccount implements TradingAccount {
   readonly #userId: string;
   readonly #market: MarketData;
   readonly #feeRate: Decimal;
+  readonly #now: () => number;
 
   constructor(options: PaperAccountOptions) {
     this.#db = options.db;
     this.#userId = options.userId;
     this.#market = options.market;
     this.#feeRate = options.feeRate;
+    this.#now = options.now ?? Date.now;
   }
 
   async getBalances(): Promise<CoinBalance[]> {
@@ -171,6 +181,10 @@ export class PaperAccount implements TradingAccount {
       return this.#store(order, rejected(order, feeCoin, problem), []);
     }
     const book = await this.#market.getOrderBook(order.symbol);
+    // The account fills against its own book, so it checks that book itself,
+    // whatever the engine checked before. An unusable book throws before anything
+    // is written, so the order stays provably absent and the engine can retry.
+    requireUsableBook(book, rules.symbol, this.#now());
     const fill =
       order.side === 'BUY'
         ? fillBuy(book.asks, order.quoteAmount, rules.basePrecision)

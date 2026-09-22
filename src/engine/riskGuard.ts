@@ -1,5 +1,5 @@
 import Decimal from 'decimal.js';
-import { midPrice, type OrderBook } from '../market/orderBook.js';
+import { midPrice, type BookSides } from '../market/orderBook.js';
 import type { InstrumentRules, Ticker } from '../market/types.js';
 import { fillBuy, fillSell } from '../paper/fill.js';
 import type { AccountStatus } from '../types.js';
@@ -26,7 +26,7 @@ export type RiskContext = {
   attempt: number;
   holdings: Holdings;
   rules: InstrumentRules;
-  book: OrderBook;
+  book: BookSides;
   ticker: Ticker;
   signalClose: Decimal;
   maxOrderUsdt: Decimal | null;

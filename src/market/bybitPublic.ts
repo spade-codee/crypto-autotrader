@@ -27,6 +27,15 @@ function decimalField(value: unknown, name: string): Decimal {
   return parsed;
 }
 
+/** A price, a size, a step, or a limit: a finite decimal above zero. */
+function positiveDecimalField(value: unknown, name: string): Decimal {
+  const parsed = decimalField(value, name);
+  if (parsed.lte(0)) {
+    throw new Error(`Bybit's response has a ${name} that is not above zero`);
+  }
+  return parsed;
+}
+
 function textField(value: unknown, name: string): string {
   if (typeof value !== 'string' || value === '') {
     throw new Error(`Bybit's response is missing ${name}`);
@@ -56,11 +65,11 @@ export function parseInstrumentRules(result: unknown, symbol: string): Instrumen
     symbol,
     baseCoin: textField(item.baseCoin, 'baseCoin'),
     quoteCoin: textField(item.quoteCoin, 'quoteCoin'),
-    basePrecision: decimalField(lot.basePrecision, 'basePrecision'),
-    quotePrecision: decimalField(lot.quotePrecision, 'quotePrecision'),
-    minOrderQty: decimalField(lot.minOrderQty, 'minOrderQty'),
-    minOrderAmt: decimalField(lot.minOrderAmt, 'minOrderAmt'),
-    maxMarketOrderQty: decimalField(lot.maxMarketOrderQty, 'maxMarketOrderQty'),
+    basePrecision: positiveDecimalField(lot.basePrecision, 'basePrecision'),
+    quotePrecision: positiveDecimalField(lot.quotePrecision, 'quotePrecision'),
+    minOrderQty: positiveDecimalField(lot.minOrderQty, 'minOrderQty'),
+    minOrderAmt: positiveDecimalField(lot.minOrderAmt, 'minOrderAmt'),
+    maxMarketOrderQty: positiveDecimalField(lot.maxMarketOrderQty, 'maxMarketOrderQty'),
   };
 }
 
@@ -72,14 +81,30 @@ function parseLevels(value: unknown, side: string): BookLevel[] {
     if (!Array.isArray(row) || row.length < 2) {
       throw new Error(`malformed level in Bybit's order book ${side}`);
     }
-    return { price: decimalField(row[0], `${side} price`), qty: decimalField(row[1], `${side} size`) };
+    return {
+      price: positiveDecimalField(row[0], `${side} price`),
+      qty: positiveDecimalField(row[1], `${side} size`),
+    };
   });
 }
 
-/** Parses the order book, sorting defensively: asks lowest first, bids highest first. */
-export function parseOrderBook(result: unknown): OrderBook {
-  const book = (result ?? {}) as { a?: unknown; b?: unknown };
+/**
+ * Parses the order book for `symbol`, keeping which market it is and when Bybit
+ * generated it, so the engine can refuse a book for the wrong market or one too
+ * old to trade on (src/market/orderBook.ts). Levels are sorted defensively: asks
+ * lowest first, bids highest first.
+ */
+export function parseOrderBook(result: unknown, symbol: string): OrderBook {
+  const book = (result ?? {}) as { s?: unknown; ts?: unknown; a?: unknown; b?: unknown };
+  if (book.s !== symbol) {
+    throw new Error(`Bybit returned the order book for ${String(book.s)}, not ${symbol}`);
+  }
+  if (typeof book.ts !== 'number' || !Number.isSafeInteger(book.ts) || book.ts <= 0) {
+    throw new Error(`Bybit's order book for ${symbol} has no valid timestamp`);
+  }
   return {
+    symbol,
+    time: book.ts,
     asks: parseLevels(book.a, 'asks').sort((x, y) => x.price.comparedTo(y.price)),
     bids: parseLevels(book.b, 'bids').sort((x, y) => y.price.comparedTo(x.price)),
   };
@@ -92,9 +117,9 @@ export function parseTicker(result: unknown, symbol: string): Ticker {
   }
   return {
     symbol,
-    lastPrice: decimalField(item.lastPrice, 'lastPrice'),
-    bid: decimalField(item.bid1Price, 'bid1Price'),
-    ask: decimalField(item.ask1Price, 'ask1Price'),
+    lastPrice: positiveDecimalField(item.lastPrice, 'lastPrice'),
+    bid: positiveDecimalField(item.bid1Price, 'bid1Price'),
+    ask: positiveDecimalField(item.ask1Price, 'ask1Price'),
   };
 }
 
@@ -121,6 +146,7 @@ export class BybitPublicMarket implements MarketData {
   async getOrderBook(symbol: string): Promise<OrderBook> {
     return parseOrderBook(
       await this.#get('/v5/market/orderbook', { category: 'spot', symbol, limit: String(BOOK_DEPTH) }),
+      symbol,
     );
   }
 

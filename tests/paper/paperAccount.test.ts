@@ -131,6 +131,22 @@ describe('placing orders', () => {
     expect(await holding(account, 'BTC')).toBe('0.000999');
   });
 
+  it('refuses to fill against a stale book, and writes nothing', async () => {
+    const { account, market } = await open();
+    market.bookAgeMs = 60_000;
+    await expect(account.placeMarketOrder(buy('o1', '100'))).rejects.toThrow('60.0 s old');
+    expect(await account.getOrder('o1')).toEqual({ kind: 'ABSENT' });
+    expect(await holding(account, 'USDT')).toBe('1000');
+  });
+
+  it('refuses to fill against a book for another market, and writes nothing', async () => {
+    const { account, market } = await open();
+    market.book = { ...market.book, symbol: 'ETHUSDT' };
+    await expect(account.placeMarketOrder(buy('o1', '100'))).rejects.toThrow('ETHUSDT, not BTCUSDT');
+    expect(await account.getOrder('o1')).toEqual({ kind: 'ABSENT' });
+    expect(await holding(account, 'USDT')).toBe('1000');
+  });
+
   it('writes nothing when the market cannot be reached', async () => {
     const { account, market } = await open();
     market.fail.book = new Error('the request timed out');

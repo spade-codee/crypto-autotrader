@@ -228,6 +228,49 @@ describe('frozen, paused, and stopped accounts', () => {
   });
 });
 
+describe('order books that cannot be trusted', () => {
+  it('does not trade on a stale order book, and retries rather than freezing', async () => {
+    const h = await setup();
+    h.market.bookAgeMs = 60_000;
+    const [user] = ran(await runTick(h.deps));
+    expect(user!.result).toBe('RETRY_LATER');
+    expect(user!.detail).toContain('60.0 s old');
+    expect(await h.ledger.ofType('ORDER_INTENT', 'founder')).toHaveLength(0);
+    expect((await h.accounts.get('founder'))?.status).toBe('active');
+  });
+
+  it('does not trade on an order book stamped in the future', async () => {
+    const h = await setup();
+    h.market.bookAgeMs = -60_000;
+    const [user] = ran(await runTick(h.deps));
+    expect(user!.result).toBe('RETRY_LATER');
+    expect(user!.detail).toContain('clock');
+    expect(await h.ledger.ofType('ORDER_INTENT', 'founder')).toHaveLength(0);
+  });
+
+  it('does not trade on an order book for another market', async () => {
+    const h = await setup();
+    h.market.book = { ...h.market.book, symbol: 'ETHUSDT' };
+    const [user] = ran(await runTick(h.deps));
+    expect(user!.result).toBe('RETRY_LATER');
+    expect(user!.detail).toContain('ETHUSDT, not BTCUSDT');
+    expect(await h.ledger.ofType('ORDER_INTENT', 'founder')).toHaveLength(0);
+  });
+
+  it('checks the book is still fresh just before the order, after the slower requests', async () => {
+    const h = await setup();
+    const getTicker = h.market.getTicker.bind(h.market);
+    h.market.getTicker = async () => {
+      h.clock.now += 6_000; // a slow ticker request: the book fetched before it is now too old
+      return getTicker();
+    };
+    const [user] = ran(await runTick(h.deps));
+    expect(user!.result).toBe('RETRY_LATER');
+    expect(user!.detail).toContain('6.0 s old');
+    expect(await h.ledger.ofType('ORDER_INTENT', 'founder')).toHaveLength(0);
+  });
+});
+
 describe('the kill switch, turned on during a run', () => {
   it('sends nothing, and freezes nothing, when turned on while the ticker is fetched', async () => {
     const h = await setup();

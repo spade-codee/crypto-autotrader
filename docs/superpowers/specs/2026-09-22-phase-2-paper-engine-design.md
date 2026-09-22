@@ -200,7 +200,10 @@ than 30 minutes after it was due, and **abandoned** if it has not completed by t
    did not place, which means someone is trading the dedicated account by hand. Other coins are
    ignored.
 3. **Size** the order (section 5). No order needed: go to step 7.
-4. **Risk Guard** (section 6). A veto freezes the account.
+4. **Risk Guard** (section 6). A veto freezes the account. First, the order book the order was
+   sized on is checked again: it must be for this market, at most 5 seconds old, and at most 2
+   seconds ahead of this machine's clock. A book that fails is a retry, not a freeze: stale data
+   is usually a slow network, not a sign that anything is wrong with the account.
 5. **Record `ORDER_INTENT`**, then place the order. The intention is written first, so a crash
    between placing and recording is recovered by step 1, never repeated. **A placement that times
    out or fails without a definite answer is uncertain, not failed:** its intent stays
@@ -373,6 +376,7 @@ strings.
 |---|---|
 | Bybit unreachable, a server error, or a timeout **before** any order intent | Try again at the next tick. The first failure of the day alerts |
 | Stale or invalid candles (section 4.1) | Try again at the next tick. The first failure of the day alerts |
+| An order book for another market, more than 5 seconds old, stamped more than 2 seconds ahead of this machine's clock, or with a price or size that is not above zero | Refused when parsed, or when checked immediately before the Risk Guard: try again at the next tick, with nothing sent. The paper account checks its own execution book the same way, and writes nothing if it fails, so the order stays provably absent |
 | A request stalls | It is abandoned after 10 seconds and handled like any failed request |
 | An unexpected error in our code **before** any order intent | Try again at the next tick, with an alert. Nothing has happened, so retrying is safe |
 | A crash, or a placement that times out or gets no definite answer, **after** an order intent | **Uncertain, not failed.** The next tick settles it through the client order ID, even after midnight |

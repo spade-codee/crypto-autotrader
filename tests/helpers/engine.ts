@@ -59,7 +59,10 @@ export function harness(db: Database, market = new FakeMarket()): Harness {
   const ledger = new Ledger(db);
   const accounts = new AccountStates(db);
   const runs = new CycleRuns(db);
-  const paperFor = (userId: string) => new PaperAccount({ db, userId, market, feeRate: FEE_RATE });
+  // The market stamps its books, and the paper account judges them, by the same fake clock.
+  market.now = () => clock.now;
+  const paperFor = (userId: string) =>
+    new PaperAccount({ db, userId, market, feeRate: FEE_RATE, now: () => clock.now });
   const h: Harness = {
     market,
     alerts,
