@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_TIMEOUT_MS, getJson, raceSignal } from '../../src/net/http.js';
+import { DEFAULT_TIMEOUT_MS, getJson, getJsonTimed, raceSignal } from '../../src/net/http.js';
 
 /** A fake fetch keyed by host: 'down' throws like a DNS failure, a number is an HTTP status. */
 function fakeFetch(behaviour: Record<string, 'down' | number>) {
@@ -57,6 +57,39 @@ describe('getJson', () => {
     };
     await getJson(['https://a.test', 'https://b.test'], '/x', impl, { headers: { 'X-Test': '1' } });
     expect(seen).toEqual([{ 'X-Test': '1' }, { 'X-Test': '1' }]);
+  });
+
+  it('builds the headers afresh for every attempt when given a function', async () => {
+    const clock = { now: 1000 };
+    const seen: Array<Record<string, string> | undefined> = [];
+    const impl = async (url: string, options?: { headers?: Record<string, string> }) => {
+      seen.push(options?.headers);
+      if (url.startsWith('https://a.test')) {
+        clock.now += 10_000; // a stalled host, given up at its deadline
+        throw new Error('the request timed out');
+      }
+      return { ok: true, status: 200, json: async () => ({}) };
+    };
+    await getJson(['https://a.test', 'https://b.test'], '/x', impl, {
+      headers: () => ({ 'X-Time': String(clock.now) }),
+    });
+    expect(seen).toEqual([{ 'X-Time': '1000' }, { 'X-Time': '11000' }]);
+  });
+});
+
+describe('getJsonTimed', () => {
+  it('times only the attempt that answered, not the hosts that failed before it', async () => {
+    const clock = { now: 1000 };
+    const impl = async (url: string) => {
+      if (url.startsWith('https://a.test')) {
+        clock.now += 10_000;
+        throw new Error('the request timed out');
+      }
+      clock.now += 200; // the round trip to the host that answers
+      return { ok: true, status: 200, json: async () => ({ answered: true }) };
+    };
+    const timed = await getJsonTimed(['https://a.test', 'https://b.test'], '/x', impl, { now: () => clock.now });
+    expect(timed).toEqual({ body: { answered: true }, sentAt: 11_000, receivedAt: 11_200 });
   });
 });
 

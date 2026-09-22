@@ -1,7 +1,7 @@
 import { inspect } from 'node:util';
 import { describe, expect, it } from 'vitest';
 import { BybitApiError, BybitClient, unwrap } from '../../../src/exchange/bybit/client.js';
-import { signedHeaders } from '../../../src/exchange/bybit/sign.js';
+import { RECV_WINDOW_MS, signedHeaders } from '../../../src/exchange/bybit/sign.js';
 import type { RequestOptions } from '../../../src/net/http.js';
 import { Secret } from '../../../src/secrets/secret.js';
 
@@ -27,6 +27,34 @@ function fakeBybit(options: { serverTime?: Record<string, string>; body?: unknow
     return { ok: true, status: 200, json: async () => body };
   };
   return { impl, calls };
+}
+
+/**
+ * Bybit whose servers keep exactly our time, behind a primary host that stalls
+ * for its whole ten-second deadline before the request is given up. The fake
+ * clock stands in for real time, so nothing actually waits.
+ */
+function slowPrimaryBybit(options: { stallsTimeRequest: boolean }) {
+  const clock = { now: 1000 };
+  const calls: Array<Call & { at: number }> = [];
+  const impl = async (url: string, request?: RequestOptions) => {
+    calls.push({ url, headers: request?.headers, at: clock.now });
+    const isTime = url.includes('/v5/market/time');
+    if (url.startsWith('https://a.test') && (options.stallsTimeRequest || !isTime)) {
+      clock.now += 10_000;
+      throw new Error('the request timed out');
+    }
+    const result = isTime ? { timeNano: `${clock.now}000000` } : { ok: true };
+    return { ok: true, status: 200, json: async () => ({ retCode: 0, retMsg: 'OK', result }) };
+  };
+  const client = new BybitClient({
+    environment: 'testnet',
+    credentials: CREDENTIALS,
+    hosts: HOSTS,
+    fetchImpl: impl,
+    now: () => clock.now,
+  });
+  return { client, calls };
 }
 
 describe('BybitClient', () => {
@@ -62,18 +90,30 @@ describe('BybitClient', () => {
     expect(signed.headers?.['X-BAPI-TIMESTAMP']).toBe('7000');
   });
 
-  it('sends the same signed headers to the fallback host', async () => {
-    const { impl, calls } = fakeBybit({ down: ['https://a.test'] });
-    const client = new BybitClient({ environment: 'testnet', credentials: CREDENTIALS, hosts: HOSTS, fetchImpl: impl, now: () => 1000 });
+  it('signs afresh for the fallback host, so a slow primary cannot make the signature stale', async () => {
+    const { client, calls } = slowPrimaryBybit({ stallsTimeRequest: false });
 
     await client.get('/v5/user/query-api');
 
-    const attempts = calls.filter((c) => c.url.includes('query-api'));
-    expect(attempts.map((c) => c.url)).toEqual([
-      'https://a.test/v5/user/query-api',
-      'https://b.test/v5/user/query-api',
-    ]);
-    expect(attempts[0]!.headers).toEqual(attempts[1]!.headers);
+    const [primary, fallback] = calls.filter((c) => c.url.includes('query-api'));
+    expect(fallback!.url).toBe('https://b.test/v5/user/query-api');
+    // The fallback went out ten seconds after the primary attempt — twice Bybit's
+    // receive window — so it must carry a timestamp taken as it was sent.
+    expect(fallback!.at - primary!.at).toBe(10_000);
+    expect(RECV_WINDOW_MS).toBeLessThan(10_000);
+    expect(fallback!.headers).toEqual(signedHeaders(CREDENTIALS, fallback!.at, ''));
+  });
+
+  it('measures the clock offset around the host that answered, not across the fallback', async () => {
+    const { client, calls } = slowPrimaryBybit({ stallsTimeRequest: true });
+
+    await client.get('/v5/user/query-api');
+
+    // The servers' clock is ours, so the right offset is zero. Timing the whole
+    // host loop, stall included, would put the midpoint five seconds early and
+    // sign every request five seconds ahead: past Bybit's one-second limit.
+    const signed = calls.find((c) => c.url === 'https://b.test/v5/user/query-api')!;
+    expect(signed.headers?.['X-BAPI-TIMESTAMP']).toBe(String(signed.at));
   });
 
   it('returns the result of a successful response', async () => {

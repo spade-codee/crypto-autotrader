@@ -1,4 +1,4 @@
-import { getJson, type FetchLike } from '../../net/http.js';
+import { getJson, getJsonTimed, type FetchLike } from '../../net/http.js';
 import type { ApiCredentials } from '../credentials.js';
 import type { Environment } from '../environment.js';
 import { bybitHosts } from './hosts.js';
@@ -45,8 +45,13 @@ export type BybitClientOptions = {
  * Bybit rejects a timestamp more than 1,000 ms ahead of its own clock, and
  * ordinary PC clocks drift further than that. Before its first signed request
  * the client measures the offset between local and server time, using the
- * midpoint of the round trip, and signs every request with local time plus
- * that offset.
+ * midpoint of the round trip to the host that answered, and signs every request
+ * with local time plus that offset.
+ *
+ * Each host attempt is signed as it is sent. A request moves to the fallback
+ * host only after the primary has used up its ten-second deadline, and Bybit
+ * refuses a timestamp more than RECV_WINDOW_MS (five seconds) old, so a
+ * signature made once and reused would be expired by the time it arrived.
  */
 export class BybitClient {
   readonly #credentials: ApiCredentials;
@@ -65,19 +70,18 @@ export class BybitClient {
   async get(path: string, params: Record<string, string> = {}): Promise<unknown> {
     const offset = await this.#clockOffset();
     const query = new URLSearchParams(params).toString();
-    const headers = signedHeaders(this.#credentials, this.#now() + offset, query);
     const body = await getJson(this.#hosts, query === '' ? path : `${path}?${query}`, this.#fetch, {
-      headers,
+      headers: () => signedHeaders(this.#credentials, this.#now() + offset, query),
     });
     return unwrap(body);
   }
 
   async #clockOffset(): Promise<number> {
     if (this.#offsetMs === null) {
-      const sentAt = this.#now();
-      const result = unwrap(await getJson(this.#hosts, '/v5/market/time', this.#fetch));
-      const receivedAt = this.#now();
-      this.#offsetMs = Math.round(serverTimeMs(result) - (sentAt + receivedAt) / 2);
+      const { body, sentAt, receivedAt } = await getJsonTimed(this.#hosts, '/v5/market/time', this.#fetch, {
+        now: this.#now,
+      });
+      this.#offsetMs = Math.round(serverTimeMs(unwrap(body)) - (sentAt + receivedAt) / 2);
     }
     return this.#offsetMs;
   }
