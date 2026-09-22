@@ -46,7 +46,7 @@ becomes the single source of truth. Research code is not execution code.
 | Database | Postgres; PGlite in development and tests | The ledger needs real transactions. PGlite is Postgres compiled to WebAssembly, so neither development machine needs a database installed |
 | ORM | Drizzle | TypeScript-first, generates honest SQL, trivial escape hatch to raw SQL for reporting queries |
 | Money math | `decimal.js` + Postgres `NUMERIC` | See section 3 — this is not optional |
-| Jobs / scheduling | `pg-boss` | Postgres-backed queue, so no Redis to run and pay for. In-process `node-cron` is disqualified: it dies with the process and leaves no record of whether a cycle ran |
+| Jobs / scheduling | A one-shot command on a `systemd` timer; `pg-boss` only if Phase 4's load needs a queue | Nothing runs between ticks, so nothing can hang or leak. systemd survives crashes and reboots, catches up missed runs, and every run is recorded in the ledger. In-process `node-cron` stays disqualified: it dies with the process and leaves no record. See `docs/decisions.md` #22 |
 | Exchange access | Our own Bybit v5 client | CCXT types every amount as a JavaScript `number`, which breaks the no-floats rule. Bybit signing is a few dozen lines. Binance later gets a second client behind the same interface. See `docs/superpowers/specs/2026-09-17-phase-1-exchange-adapter-design.md` |
 | Validation | Zod | Validate every exchange response; never trust a third-party payload's shape |
 | Frontend | React + Vite + Tailwind + shadcn/ui | Static build, no server process — see section 3.4 for why not Next.js |

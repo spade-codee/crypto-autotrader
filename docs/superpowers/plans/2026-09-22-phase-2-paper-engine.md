@@ -6970,3 +6970,56 @@ git push
 ```
 
 Merge `phase-2-paper-engine` into `master` only after `phase-1-exchange-adapter` and `research-robustness` are merged, in that order. Never force-push. Paper trading then continues toward the parent spec's 2–4 weeks while Phase 2b — real orders on Bybit — is built.
+
+---
+
+## Execution notes — 2026-09-22
+
+Tasks 1 to 20 and 22 were executed inline on 2026-09-22, one commit per task, each pushed. The
+suite grew from 173 tests to 455, and typecheck is clean. **Task 21 (deployment) and Task 23 (the
+fourteen days) are the founder's and have not started**, so the handoff documents describe the
+engine as code complete and awaiting deployment.
+
+### Where the work differs from the plan
+
+- **Task 16 — the parity fixture** was cut from the existing `data/BTCUSDT-spot-1d.csv`, fetched
+  2026-09-17, instead of a fresh `npm run fetch`: 2023–2024 are closed candles and cannot change.
+  The throwaway script ran from outside the repository. It wrote the expected 731 candles.
+- **Tasks 18 and 19 — the smoke tests** used a scratch database outside the repository rather
+  than `data/smoke-db`, so nothing could be committed by accident. They ran from a machine in
+  Nigeria, where `api.bybit.com` does not resolve, so the host fallback carried every request.
+  Every command behaved as Step 10 expects. `paper:report` was also run live, which the plan did
+  not require.
+- **Task 20 — the runbook** gained three notes: the engine needs outbound HTTPS only and opens no
+  port; section 9 waits for a running tick before `npm ci`, because stopping the timer does not
+  stop a tick in progress; section 11 warns that no heartbeat is sent while the kill switch is
+  on, so Healthchecks.io reports the engine down.
+- **Task 22 — `CLAUDE.md`** also corrects its opening paragraph, which still said no
+  order-placing code existed: paper orders now exist, real ones do not. It adds the deployment to
+  the founder's list and records the older machine's Node version, v20.20.2.
+
+### Verification beyond the plan's steps
+
+- **The visibility rule has teeth.** A deliberate mutation — treating `NOT_VISIBLE` as proof of
+  absence, the "time plus an empty lookup" rule the founder rejected — made three scenarios fail:
+  the retry-after-proven-absence test, the delayed-visibility test, and the invisible-for-an-hour
+  freeze. The code was restored byte for byte.
+- **Parity, in figures.** On 731 real candles, all 606 daily signals and all 19 trades match the
+  backtest by day and direction, at identical fill prices. Final equity is 2,285.52 USDT against
+  the backtest's 2,286.61, a gap of 0.048%. Quantities differ slightly by design: the engine pays
+  the buy fee in BTC, as Bybit does, and keeps 0.1% of the USDT back on every buy.
+- **Live smoke test.** The first tick bought 0.01161 BTC at 86,045.90 for 998.99 USDT, and was
+  recorded as late — correctly, since it ran 8 hours 46 minutes after the daily close.
+
+### Known limitations, accepted for Phase 2
+
+- **The lock's stale-holder removal can race** when two commands start within microseconds of
+  each other and both find a dead holder. systemd never runs two ticks at once, and the founder
+  is the only other user, so this is accepted. Phase 3's move to ordinary Postgres removes the
+  lock altogether.
+- **Tiny decimals in ledger payloads use exponent notation.** `Decimal#toJSON` writes values
+  below 1e-7 as, for example, `2.99e-7`. They stay exact and parse back unchanged, and no
+  realistic BTC order reaches that range, since Bybit's minimum order is 5 USDT.
+- **A frozen day's `cycle_runs` row stays `frozen`** after the account is unfrozen on a later
+  day: only pending runs are abandoned. Trading is unaffected, and the report reads the ledger.
+- **`paper_orders.created_at` uses the wall clock**, not the engine's clock. Nothing reads it.

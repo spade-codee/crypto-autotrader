@@ -10,15 +10,16 @@ design and research stage. Users would connect their own exchange account with a
 has trading enabled and **withdrawals disabled**, and the software would run a mechanical BTC
 trend-following strategy on their account. Money never leaves the user's own exchange account.
 
-**Code exists for Phase 0** — the strategy, backtest engine, and data fetcher — **and Phase 1** — a
-read-only Bybit connection with an encrypted key vault. **No order-placing or user-facing code
-exists yet.** The repository also holds the design, product research, and a full decision log.
+**Code exists for Phase 0** — the strategy, backtest engine, and data fetcher — **Phase 1** — a
+read-only Bybit connection with an encrypted key vault — **and Phase 2** — the daily engine,
+trading a paper account on live Bybit prices. **Nothing places a real order yet, and there is no
+user-facing code.** The repository also holds the design, product research, and a full decision log.
 
 - **Working name: `crypto-autotrader`.** A placeholder, not a brand. No name has been chosen.
 - **Founder:** a solo technical builder based in Nigeria, with an existing local crypto
   community and a VPS.
 
-## Current state — as of 2026-09-17
+## Current state — as of 2026-09-22
 
 | Area | State |
 |---|---|
@@ -26,7 +27,7 @@ exists yet.** The repository also holds the design, product research, and a full
 | Phase 0 — strategy proof | **Complete and merged to `master`.** 67 tests. Result in `docs/research/phase-0-findings.md` |
 | Phase 0 result | **Passes, with claims narrowed.** Out-of-sample, MA-125 cut max drawdown to 27.4% from buy-and-hold's 53.1%, but gave up ~9 points of annual growth. Insurance, not a return enhancer |
 | Phase 1 — read-only Bybit connection | **Code complete** on branch `phase-1-exchange-adapter`, 156 tests. **Awaiting the founder's check (plan Task 15)** before merging. Bybit refused API key creation on the founder's unverified account; testnet is untested |
-| Phase 2 — paper-trading engine | **Design approved and plan written** on branch `phase-2-paper-engine`; implementation next. Trades a paper account on live Bybit prices, so it needs no key |
+| Phase 2 — paper-trading engine | **Code complete** on branch `phase-2-paper-engine`, 455 tests. **Awaiting deployment to the VPS** (plan Task 21, the founder's). The phase completes after 14 clean days of paper trading (spec section 12). Trades a paper account on live Bybit prices, so it needs no key |
 | Product research | Complete. It reopened the business model, which was re-decided 2026-09-17 |
 | Name | **Undecided** — "Keel" was rejected after a verified conflict |
 
@@ -43,12 +44,17 @@ free tier below an account-size threshold. The pilot sets the price and threshol
    Phase 1 Task 15 — it has not been tried. The licensed alternatives,
    Quidax and Busha, both fail as documented; `docs/research/exchange-alternatives.md` lists
    the questions to put to them.
-1. **Review the Phase 0 verdict** — `docs/research/phase-0-findings.md`. See `docs/decisions.md` #19.
-2. **The name** — Duro is recommended. See `docs/brand.md` section 2.
-3. **The legal opinion, in month one** — it gates opening the pilot to anyone but the founder.
+1. **Deploy Phase 2 to the VPS** — plan Task 21. Create a Telegram bot and a Healthchecks.io
+   check, then follow `docs/deploy-vps.md`, starting with its Bybit reachability check. The bot
+   token and the ping URL are secrets: the founder types them into `.env.local` on the VPS, and
+   no agent ever asks for them. The 14-day paper-trading clock (Task 23) starts at the first
+   timed tick.
+2. **Review the Phase 0 verdict** — `docs/research/phase-0-findings.md`. See `docs/decisions.md` #19.
+3. **The name** — Duro is recommended. See `docs/brand.md` section 2.
+4. **The legal opinion, in month one** — it gates opening the pilot to anyone but the founder.
    `docs/decisions.md` #18.
-4. **Upgrade Node on both machines** to Node 24 LTS. One machine runs Node 20, which reached
-   end-of-life in April 2026; `vitest` is held at 4.1.11 because 5.x needs Node 22.12+.
+5. **Upgrade Node on both machines** to Node 24 LTS. One machine runs Node 20 (v20.20.2), which
+   reached end-of-life in April 2026; `vitest` is held at 4.1.11 because 5.x needs Node 22.12+.
 
 ## Read in this order
 
@@ -86,10 +92,13 @@ branch to `master`. **Then merge `research-robustness`**, which is built on this
 the trend filter across neighbouring periods and on ETH, and concludes the evidence supports BTC
 only.
 
-**Phase 2 is designed on branch `phase-2-paper-engine`**, built on `research-robustness`: the
-daily engine, trading a paper account on live Bybit prices. The spec is approved and the plan,
-`docs/superpowers/plans/2026-09-22-phase-2-paper-engine.md`, is ready to execute task by task. **Merge order:** `phase-1-exchange-adapter`, then
-`research-robustness`, then `phase-2-paper-engine`.
+**Phase 2's code is complete on branch `phase-2-paper-engine`**, built on `research-robustness`:
+the daily engine, trading a paper account on live Bybit prices. Spec:
+`docs/superpowers/specs/2026-09-22-phase-2-paper-engine-design.md`. Plan:
+`docs/superpowers/plans/2026-09-22-phase-2-paper-engine.md` — read its execution notes.
+Runbook: `docs/deploy-vps.md`. What remains is the founder's: deploy it (plan Task 21), then
+fourteen clean days of paper trading and the report (Task 23). **Merge order:**
+`phase-1-exchange-adapter`, then `research-robustness`, then `phase-2-paper-engine`.
 
 Other work, if the founder asks for it:
 
@@ -111,10 +120,25 @@ Other work, if the founder asks for it:
 | `npm run key:add` | Validate a Bybit key and store it encrypted. Interactive terminal only; secret input is hidden |
 | `npm run key:check` | Re-validate the stored key |
 | `npm run balance` | Read balances with the stored key, after re-validating it |
+| `npm run paper:init` | Open the paper account. `-- --usdt 1000` sets the starting balance |
+| `npm run cycle` | One engine tick: what the systemd timer runs every 15 minutes |
+| `npm run status` | Account state, balances, today's signal and run, the kill switch |
+| `npm run pause` / `resume` | Stop or restart trading on the account |
+| `npm run unfreeze` | Lift a freeze. `-- --reason "what you found"` is required |
+| `npm run kill-switch` | `-- on --reason "why"` halts all trading; `-- off` resumes |
+| `npm run alerts:test` | Send a test Telegram alert |
+| `npm run paper:report` | The paper account against buy-and-hold and against the backtest |
 
 Settings for the key commands, read from the environment or `.env.local`: `BYBIT_ENV`
 (`testnet`, the default, or `mainnet`), `USER_ID` (default `founder`), `DB_DIR` (default
 `data/db`), and `SERVER_IPS` (comma-separated; required before a mainnet key is accepted).
+
+The engine commands also read `TRADING_MODE` (required; only `paper` exists in Phase 2),
+`TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID`, `HEALTHCHECK_URL`, `KILL_SWITCH_FILE` (default
+`data/KILL_SWITCH`), `PAPER_FEE_RATE` (default `0.001`), and `MAX_ORDER_USDT` (unset). Every
+command that opens the database holds a lock beside it, `data/db.lock`: PGlite must never be
+opened by two processes at once. Pass arguments after `--`, or npm keeps flags such as
+`--reason` for itself.
 
 **Bybit is DNS-blocked on Nigerian networks.** `api.bybit.com` fails to resolve, while Bybit's
 official alternate domain `api.bytick.com` answers. The fetcher falls back automatically; set
@@ -195,24 +219,34 @@ docs/
   decisions.md                decision log — start here
   stack-and-setup.md          stack, pitfalls, accounts checklist
   brand.md                    brand system and name status
+  deploy-vps.md               the VPS runbook
   superpowers/
     specs/                    design spec
     plans/                    implementation plans, one per phase
   research/                   validation, competitors, naming, landing copy, Phase 0 findings,
                               exchange alternatives
 src/
-  types.ts, math.ts           shared types; exact Decimal mean
+  types.ts, math.ts           shared types; exact Decimal mean and rounding
   strategy/trendFilter.ts     THE strategy — pure, reused unchanged in production
   backtest/                   engine (next-open execution, warm-up), costs, metrics, report
   data/                       public market data: Bybit candle fetcher, CSV storage, datasets
-  net/http.ts                 GET with host fallback, shared by market data and account access
+  net/http.ts                 GET with host fallback and deadlines, shared by market data and account access
   secrets/secret.ts           Secret — prints [redacted] everywhere
-  exchange/                   account access: environments, key info and balance shapes
+  exchange/                   account access: environments, key info, balances, the trading interface
     bybit/                    hosts, signing, signed client, parsers, key validation
   vault/                      master keyring, AES-256-GCM sealing, credential vault
   db/                         Drizzle schema and PGlite client
   app/credentials.ts          connect, check, and balance flows
-  cli/                        fetch, backtest, sweep, out-of-asset, vault-init, key-*, balance
+  app/paperReport.ts          the paper account against buy-and-hold and the backtest
+  market/                     Bybit public data: candles, order book, ticker, trading rules
+  engine/                     the daily tick: candle window, sizing, Risk Guard, reconciliation, order IDs
+  paper/                      the paper account and order-book fills
+  ledger/                     the append-only ledger
+  state/                      account state, per-day runs, alerts already sent
+  alerts/                     Telegram alerts and the Healthchecks.io heartbeat
+  ops/                        the kill switch and the database lock
+  cli/                        every command, including the engine's
+deploy/systemd/               the engine's service and timer
 drizzle/                      generated SQL migrations — committed
 tests/                        mirrors src/, plus helpers/ and fixtures/
 data/                         downloaded candles and data/db/ — gitignored
