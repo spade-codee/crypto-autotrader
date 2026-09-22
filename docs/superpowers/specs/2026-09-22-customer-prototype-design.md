@@ -1,7 +1,10 @@
 # Customer experience prototype (Release A): design
 
 - **Date:** 2026-09-22
-- **Status:** scope agreed by the founder, 2026-09-22. No implementation plan yet.
+- **Status:** scope agreed by the founder, 2026-09-22. **Ownership:** Codex builds the prototype
+  — its screens, interactions, accessibility, and visual QA; Claude owns this spec, the product
+  context, the engine, and the factual review of the prototype. See
+  `docs/collaboration/claude-handoff.md`.
 - **Input:** the founder's draft product plan, kept unchanged at
   `docs/product/2026-09-22-product-plan-draft.md`. It is input to planning, not approval of
   every feature in it.
@@ -30,14 +33,15 @@ This spec is **not** production implementation and **not** deployment.
   real dashboard is built in the multi-user phase, from what the sessions teach.
 - It touches no engine code, reads no real account, and takes no keys, passwords, or personal
   details. It has no backend and records nothing about the people who use it.
-- It lives in `prototype/` on the `product-prototype` branch. Nothing in `src/` imports it, and it
-  is never deployed with the engine.
+- It lives in `prototypes/customer/`, outside `src/` and `tests/`, so it is neither typechecked
+  nor tested with the engine and adds no dependency to the root `package.json`. Nothing in `src/`
+  imports it, and it is never deployed with the engine.
 
 ## 3. The prototype
 
 - **One self-contained web page**, laid out for a 375-pixel phone screen, working offline once
   opened. Sessions run on the facilitator's phone or on the participant's own phone through a
-  private link; which one is settled in the implementation plan.
+  private link; which one is Codex's call as the prototype's builder, agreed with the founder.
 - **A start page for the facilitator** lists the scenarios, and each scenario also has its own
   direct link, so a session can jump straight to one.
 - **On every screen:**

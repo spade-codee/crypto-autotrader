@@ -105,8 +105,10 @@ fourteen clean days of paper trading and the report (Task 23). **Merge order:**
 **The customer experience prototype is scoped on branch `product-prototype`**, separate from the
 engine: `docs/superpowers/specs/2026-09-22-customer-prototype-design.md`. It is a throwaway
 mock-up with sample data, not product code, and it never touches the engine or real accounts.
-Next: an implementation plan for it, then building it, then the founder's sessions. Where the
-multi-user practice pilot goes is open: `docs/decisions.md` #23.
+**Codex builds it** in `prototypes/customer/`, on its own branch; Claude reviews it for factual
+accuracy and owns the spec, the product context, and the engine. Do not edit Codex's frontend
+files: `docs/collaboration/claude-handoff.md` sets out who owns what. Then come the founder's
+sessions. Where the multi-user practice pilot goes is open: `docs/decisions.md` #23.
 
 Other work, if the founder asks for it:
 
