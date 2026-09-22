@@ -11,19 +11,18 @@
 
 **1. For the prototype now: Microsoft Fluent Emoji, 3D people — free, MIT licence (verified).**
 
-- Soft, rounded 3D renders, 256 × 256 PNG, about 54 KB each. Every people emoji comes in five skin
-  tones plus the default yellow.
-- Useful presets, all confirmed in the repository: man, woman, and person with curly hair; bald;
-  bearded; white-haired; woman with headscarf; older person, man, and woman.
+- Soft, rounded 3D renders, 256 × 256 PNG, about 54 KB each.
+- Presets confirmed in the repository, each in five skin tones plus the default yellow: person;
+  woman; man, woman, and person with curly hair; bald woman; person with a beard; woman with a
+  headscarf; older person. Also present: man with white hair, man wearing a turban.
 - Suggested set: about twelve presets, weighted to the dark and medium-dark tones, with some
   medium. Leave out the profession emoji — a technologist at a laptop, an office worker — which
   could read as a trader, or as the strategy itself.
-- Weight: converted to WebP at 96–128 px they come to a few kilobytes each, so twelve cost less
-  than one large image.
+- Weight, estimated: converted to WebP at 96–128 px, each should come to a few kilobytes, so
+  twelve cost less than one large image.
 - Obligations: keep the MIT copyright notice in the prototype's credits, and never use
   Microsoft's name or imply its endorsement.
-- Limits: they look like emoji, and their hair options do not include braids, locs, a gele, or a
-  kufi.
+- Limits: they look like emoji, and there are no braids, locs, or gele.
 
 **2. For the product, if the sessions show people like 3D portraits: commission a small set.**
 Twelve to twenty-four busts from a Nigerian 3D illustrator, in the same soft style and with
@@ -40,13 +39,13 @@ select inside an app are covered before buying.
 
 - **Craftwork, Stylized 3D Avatars** — 94 avatars, $48. Described as "vibrant and playful",
   including caricatures such as a Don Quixote figure: too whimsical for a calm product about
-  money. The page publishes no licence terms.
+  money. No licence terms on the product page; support@craftwork.design would have to confirm.
 - **Craftwork, Free Userpics** — free for commercial use, but flat 2D.
 - **Black Illustrations, Ultimate Black Avatar Pack** — $28, 60+ hairstyles and 10 skin tones:
   the strongest Black representation found, but flat 2D. The fallback if 3D tests poorly; its
   in-app licence terms are not stated on the page.
-- **UI8 and IconScout 3D packs** — licence pages refused automated reading, and terms vary by item.
-  Not verified.
+- **UI8 and IconScout 3D packs** — their licence pages could not be read here, and terms are set
+  per product. Not verified.
 - **Apple Memoji** — Apple's own artwork; not usable. **Selfie-based avatar generators** collect
   face photos, which this product has no reason to hold. **AI-generated sets** leave ownership
   unclear and are hard to keep consistent.
