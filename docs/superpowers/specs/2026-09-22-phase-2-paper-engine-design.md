@@ -5,7 +5,8 @@
   founder's review
 - **Revised:** 2026-09-22, after a design review: outstanding orders are resolved across days,
   exposure counts locked funds, every request and every tick has a deadline, and the whole candle
-  window is validated
+  window is validated. A second pass the same day separated inconclusive order lookups from
+  confirmed non-submission, and gave every retry its own client order ID (section 4.2)
 - **Parent spec:** `2026-09-16-crypto-trading-automation-design.md` — sections 4 to 7, and 9
 - **Builds on:** Phase 1 (`2026-09-17-phase-1-exchange-adapter-design.md`) and the robustness
   research (`docs/research/phase-0-findings.md`)
@@ -118,10 +119,17 @@ export type OrderState = {
   rejectReason: string | null;
 };
 
+/**
+ * The account's answer about one client order ID. NOT_FOUND means the account is
+ * certain it holds no such order. Anything uncertain — a timeout, an error, a
+ * partial answer — throws instead, and the engine treats it as inconclusive.
+ */
+export type OrderLookup = { kind: 'FOUND'; state: OrderState } | { kind: 'NOT_FOUND' };
+
 export interface TradingAccount {
   getBalances(): Promise<CoinBalance[]>;      // the Phase 1 type
   placeMarketOrder(order: MarketOrderRequest): Promise<OrderState>;
-  getOrder(clientOrderId: string): Promise<OrderState | null>;
+  getOrder(clientOrderId: string): Promise<OrderLookup>;
 }
 ```
 
@@ -167,7 +175,12 @@ than 30 minutes after it was due, and **abandoned** if it has not completed by t
    - **found and still pending:** an order is in flight, so do nothing more for this user this
      tick and try again at the next. One still pending an hour after its intent was recorded
      freezes the account;
-   - **not found:** the order never reached the account, so record `NOT_PLACED`.
+   - **not found, and the intent is at least 5 minutes old:** confirmed non-submission, so
+     record `NOT_PLACED`;
+   - **not found, but the intent is younger than 5 minutes:** inconclusive, because the order
+     may still be on its way. Record nothing and wait for the next tick;
+   - **the lookup fails or times out:** inconclusive. Record nothing; the intent stays
+     outstanding, and the next tick asks again.
 
    The run goes on only when nothing is outstanding. If today's own order was among them and
    filled, go straight to step 7.
@@ -187,8 +200,9 @@ than 30 minutes after it was due, and **abandoned** if it has not completed by t
 7. **Reconcile.** Re-read the balances. If the account matches the target, record `RECONCILED`,
    mark the run `completed`, flag it late if it was, and send the one-line summary. If not, freeze.
 
-**Nothing can be bought twice.** The client order ID is built from who, which day, and what for,
-and the account rejects a repeated ID, exactly as Bybit does.
+**Nothing can be bought twice.** Every order carries a deterministic client order ID, the
+account rejects a repeated ID exactly as Bybit does, and at most one order a day can execute
+(section 4.2).
 
 ### 4.1 A valid candle window
 
@@ -203,6 +217,29 @@ sell everything. Before the signal is computed, the window must pass every check
   most the open and the close, and the high is at least both.
 
 A failure is handled like stale data: try again at the next tick, and record the reason.
+
+### 4.2 Client order IDs and retries
+
+- **The ID is built from who, which day, what for, and which attempt:** `(user, cycle date,
+  intent, attempt)`, hashed. Attempt 1 is the day's first order.
+- **The attempt number comes from the ledger:** one more than the number of earlier intents for
+  the same user, day, and intent. The ledger is append-only, so a tick that crashes before
+  writing its intent recomputes the same attempt, and therefore the same ID.
+- **The ledger rule:** each client order ID appears in exactly one `ORDER_INTENT` and, once
+  settled, exactly one `ORDER_RESULT`. A retry never reuses an ID.
+- **A retry needs confirmed non-submission.** Attempt *k + 1* is possible only when attempts 1
+  to *k* were all recorded `NOT_PLACED`. Any other result ends the day's ordering: `FILLED`
+  goes to reconciliation, and anything else freezes the account. So at most one order a day
+  can ever execute.
+- **At most three attempts a day.** Needing a fourth freezes the account: orders are not
+  reaching it, and a person should find out why.
+
+**Why a new ID rather than the same one.** Reusing the ID would give it two intents and two
+results. If the first attempt then turned up late, its fill could not be attributed to either.
+A new ID keeps every order's history unambiguous. The protection it gives up — the exchange
+refusing a repeated ID — is covered three ways: non-submission must be confirmed, not assumed;
+sizing always reads real balances, so an order that did execute makes the account already at
+its target; and the attempt cap bounds the worst case.
 
 ## 5. Sizing and reconciliation
 
@@ -243,8 +280,8 @@ failed.
 
 1. **The kill switch is off** — checked again immediately before placing.
 2. **The account is active** — not paused, not frozen.
-3. **One order per account per day.** No `ORDER_INTENT` exists for this user and day under a
-   different client order ID. Recovering the same order is allowed.
+3. **One executed order per account per day.** Every earlier intent for this account today was
+   confirmed `NOT_PLACED`, and this is attempt 3 or earlier (section 4.2).
 4. **Within the available balance.** A buy's USDT is at most `available(USDT)`; a sell's BTC is
    at most `available(BTC)`.
 5. **Within the exchange's limits.** At least `minOrderQty` and `minOrderAmt`; at most
@@ -287,9 +324,9 @@ strings.
   as `SIGNAL`), cycle date, type, payload. A database trigger rejects every `UPDATE`, `DELETE`,
   and `TRUNCATE`. Types: `ACCOUNT_OPENED`, `SIGNAL`, `ORDER_INTENT`, `ORDER_RESULT`, `RECONCILED`,
   `RUN_COMPLETED`, `RUN_FAILED`, `RUN_ABANDONED`, `FROZEN`, `UNFROZEN`, `PAUSED`, `RESUMED`,
-  `KILL_SWITCH_SKIP`, `TOO_SMALL`. Every `ORDER_INTENT` is eventually matched by exactly one
-  `ORDER_RESULT` for the same client order ID, recorded under the intent's own cycle date —
-  `NOT_PLACED` when the order never reached the account.
+  `KILL_SWITCH_SKIP`, `TOO_SMALL`. Each client order ID has exactly one `ORDER_INTENT` and, once
+  settled, exactly one `ORDER_RESULT`, recorded under the intent's own cycle date. `NOT_PLACED`
+  is recorded only for a confirmed non-submission.
 - **`account_state`** — mutable, one row per user: `active`, `paused`, or `frozen`, with a reason.
   Every change is also written to the ledger.
 - **`cycle_runs`** — mutable, one row per user and cycle date: status (`pending`, `completed`,
@@ -310,6 +347,9 @@ strings.
 | An unexpected error in our code **before** any order intent | Try again at the next tick, with an alert. Nothing has happened, so retrying is safe |
 | A crash, or a placement that times out or gets no definite answer, **after** an order intent | **Uncertain, not failed.** The next tick settles it through the client order ID, even after midnight |
 | An order still pending | Nothing more for that account until it settles. Still pending an hour after its intent: **freeze** |
+| The account says an order does not exist | At least 5 minutes after its intent: confirmed, so record `NOT_PLACED`; a retry gets a new ID. Sooner: inconclusive, so wait |
+| An order lookup fails or times out | Inconclusive: nothing is recorded, the intent stays outstanding, and the next tick asks again |
+| Orders keep failing to arrive | The fourth attempt in a day is vetoed and the account **frozen** |
 | Locked BTC or USDT that is not one of our orders | **Freeze**: the dedicated account is being traded by hand |
 | Risk Guard veto, rejected order, partial fill, reconciliation mismatch, or borrowing | **Freeze**, and alert |
 | A frozen or paused account | Skipped every day, with a daily reminder, until the founder lifts it |
@@ -382,7 +422,10 @@ message goes to the log.
   pending after an hour; **a placement that times out after the order was accepted**, and one
   that times out before it arrived; a stalled request that gives up within its deadline; and
   **locked BTC with a FLAT target**, and locked USDT, each freezing rather than passing as at the
-  target.
+  target. From the recovery clarification: **an order that never arrived** — an early lookup
+  that is inconclusive and records nothing, a later one that confirms `NOT_PLACED`, and a retry
+  under a new ID that fills, with every ID holding exactly one intent and one result; a lookup
+  that fails, recording nothing; and a fourth attempt in a day, which freezes.
 - **The parity test.** Replay real daily candles from a committed fixture — BTCUSDT spot, 2023 and
   2024 — through the live tick one day at a time, with the clock at 00:02 UTC and a synthetic order
   book at the next candle's open. Run the backtest engine over the same candles. The **daily
@@ -406,7 +449,9 @@ The rest of the parent spec's 2–4 weeks of paper trading then continues while 
 
 - **Phase 2b — Bybit orders.** A `BybitTradingAccount`: orders through `/v5/order/create` with
   `orderLinkId` set to the client order ID and `marketUnit` set to `quoteCoin` for buys; order
-  state from the open-orders endpoint, then order history; fees from the execution list. The key is
+  state from the open-orders endpoint, then order history; fees from the execution list. Its
+  `getOrder` may return `NOT_FOUND` only when both endpoints authoritatively lack the order, and
+  must throw on anything less certain. The key is
   re-validated before every use, as Phase 1 requires. The account's automatic borrowing must be
   confirmed off. Testnet first, then mainnet with the founder's own money.
 - **Phase 3:** production Postgres, a compiled build, `MAX_ORDER_USDT` set small, `SERVER_IPS` set
