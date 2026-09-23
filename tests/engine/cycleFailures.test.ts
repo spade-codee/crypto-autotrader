@@ -382,6 +382,30 @@ describe('the kill switch, turned on during a run', () => {
 });
 
 describe('orders whose outcome is uncertain', () => {
+  it('reports the day’s fill in the summary when an earlier tick recorded it', async () => {
+    const h = await setup();
+    // The order fills and its result is recorded, and then reconciliation cannot
+    // read the balances, so the run finishes at a later tick than the fill.
+    let reads = 0;
+    h.wrap = (account) =>
+      withBalances(account, async () => {
+        reads += 1;
+        if (reads === 2) {
+          throw new Error('bybit is unreachable');
+        }
+        return account.getBalances();
+      });
+    const [interrupted] = ran(await runTick(h.deps));
+    expect(interrupted!.result).toBe('RETRY_LATER');
+    expect((await h.ledger.ofType('ORDER_RESULT', 'founder')).map((e) => e.payload.status)).toEqual(['FILLED']);
+
+    h.wrap = (account) => account;
+    h.clock.now += 15 * MINUTE;
+    const [user] = ran(await runTick(h.deps));
+    expect(user!.result).toBe('COMPLETED');
+    expect(h.alerts.messages.at(-1)).toContain('Bought');
+  });
+
   it('settles an order interrupted before midnight after midnight, under its own day', async () => {
     const h = await setup();
     h.clock.now = tickTimeAfter(DAY_ONE) + (23 * 60 + 45) * MINUTE; // 23:47 UTC: still DAY_ONE's run

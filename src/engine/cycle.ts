@@ -3,6 +3,7 @@ import type { Heartbeat } from '../alerts/heartbeat.js';
 import type { Alerter } from '../alerts/telegram.js';
 import type { MarketOrderRequest, OrderState, TradingAccount } from '../exchange/trading.js';
 import type { Ledger } from '../ledger/ledger.js';
+import { orderStateFrom } from '../ledger/orderEvents.js';
 import { midPrice, requireUsableBook, type OrderBook } from '../market/orderBook.js';
 import type { InstrumentRules, MarketData } from '../market/types.js';
 import { mean } from '../math.js';
@@ -186,7 +187,7 @@ async function runUser(run: Run, target: TargetState, signalClose: Decimal): Pro
       return settled.outcome;
     }
     const rules = await deps.market.getInstrumentRules(deps.symbol);
-    let filled = settled.todaysFill;
+    let filled = await filledToday(deps, userId, date);
 
     if (filled === null) {
       // 2. Balances.
@@ -237,7 +238,7 @@ async function runUser(run: Run, target: TargetState, signalClose: Decimal): Pro
   }
 }
 
-type Settlement = { kind: 'CLEAR'; todaysFill: OrderState | null } | Stop;
+type Settlement = { kind: 'CLEAR' } | Stop;
 
 /**
  * Step 1: gives every outstanding intent, from any day, exactly one recorded
@@ -248,7 +249,6 @@ type Settlement = { kind: 'CLEAR'; todaysFill: OrderState | null } | Stop;
  */
 async function settleOutstanding(run: Run, account: TradingAccount): Promise<Settlement> {
   const { deps, userId, date, at } = run;
-  let todaysFill: OrderState | null = null;
   for (const intent of await deps.ledger.outstandingIntents(userId)) {
     const id = String(intent.payload.clientOrderId);
     const intentDate = intent.cycleDate ?? date;
@@ -290,11 +290,22 @@ async function settleOutstanding(run: Run, account: TradingAccount): Promise<Set
     if (state.status !== 'FILLED') {
       return { kind: 'STOPPED', outcome: await freeze(run, unfilledReason(state)) };
     }
-    if (intentDate === date) {
-      todaysFill = state;
+  }
+  return { kind: 'CLEAR' };
+}
+
+/**
+ * The day's own order, if it has already filled — from the ledger, so a fill
+ * settled by an earlier tick, or while the account was paused, is still the
+ * fill this run reports.
+ */
+async function filledToday(deps: CycleDeps, userId: string, date: string): Promise<OrderState | null> {
+  for (const order of await deps.ledger.ordersOn(userId, date)) {
+    if (order.result !== null && order.result.payload.status === 'FILLED') {
+      return orderStateFrom(order.result.payload);
     }
   }
-  return { kind: 'CLEAR', todaysFill };
+  return null;
 }
 
 async function waiting(run: Run, detail: string): Promise<Stop> {
