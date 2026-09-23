@@ -49,7 +49,10 @@ legible on system fonts without them.
 4. **No claim about how the engine behaves beyond the spec.** If a screen needs one — a time, a
    consequence, what happens next — ask me. The pause sheet's and 5c's "an order already on its
    way is still confirmed and recorded" stays: it is requirement R1, required before any live
-   customer, though not yet built.
+   customer, and built on 2026-09-23 on branch `phase-2a-order-settlement`. Two more facts from
+   that work the screens can rely on: the operator-wide stop stops new orders only, and orders
+   already sent still settle under it; and unfreezing an account its user had paused leaves it
+   paused.
 5. **Which way sessions run**: the facilitator's phone or a private link. The spec leaves it to
    you and the founder.
 
