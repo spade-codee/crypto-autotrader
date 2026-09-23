@@ -73,6 +73,9 @@ export async function runTick(deps: CycleDeps): Promise<TickOutcome> {
       await deps.ledger.append({ occurredAt: at, userId: null, cycleDate: date, type: 'KILL_SWITCH_SKIP', payload: {} });
       await deps.alerter.send(`The kill switch is on, so nothing trades for ${date}.`);
     }
+    // Nothing new is sent, but an order already on its way still gets its one
+    // recorded answer: an operator stop is when the record matters most.
+    await settleWhileStoppedSafely(deps, await deps.accounts.all(), date, at);
     return { kind: 'KILL_SWITCH' };
   }
 

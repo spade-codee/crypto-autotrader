@@ -133,3 +133,31 @@ describe('an order already sent, on an account that is not trading', () => {
     expect(h.alerts.messages.at(-1)).toContain('Bought');
   });
 });
+
+describe('the kill switch', () => {
+  it('settles orders already sent, while placing nothing and reporting itself', async () => {
+    const h = await setup();
+    await orderInFlight(h, async () => {
+      h.kill.on = true;
+    });
+    h.clock.now += 15 * MINUTE;
+
+    expect(await runTick(h.deps)).toEqual({ kind: 'KILL_SWITCH' });
+    expect(await results(h)).toEqual(['FILLED']);
+    expect(await h.ledger.ofType('ORDER_INTENT', 'founder')).toHaveLength(1);
+    expect(await h.ledger.ofType('KILL_SWITCH_SKIP', null)).toHaveLength(1);
+    expect(h.alerts.messages.filter((m) => m.startsWith('The kill switch is on'))).toHaveLength(1);
+    expect(h.alerts.messages.some((m) => m.includes('stopped by the kill switch'))).toBe(true);
+  });
+
+  it('freezes an account whose order has been invisible for an hour, even while it is on', async () => {
+    const h = await setup();
+    h.wrap = (account) => hidesOrders(failsAfterPlacing(account), Number.POSITIVE_INFINITY);
+    ran(await runTick(h.deps));
+    h.kill.on = true;
+
+    h.clock.now += 61 * MINUTE;
+    expect(await runTick(h.deps)).toEqual({ kind: 'KILL_SWITCH' });
+    expect((await h.accounts.get('founder'))?.status).toBe('frozen');
+  });
+});
