@@ -1,21 +1,31 @@
 <!doctype html>
 <html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="color-scheme" content="dark light">
-  <meta name="robots" content="noindex, nofollow">
-  <title>Customer experience · Prototype</title>
-  <link rel="stylesheet" href="styles.css">
-  <script defer src="fixtures.js"></script>
-  <script defer src="app.js"></script>
-</head>
-<body>
-  <a class="skip" href="#content">Skip to content</a>
-  <div class="prototype-ribbon">Prototype — sample data, not real results</div>
-  <div id="app"></div>
-  <dialog id="sheet" aria-labelledby="sheet-title"><div id="sheet-content"></div></dialog>
-  <div class="sr-only" role="status" id="announcement"></div>
-  <noscript>This clickable prototype needs JavaScript. It contains invented account data and connects to no exchange.</noscript>
-</body>
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <meta name="color-scheme" content="dark light" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Customer experience · Prototype</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script defer src="fixtures.js"></script>
+    <script defer src="app.js"></script>
+  </head>
+  <body>
+    <a class="skip" href="#content">Skip to content</a>
+    <div class="prototype-ribbon" role="region" aria-label="Prototype notice">
+      Prototype — sample data, not real results
+    </div>
+    <div id="app"></div>
+    <dialog id="sheet" aria-labelledby="sheet-title">
+      <div id="sheet-content"></div>
+    </dialog>
+    <div class="sr-only" role="status" id="announcement"></div>
+    <noscript
+      >This clickable prototype needs JavaScript. It contains invented account
+      data and connects to no exchange.</noscript
+    >
+  </body>
 </html>

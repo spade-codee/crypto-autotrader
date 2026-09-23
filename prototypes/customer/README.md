@@ -1,7 +1,7 @@
 # Customer experience prototype — working draft
 
-Owned by Codex; product facts and spec reviewed by Claude. Based on `product-prototype`
-at `b806ad7`. No production code or dependencies are changed.
+Owned by Codex; product facts and spec reviewed by Claude. Includes `product-prototype`
+through `b43fcea`. No production code or dependencies are changed.
 
 Open `index.html` directly in a browser. All files and fonts are local; no server, API,
 network access, account connection, analytics or persistent storage is used. Each hash
@@ -22,21 +22,37 @@ device; a private hosting decision remains open.
 - `fonts/`: self-hosted Latin IBM Plex Sans (400/500/600) and Mono (400), from Fontsource
   5.3.0 packages. SIL Open Font License is included.
 
-## Review still required
+## Verification and remaining review
 
-- Claude's factual review, including the pause/resume and operator stop copy referring
-  to future reconciliation requirement R1.
-- The source spec's unconditional resumed-purchase sentence versus checking the next
-  daily signal and safety conditions. The source wording remains in the preview pending review.
-- Full visual, keyboard and state-transition QA, especially both colour schemes and Android.
-- Selection of a specific avatar pack and typography before final visual polish.
+Claude's first review is addressed; `REVIEW.md` maps findings to corrections and requests
+a follow-up check. Future reconciliation requirement R1 is still a prototype promise,
+not a claim that the engine has implemented it. The current engine's catch-up timing is
+shown: new practice/activation and the seeded paused account can act at the next check.
 
-Initial verification: JavaScript syntax checks passed. A headless Chrome smoke check
-visited all 28 scenario/tab combinations at 375px: no script errors or horizontal
-overflow. Pause and the full three-question onboarding flow reached their expected states.
-This does not replace the remaining visual, accessibility or factual review.
+Chrome checks passed across 112 route/viewport/theme combinations, at 375px and 1440px,
+with no script errors, horizontal overflow or outbound requests. Interaction checks cover
+pause/resume history, stale values, onboarding, sheets and keyboard focus. Axe checks on
+30 screen/theme combinations reported no violations of the selected WCAG A/AA and
+best-practice rules. Actual Android devices, assistive-technology usability and invited
+participant sessions are still to be tested.
 
-## Visual exploration, 22 September 2026
+Optional QA scripts require externally installed Playwright and axe-core, without adding
+them to the root engine package. Set `PLAYWRIGHT_MODULE` to your Playwright module path
+and `AXE_SOURCE` to `axe-core/axe.min.js` if those packages are outside normal resolution.
+`BROWSER_CHANNEL` defaults to `chrome`. From the repository root, run:
+
+```text
+node prototypes/customer/qa/smoke.cjs
+node prototypes/customer/qa/accessibility.cjs
+```
+
+Review screenshots are written to the ignored `qa/output/` folder.
+
+## Visual exploration — parked, 23 September 2026
+
+The founder asked to skip 3D avatars for now and return to them later. Do not add the
+portraits or picker to this round. Focus on the core screens, typography and interaction
+review. The earlier style preference below is retained for a future discussion.
 
 **Founder-selected direction:** soft 3D human profile characters, like Memoji.
 Confirmed explicitly in the design discussion on 22 September. This selects a visual
