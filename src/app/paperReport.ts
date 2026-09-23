@@ -1,6 +1,8 @@
 import Decimal from 'decimal.js';
+import { DEFAULT_COSTS } from '../backtest/costs.js';
 import { runBacktest } from '../backtest/engine.js';
 import { DAY_MS, isoDate } from '../engine/cycleDate.js';
+import { percent } from '../engine/selfCheck.js';
 import type { LedgerEvent } from '../ledger/ledger.js';
 import type { Candle, CostModel, StrategyFn } from '../types.js';
 
@@ -16,9 +18,26 @@ export type ReportInput = {
   candles: Candle[];
   strategy: StrategyFn;
   costs: CostModel;
+  /** Every DECISION_REPLAY event. */
+  replays: LedgerEvent[];
 };
 
 export type ReportTrade = { day: string; side: string; qty: string; price: string };
+
+export type Spread = { average: Decimal; worst: Decimal };
+
+export type SelfCheckSummary = {
+  decisionsRechecked: number;
+  /** Cycle dates whose decision would now differ. */
+  changed: string[];
+  /** Cycle dates whose data was revised, the decision holding. */
+  revised: string[];
+  fillsCosted: number;
+  againstMarket: Spread | null;
+  againstBacktestPrice: Spread | null;
+  /** What the backtest assumes one trade costs. */
+  assumed: Decimal;
+};
 
 export type PaperReport = {
   userId: string;
@@ -38,6 +57,7 @@ export type PaperReport = {
   tradesMatch: boolean;
   signalsChecked: number;
   signalMismatches: string[];
+  selfCheck: SelfCheckSummary;
 };
 
 /**
@@ -98,6 +118,17 @@ export function buildPaperReport(input: ReportInput): PaperReport {
   }
   const comparable = trades.filter((t) => lastDay !== null && t.day < lastDay).map((t) => ({ day: t.day, side: t.side }));
 
+  const replays = input.replays.filter((r) => r.occurredAt >= opened.occurredAt);
+  const fillCosts = input.events.filter((e) => e.type === 'FILL_COST');
+  const spreadOf = (key: string): Spread | null => {
+    if (fillCosts.length === 0) {
+      return null;
+    }
+    const values = fillCosts.map((e) => new Decimal(String(e.payload[key])));
+    return { average: values.reduce((a, b) => a.plus(b), new Decimal(0)).div(values.length), worst: Decimal.max(...values) };
+  };
+  const onVerdict = (verdict: string) => replays.filter((r) => r.payload.verdict === verdict).map((r) => r.cycleDate ?? '?');
+
   return {
     userId: input.userId,
     openedAt: opened.occurredAt,
@@ -115,6 +146,15 @@ export function buildPaperReport(input: ReportInput): PaperReport {
     tradesMatch: JSON.stringify(comparable) === JSON.stringify(backtestTrades),
     signalsChecked: signals.length,
     signalMismatches,
+    selfCheck: {
+      decisionsRechecked: replays.length,
+      changed: onVerdict('DECISION_CHANGED'),
+      revised: onVerdict('DATA_REVISED'),
+      fillsCosted: fillCosts.length,
+      againstMarket: spreadOf('againstMarket'),
+      againstBacktestPrice: spreadOf('againstBacktestPrice'),
+      assumed: DEFAULT_COSTS.feeRate.plus(DEFAULT_COSTS.slippageRate),
+    },
   };
 }
 
@@ -138,6 +178,22 @@ export function formatPaperReport(report: PaperReport): string {
     report.signalMismatches.length === 0
       ? `Signals match the strategy on all ${report.signalsChecked} days.`
       : `SIGNALS DIFFER on ${report.signalMismatches.length} days:\n  ${report.signalMismatches.join('\n  ')}`,
+  );
+  const s = report.selfCheck;
+  const findings = [
+    s.changed.length === 0 ? '' : ` DECISIONS CHANGED on ${s.changed.join(', ')}.`,
+    s.revised.length === 0 ? '' : ` Revised data on ${s.revised.join(', ')}, the decision holding.`,
+  ].join('');
+  lines.push(
+    'Self-check',
+    `  Decisions rechecked: ${s.decisionsRechecked}.${s.decisionsRechecked > 0 && findings === '' ? ' All held.' : findings}`,
+    `  Fills costed: ${s.fillsCosted}.` +
+      (s.againstMarket === null
+        ? ''
+        : ` Against the market: average ${percent(s.againstMarket.average)}, worst ${percent(s.againstMarket.worst)} (the backtest assumes ${percent(s.assumed)}).`),
+    s.againstBacktestPrice === null
+      ? ''
+      : `  Against the backtest's price: average ${percent(s.againstBacktestPrice.average)}, worst ${percent(s.againstBacktestPrice.worst)}.`,
   );
   return lines.filter((line) => line !== '').join('\n');
 }
