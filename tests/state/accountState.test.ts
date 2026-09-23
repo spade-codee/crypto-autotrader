@@ -8,7 +8,7 @@ const database = useTestDatabase();
 const AT = new Date('2026-09-22T00:02:00Z');
 
 async function withAccount(): Promise<AccountStates> {
-  await database().insert(accountState).values({ userId: 'founder', status: 'active', reason: null, updatedAt: AT });
+  await database().insert(accountState).values({ userId: 'founder', paused: false, frozen: false, updatedAt: AT });
   return new AccountStates(database());
 }
 

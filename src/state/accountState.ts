@@ -10,13 +10,9 @@ export type AccountRecord = {
   updatedAt: Date;
 };
 
-const STATUSES: readonly string[] = ['active', 'paused', 'frozen'];
-
 function toRecord(row: typeof accountState.$inferSelect): AccountRecord {
-  if (!STATUSES.includes(row.status)) {
-    throw new Error(`unknown account status "${row.status}"`);
-  }
-  return { userId: row.userId, status: row.status as AccountStatus, reason: row.reason, updatedAt: row.updatedAt };
+  const status: AccountStatus = row.frozen ? 'frozen' : row.paused ? 'paused' : 'active';
+  return { userId: row.userId, status, reason: row.frozen ? row.frozenReason : row.pausedReason, updatedAt: row.updatedAt };
 }
 
 /**
@@ -43,7 +39,7 @@ export class AccountStates {
     if (current.status === 'frozen') {
       return;
     }
-    await this.#change(userId, 'frozen', reason, 'FROZEN', cycleDate, at);
+    await this.#change(userId, { frozen: true, frozenReason: reason }, 'FROZEN', cycleDate, at, { reason });
   }
 
   /** Lifting a freeze needs a person, and a reason that goes on the record. */
@@ -55,7 +51,7 @@ export class AccountStates {
     if (current.status !== 'frozen') {
       throw new Error(`"${userId}" is ${current.status}, not frozen`);
     }
-    await this.#change(userId, 'active', reason.trim(), 'UNFROZEN', null, at);
+    await this.#change(userId, { frozen: false, frozenReason: null }, 'UNFROZEN', null, at, { reason: reason.trim() });
   }
 
   async pause(userId: string, reason: string | null, at: Date): Promise<void> {
@@ -63,7 +59,7 @@ export class AccountStates {
     if (current.status !== 'active') {
       throw new Error(`"${userId}" is ${current.status}; only an active account can be paused`);
     }
-    await this.#change(userId, 'paused', reason, 'PAUSED', null, at);
+    await this.#change(userId, { paused: true, pausedReason: reason }, 'PAUSED', null, at, { reason });
   }
 
   async resume(userId: string, at: Date): Promise<void> {
@@ -71,7 +67,7 @@ export class AccountStates {
     if (current.status !== 'paused') {
       throw new Error(`"${userId}" is ${current.status}, not paused`);
     }
-    await this.#change(userId, 'active', null, 'RESUMED', null, at);
+    await this.#change(userId, { paused: false, pausedReason: null }, 'RESUMED', null, at, { reason: null });
   }
 
   async #require(userId: string): Promise<AccountRecord> {
@@ -84,15 +80,15 @@ export class AccountStates {
 
   async #change(
     userId: string,
-    status: AccountStatus,
-    reason: string | null,
+    fields: Partial<typeof accountState.$inferInsert>,
     type: 'FROZEN' | 'UNFROZEN' | 'PAUSED' | 'RESUMED',
     cycleDate: string | null,
     at: Date,
+    payload: Record<string, unknown>,
   ): Promise<void> {
     await this.db.transaction(async (tx) => {
-      await tx.update(accountState).set({ status, reason, updatedAt: at }).where(eq(accountState.userId, userId));
-      await tx.insert(ledgerEvents).values({ occurredAt: at, userId, cycleDate, type, payload: { reason } });
+      await tx.update(accountState).set({ ...fields, updatedAt: at }).where(eq(accountState.userId, userId));
+      await tx.insert(ledgerEvents).values({ occurredAt: at, userId, cycleDate, type, payload });
     });
   }
 }
