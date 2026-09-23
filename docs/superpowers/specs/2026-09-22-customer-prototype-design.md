@@ -417,10 +417,12 @@ None of these is built as part of this spec. Each belongs in a later engine or p
 
 **Before live customer use:**
 
-- **R1 — Reconcile orders while paused or stopped.** An order already sent must still be looked up
-  and its result recorded while the account is paused by its user, stopped for review, or under
-  the operator-wide stop. Settling places nothing new. Today the engine skips such accounts
-  entirely, so an order already on its way stays unrecorded until trading resumes.
+- **R1 — Reconcile orders while paused or stopped. Built** on 2026-09-23, on branch
+  `phase-2a-order-settlement` (`2026-09-23-phase-2a-order-settlement-design.md`); not yet merged
+  into the engine the VPS runs. An order already sent is still looked up and its result recorded
+  while the account is paused by its user, stopped for review, or under the operator-wide stop.
+  Settling places nothing new. Before it, the engine skipped such accounts entirely, so an order
+  already on its way stayed unrecorded until trading resumed.
 - **R2 — Detect manual activity beyond locked funds**, for example by reconciling the exchange's
   order and trade history against the ledger. Today only open orders that lock funds are
   detected, and only at the daily decision.
