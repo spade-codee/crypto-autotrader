@@ -70,11 +70,17 @@ export const ledgerEvents = pgTable(
   ],
 );
 
-/** Whether each account may trade. Every change is also written to the ledger. */
+/**
+ * Whether each account may trade. A pause and a freeze are independent facts:
+ * the user owns the pause, the engine owns the freeze, and lifting one never
+ * lifts the other. Every change is also written to the ledger.
+ */
 export const accountState = pgTable('account_state', {
   userId: text('user_id').primaryKey(),
-  status: text('status').notNull(),
-  reason: text('reason'),
+  paused: boolean('paused').notNull().default(false),
+  pausedReason: text('paused_reason'),
+  frozen: boolean('frozen').notNull().default(false),
+  frozenReason: text('frozen_reason'),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull(),
 });
 

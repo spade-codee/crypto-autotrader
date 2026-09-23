@@ -142,7 +142,7 @@ export class PaperAccount implements TradingAccount {
       if (existing.length > 0) {
         throw new Error(`"${options.userId}" already has an account, so nothing was changed`);
       }
-      await tx.insert(accountState).values({ userId: options.userId, status: 'active', reason: null, updatedAt: options.at });
+      await tx.insert(accountState).values({ userId: options.userId, paused: false, frozen: false, updatedAt: options.at });
       await tx.insert(paperBalances).values([
         { userId: options.userId, coin: options.quoteCoin, free: options.startingQuote.toFixed() },
         { userId: options.userId, coin: options.baseCoin, free: '0' },

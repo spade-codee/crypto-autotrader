@@ -1,6 +1,8 @@
 import Decimal from 'decimal.js';
+import { formatDuration } from '../engine/cycle.js';
 import { cycleDate } from '../engine/cycleDate.js';
 import { midPrice } from '../market/orderBook.js';
+import type { InstrumentRules } from '../market/types.js';
 import { runCli } from './context.js';
 import { openEngine, SYMBOL } from './engineContext.js';
 
@@ -42,6 +44,29 @@ await runCli(async () => {
         ? `No run for ${today} yet.`
         : `Run for ${today}: ${run.status}${run.late ? ', late' : ''}, ${run.attempts} attempt(s)${run.lastError === null ? '' : `. Last error: ${run.lastError}`}`,
     );
+
+    const outstanding = await engine.ledger.outstandingIntents(userId);
+    if (outstanding.length === 0) {
+      console.log('No order is waiting for an answer.');
+    } else {
+      let rules: InstrumentRules | null = null;
+      try {
+        rules = await engine.market.getInstrumentRules(SYMBOL);
+      } catch {
+        // The coins go unnamed below; the orders are still listed.
+      }
+      const coin = (name: string | undefined) => (name === undefined ? '' : ` ${name}`);
+      console.log('Orders waiting for an answer:');
+      for (const intent of outstanding) {
+        const what =
+          intent.payload.side === 'BUY'
+            ? `buy with up to ${String(intent.payload.quoteAmount)}${coin(rules?.quoteCoin)}`
+            : `sell ${String(intent.payload.baseQty)}${coin(rules?.baseCoin)}`;
+        const age = formatDuration(Date.now() - intent.occurredAt.getTime());
+        console.log(`  ${String(intent.payload.clientOrderId)}  ${what}, for ${intent.cycleDate ?? 'no day'}, sent ${age} ago`);
+      }
+      console.log('Check them on the exchange, then record what you find with npm run order:record.');
+    }
     return 0;
   } finally {
     await engine.close();

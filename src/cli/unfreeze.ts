@@ -12,7 +12,12 @@ await runCli(async () => {
   const engine = await openEngine();
   try {
     await engine.accounts.unfreeze(engine.config.userId, reason, new Date());
-    console.log(`Unfroze "${engine.config.userId}". If today's run has not completed, the next tick runs it.`);
+    const account = await engine.accounts.get(engine.config.userId);
+    console.log(
+      account?.paused === true
+        ? `Unfroze "${engine.config.userId}". It stays paused, as its user left it; run npm run resume to trade again.`
+        : `Unfroze "${engine.config.userId}". If today's run has not completed, the next tick runs it.`,
+    );
     return 0;
   } finally {
     await engine.close();

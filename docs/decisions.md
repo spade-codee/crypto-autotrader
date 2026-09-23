@@ -643,6 +643,28 @@ by every command that opens the database, including the key commands; the paper 
 enforcing the instrument's limits on its own execution; and a fresh signature for every host a
 signed request tries, with the clock offset timed on the host that answered.
 
+## 24. What happens to an order already sent — DECIDED 2026-09-23
+
+Full design: `docs/superpowers/specs/2026-09-23-phase-2a-order-settlement-design.md`. Numbered 24
+because #23, the practice pilot's placement, is recorded on the `product-prototype` branch.
+
+- **The kill switch means no new orders**, not a silent engine: an order already sent is still
+  looked up and recorded, and an account can still be frozen. An operator stop is when the record
+  matters most, and reading back an order the engine itself sent changes nothing on the exchange.
+  *Rejected:* the earlier meaning, where the engine did nothing at all, which left the ledger
+  missing a trade the exchange had already made. A complete stop already exists, and the runbook
+  now says when to use it: `systemctl disable --now crypto-autotrader-cycle.timer`.
+- **A pause and a freeze are independent facts.** The user owns the pause, the engine owns the
+  freeze, and lifting one never lifts the other. *Rejected:* one status, where unfreezing an
+  account its user had paused would have started trading again on it — which became possible as
+  soon as settling could freeze a paused account.
+- **A person may record any settled outcome for an order the exchange cannot show** — never
+  placed, rejected, filled, or partly filled with its amounts — with the evidence they checked,
+  and only while the exchange still cannot show it. Without it, an order stuck invisible froze
+  the account for good: unfreezing led straight back to the same freeze, and the ledger cannot be
+  edited. *Rejected:* allowing only "never placed", which leaves a partial fill or a rejection
+  just as stuck; letting a person's word override what the exchange can actually see.
+
 ## Corrections made along the way
 
 Recorded so the reasoning trail stays honest.

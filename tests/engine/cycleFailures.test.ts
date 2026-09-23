@@ -228,6 +228,18 @@ describe('frozen, paused, and stopped accounts', () => {
     expect(await h.ledger.ofType('KILL_SWITCH_SKIP', null)).toHaveLength(1);
     expect(await h.ledger.ofType('ORDER_INTENT', 'founder')).toHaveLength(0);
   });
+
+  it('names both stops in the daily reminder when an account is paused and frozen', async () => {
+    const h = await setup();
+    await h.accounts.pause('founder', 'travelling', new Date(h.clock.now));
+    await h.accounts.freeze('founder', DAY_ONE, 'a partial fill', new Date(h.clock.now));
+    await runTick(h.deps);
+    const [reminder] = h.alerts.messages.filter((m) => m.startsWith('Reminder:'));
+    expect(reminder).toContain('frozen: a partial fill');
+    expect(reminder).toContain('paused: travelling');
+    expect(reminder).toContain('npm run unfreeze');
+    expect(reminder).toContain('npm run resume');
+  });
 });
 
 describe('when the market moves between the Risk Guard and the fill', () => {
@@ -370,6 +382,30 @@ describe('the kill switch, turned on during a run', () => {
 });
 
 describe('orders whose outcome is uncertain', () => {
+  it('reports the day’s fill in the summary when an earlier tick recorded it', async () => {
+    const h = await setup();
+    // The order fills and its result is recorded, and then reconciliation cannot
+    // read the balances, so the run finishes at a later tick than the fill.
+    let reads = 0;
+    h.wrap = (account) =>
+      withBalances(account, async () => {
+        reads += 1;
+        if (reads === 2) {
+          throw new Error('bybit is unreachable');
+        }
+        return account.getBalances();
+      });
+    const [interrupted] = ran(await runTick(h.deps));
+    expect(interrupted!.result).toBe('RETRY_LATER');
+    expect((await h.ledger.ofType('ORDER_RESULT', 'founder')).map((e) => e.payload.status)).toEqual(['FILLED']);
+
+    h.wrap = (account) => account;
+    h.clock.now += 15 * MINUTE;
+    const [user] = ran(await runTick(h.deps));
+    expect(user!.result).toBe('COMPLETED');
+    expect(h.alerts.messages.at(-1)).toContain('Bought');
+  });
+
   it('settles an order interrupted before midnight after midnight, under its own day', async () => {
     const h = await setup();
     h.clock.now = tickTimeAfter(DAY_ONE) + (23 * 60 + 45) * MINUTE; // 23:47 UTC: still DAY_ONE's run
