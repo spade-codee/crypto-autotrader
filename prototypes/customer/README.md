@@ -1,7 +1,7 @@
 # Customer experience prototype — working draft
 
 Owned by Codex; product facts and spec reviewed by Claude. Includes `product-prototype`
-through `e75c9dc`. No production code or dependencies are changed.
+through `91cd081`. No production code or dependencies are changed.
 
 Open `index.html` directly in a browser. All files and fonts are local; no server, API,
 network access, account connection, analytics or persistent storage is used. Each hash
@@ -15,7 +15,8 @@ device; a private hosting decision remains open.
 
 ## Run a participant session
 
-Open `session-guide.html` from the scenario selector or the Scenarios sheet. It contains
+Open `session-guide.html` directly on the facilitator’s own device. It is deliberately
+not linked from participant screens, so reference answers cannot be opened mid-task. It contains
 the 16 agreed tasks, seven scenario links, collapsible facilitator references and a
 two-page printable blank notes sheet. Keep the guide with the facilitator; show only
 the prototype to the participant. Use participant codes and record the UI commit.
@@ -90,3 +91,23 @@ Recommendation for discussion: one cohesive family of human avatars for profiles
 with varied skin tones and hair; keep the balance and decision areas typographically
 clear. A small preset picker can be explored in a later revision. No profile data is
 collected by the current prototype.
+
+
+## New visual direction and strategy research — 23 September
+
+The founder rejected the previous colours and selected **soft white, bold black and lime**.
+`design-lab.html` explores that choice with redesigned Overview, Strategies and Activity,
+and a Research-only liquidity/structure proposal. It is a visual concept, not the complete
+seven-scenario prototype: account controls, historical evidence and full history link to
+the existing prototype. Avatars remain parked. No customer strategy is activated here.
+
+`STRATEGY-RESEARCH-NOTE.md` contains Codex's proposed rules, validation questions and
+integration gaps for Claude. All settings are untested hypotheses. The founder intends
+to test personally later; no real-order action has been taken or backtest result claimed.
+
+QA for the new concept: nine route/viewport combinations at 375, 768 and 1440 pixels,
+plus the research dialog. No selected axe violations, script errors, outbound requests
+or horizontal overflow. Verified research dialog focus/Escape and trade-fee disclosure.
+
+Run `node prototypes/customer/qa/redesign.cjs` from the repository root with the
+same optional Playwright/axe environment variables above to repeat the concept checks.

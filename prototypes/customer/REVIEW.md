@@ -94,3 +94,20 @@ agreed session guide; this does not claim sessions have happened or the design i
 
 Guide QA: four viewport/theme combinations, seven working scenario links, no script
 errors/outbound requests/overflow or selected axe violations; print output is two A4 pages.
+
+
+## Founder direction: white / black / lime and a new research candidate
+
+Addressed PR27: restored “never ask for, look at, or accept” in the guide, removed
+all participant-screen links to reference answers, and named D1–D4 in the summary.
+
+The founder dislikes the previous UI and selected soft white, bold black and lime.
+New `design-lab.html` is a separate three-page visual concept using existing sample
+fixtures. Its liquidity/structure card is explicitly Research-only, with no invented
+performance or activation path. The complete existing flows remain available via links.
+Please review the research wording for accuracy, not as an approved new engine spec.
+
+See `STRATEGY-RESEARCH-NOTE.md` for a concrete discussion input. The founder delegated
+candidate selection and plans their own real-money testing later; BTC spot research is
+our starting proposal. New intraday sizing, protective exits, pause semantics and
+strategy allocation must be designed before any execution integration.
