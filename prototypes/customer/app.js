@@ -170,8 +170,8 @@ function notice() {
       (isPaused()
         ? "Bybit could not be reached. Today’s decision has not been applied. You have paused the account, so no new orders will be placed if the connection returns. The figures below are last known."
         : F.copy.outage) +
-      "</p><p>Last attempt 13:47" +
-      (isPaused() ? " · Account paused" : " · Next attempt about 14:02") +
+      "</p><p>Last attempt 14:02" +
+      (isPaused() ? " · Account paused" : " · Next attempt about 14:17") +
       "</p></section>";
   }
   if (scenario === "review")
@@ -260,7 +260,7 @@ function nextDecision() {
   if (isPaused()) return "On hold · paused by you";
   if (scenario === "operator") return "On hold · operator stop";
   if (scenario === "review") return "On hold · review required";
-  if (scenario === "outage") return "About 14:02";
+  if (scenario === "outage") return "About 14:17";
   if (scenario === "practice" || scenario === "paused")
     return "Next check · within about 15 minutes";
   return "Tonight, about 01:00";
@@ -362,8 +362,8 @@ function history() {
     );
   if (scenario === "outage")
     add(
-      "account",
-      "22 Sep, 13:47",
+      "decisions",
+      "22 Sep, 14:02",
       "Could not reach Bybit · retrying",
       F.copy.outage,
       "Today’s decision was delayed.",

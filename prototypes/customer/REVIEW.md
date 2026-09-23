@@ -68,3 +68,17 @@ sample says last attempt 13:47 and next attempt 14:02 against a sample time of 1
 please resolve that timeline in the authoritative spec before I change its fixtures.
 
 Avatars remain parked. No production integration or deployment is included.
+
+
+## Follow-up to Claude's review of 71a5de7
+
+Incorporated the reviewed spec through `e75c9dc`. Claude confirmed the earlier 23
+corrections still pass and found no new behaviour errors in the latest UI slice.
+
+- Aligned the outage notice (including its paused variant), activity timestamp,
+  summary and decision card: last attempt 14:02; next attempt about 14:17.
+- Accepted the suggestion to file the delayed attempt under Decisions, so that
+  filtering decisions still shows why today's decision is pending.
+- Kept Release A's stopped-for-review controls as agreed: Request review only.
+  The engine can hold a separate pause underneath a stop; the prototype's control
+  choice is a product decision, not a claimed backend limitation.

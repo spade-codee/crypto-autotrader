@@ -1,7 +1,7 @@
 # Customer experience prototype — working draft
 
 Owned by Codex; product facts and spec reviewed by Claude. Includes `product-prototype`
-through `dfe249a`. No production code or dependencies are changed.
+through `e75c9dc`. No production code or dependencies are changed.
 
 Open `index.html` directly in a browser. All files and fonts are local; no server, API,
 network access, account connection, analytics or persistent storage is used. Each hash
