@@ -19,9 +19,10 @@ await runCli(async () => {
       candles: await engine.market.getClosedDailyCandles(SYMBOL, 1000, Date.now()),
       strategy: engine.deps.strategy,
       costs: { feeRate: engine.config.paperFeeRate, slippageRate: new Decimal('0.0001') },
+      replays: await engine.ledger.ofType('DECISION_REPLAY', null),
     });
     console.log(formatPaperReport(report));
-    return report.tradesMatch && report.signalMismatches.length === 0 ? 0 : 1;
+    return report.tradesMatch && report.signalMismatches.length === 0 && report.selfCheck.changed.length === 0 ? 0 : 1;
   } finally {
     await engine.close();
   }
