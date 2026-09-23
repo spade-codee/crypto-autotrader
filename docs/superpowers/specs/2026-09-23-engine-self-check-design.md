@@ -187,7 +187,7 @@ its validated window as well as the target, so the check reuses it instead of fe
 | Situation | What happens |
 |---|---|
 | No recorded signal for a day — the first day, or the engine was down | Nothing to replay for that day |
-| The day's candles cannot be fetched or fail validation | No check that tick. The next tick that fetches picks up everything unchecked from the last seven days |
+| The day's candles cannot be fetched or fail validation | No check that tick. The next tick that fetches picks up everything unchecked among the seven cycle dates before its own |
 | An error inside the check | The check stops for that tick and alerts once a day. **It never fails the trading run**: the run's own steps come first and are untouched |
 | A fill recorded by a person with `npm run order:record` | Costed the same way, and labelled as recorded by a person |
 | A result with nothing filled — rejected, or not placed | No cost: nothing was traded |
