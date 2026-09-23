@@ -6,15 +6,17 @@ Draft for discussion with the founder, 2026-09-22. This proposes the customer ex
 
 Help someone with limited trading knowledge understand a defined BTC strategy, experience it in practice, and choose to automate it on a dedicated exchange account. The experience should make its scope, current actions, losses, fees, and controls understandable.
 
+**Strategy catalogue (the founder's decision, 2026-09-23):** users will choose among strategies, starting with MA-125, which stays. Others join only as each version earns its own evidence. The requirements are in `docs/product/strategy-catalogue.md`, and the decision is `docs/decisions.md` #26.
+
 First-customer hypothesis: people in the founder's community who have tried trading, found the analysis and decision-making difficult, and want a repeatable process. Validate this with actual use. Complete beginners can be supported, but the product should not assume everyone wants the same frequency of trades or accepts the strategy's trade-offs.
 
 Working assumption for this draft: guided automation is the first release. Coin discovery, independent discretionary trading tools, and a strategy marketplace are later possibilities. This is a recommendation for the founder to overrule, not a newly settled business decision.
 
 ## Existing decisions to preserve
 
-- BTC spot only; the same MA-125 strategy implementation runs in research and execution.
+- BTC spot only. MA-125 is the first strategy and stays (#26). Each strategy version has one implementation, run unchanged in research and execution.
 - A daily strategy decision; 15-minute engine checks handle operation and recovery, not a promise of trades every 15 minutes.
-- A dedicated account: every BTC and USDT in it belongs to the strategy. Do not add a shared-account allocation slider without redesigning accounting and execution.
+- A dedicated account for each strategy version: every BTC and USDT in it belongs to that version. Do not add a shared-account allocation slider without redesigning accounting and execution.
 - Exchange funds stay in the user's exchange account. Trade authority can still incur losses; withdrawal-disabled permissions do not make funds risk-free.
 - Free pilot. The existing business decision is a yearly fee in USDT with a free tier below an account-size threshold; exact price and threshold remain open for pilot learning.
 - User pauses and system freezes have different meanings. The current system requires founder/operator review to lift a freeze.
@@ -30,6 +32,8 @@ Working assumption for this draft: guided automation is the first release. Coin 
 | D: paid release | Confirmed pricing, billing, entitlement handling and support policies | Pilot evidence supports charging for the experience; users understand price, trade-offs and service boundaries |
 
 These releases describe product milestones, not replacements for the repository's engineering phases. In particular, inviting multiple practice users requires authenticated server APIs and user isolation; the current founder CLI is not a customer service backend.
+
+The catalogue's part in each release is in `docs/product/strategy-catalogue.md`, section 8. In short, the prototype shows research strategies with no activate action, practice offers only versions eligible for practice, and real money goes only to versions eligible for it, with the switching rules in place.
 
 ## Proposed navigation
 
@@ -176,7 +180,7 @@ Measure product events such as practice_started, explanation_opened, activation_
 1. Confirm guided automation as the first product scope.
 2. Choose the first invited user segment: trading-fatigued beginners, completely new users, or a deliberately mixed learning group.
 3. Decide how much practice is encouraged before live activation, without inventing a mandatory waiting period.
-4. Define pause, disconnect, strategy-update acknowledgement and billing-expiry behavior in user language.
+4. Define pause, disconnect, strategy-update acknowledgement and billing-expiry behavior in user language. Switching strategies and confirming a version now have requirements in `docs/product/strategy-catalogue.md`, section 5.
 5. Set pilot size and support capacity. Establish pricing/free-tier rules from pilot evidence, preserving the yearly-USDT direction unless the founder changes it.
 6. Choose the brand/name separately; the functional plan does not need to wait for it.
 
