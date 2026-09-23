@@ -1,11 +1,21 @@
 import Decimal from 'decimal.js';
 import type { Alerter } from '../alerts/telegram.js';
+import { DEFAULT_COSTS } from '../backtest/costs.js';
 import type { Ledger } from '../ledger/ledger.js';
+import { orderStateFrom } from '../ledger/orderEvents.js';
 import type { InstrumentRules } from '../market/types.js';
 import type { AlertLog } from '../state/alertLog.js';
 import type { Candle, StrategyFn, TargetState } from '../types.js';
 import { cycleDateStart, DAY_MS, isoDate } from './cycleDate.js';
-import { replayDecision, type RecordedSignal, type Replay } from './selfCheck.js';
+import {
+  againstBacktestPrice,
+  expensiveFillMessage,
+  marketCost,
+  percent,
+  replayDecision,
+  type RecordedSignal,
+  type Replay,
+} from './selfCheck.js';
 
 /** How many cycle dates before today's the check looks back over. */
 export const LOOK_BACK_DAYS = 7;
@@ -36,8 +46,8 @@ type Scope = { deps: CheckDeps; candles: Candle[]; date: string; at: Date; from:
 /**
  * The engine's daily self-check (spec: 2026-09-23-engine-self-check-design.md).
  * From the candles the tick already fetched, it replays the decisions of the
- * seven cycle dates before today's, records what it finds, and says so. It never
- * changes a decision, an order, or an account.
+ * seven cycle dates before today's and costs their fills, records what it finds,
+ * and says so. It never changes a decision, an order, or an account.
  */
 export async function runDailyCheck(
   deps: CheckDeps,
@@ -56,8 +66,8 @@ export async function runDailyCheck(
     to: isoDate(start - DAY_MS),
     check: emptyCheck(),
   };
-  void rules;
   await replayDecisions(scope);
+  await costFills(scope, rules);
   return scope.check;
 }
 
@@ -110,4 +120,64 @@ function replaySentence(day: string, replay: Replay): string {
     return `Checked ${day}: Bybit revised that day's data, and the decision still holds.`;
   }
   return `Checked ${day}: the decision would now be different — see the separate alert.`;
+}
+
+/** Results that traded something, fully or partly. */
+const TRADED = ['FILLED', 'PARTIALLY_FILLED_CANCELLED'];
+
+async function costFills(scope: Scope, rules: InstrumentRules): Promise<void> {
+  const { deps, candles, at, from, to, check } = scope;
+  const costed = new Set((await deps.ledger.ofTypeBetween('FILL_COST', from, to)).map((e) => String(e.payload.clientOrderId)));
+  const intents = new Map(
+    (await deps.ledger.ofTypeBetween('ORDER_INTENT', from, to)).map((e) => [String(e.payload.clientOrderId), e]),
+  );
+  for (const result of await deps.ledger.ofTypeBetween('ORDER_RESULT', from, to)) {
+    const id = String(result.payload.clientOrderId);
+    const { userId, cycleDate: day } = result;
+    if (userId === null || day === null || costed.has(id) || !TRADED.includes(String(result.payload.status))) {
+      continue;
+    }
+    // The backtest fills a decision at the next day's open.
+    const open = candles.find((c) => c.time === cycleDateStart(day) + DAY_MS)?.open;
+    const intent = intents.get(id);
+    if (open === undefined || intent === undefined) {
+      continue;
+    }
+    const fill = orderStateFrom(result.payload);
+    const mid = new Decimal(String(intent.payload.midPrice));
+    const market = marketCost(fill, mid, rules, DEFAULT_COSTS);
+    const backtest = againstBacktestPrice(fill, open, market.feeRate);
+    const source = result.payload.source === 'operator' ? 'operator' : 'exchange';
+    await deps.ledger.append({
+      occurredAt: at,
+      userId,
+      cycleDate: day,
+      type: 'FILL_COST',
+      payload: {
+        clientOrderId: id,
+        side: fill.side,
+        source,
+        mid,
+        avgPrice: fill.avgPrice,
+        open,
+        feeRate: market.feeRate,
+        spreadAndImpact: market.spreadAndImpact,
+        againstMarket: market.againstMarket,
+        againstBacktestPrice: backtest,
+        assumed: market.assumed,
+      },
+    });
+    costed.add(id);
+    // Normally sent on the day of the fill already; this catches a fill settled some other way.
+    if (market.tooExpensive && (await deps.alertLog.claim(`${day}:${userId}:fill-cost:${id}`, at))) {
+      await deps.alerter.send(expensiveFillMessage(id, market));
+    }
+    const by = source === 'operator' ? ', as recorded by a person,' : '';
+    const sentences = check.byUser.get(userId) ?? [];
+    sentences.push(
+      `The ${day} ${fill.side === 'BUY' ? 'buy' : 'sell'}${by} cost ${percent(backtest)} against the backtest's price; ` +
+        `the backtest assumes ${percent(market.assumed)}.`,
+    );
+    check.byUser.set(userId, sentences);
+  }
 }
