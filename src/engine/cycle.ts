@@ -10,7 +10,7 @@ import { mean } from '../math.js';
 import type { AccountRecord, AccountStates } from '../state/accountState.js';
 import type { AlertLog } from '../state/alertLog.js';
 import type { CycleRuns } from '../state/cycleRuns.js';
-import type { StrategyFn, TargetState } from '../types.js';
+import type { Candle, StrategyFn, TargetState } from '../types.js';
 import { checkCandleWindow } from './candleWindow.js';
 import { cycleDate, dueAt, isLate } from './cycleDate.js';
 import { borrowedCoins, holdingsFor, lockedCoins, type Holdings } from './holdings.js';
@@ -57,6 +57,9 @@ export type TickOutcome =
 
 type Run = { deps: CycleDeps; userId: string; date: string; at: Date };
 type Stop = { kind: 'STOPPED'; outcome: UserOutcome };
+
+/** The day's decision, and the validated candle window it was made from. */
+type Signal = { target: TargetState; close: Decimal; candles: Candle[] };
 
 /**
  * One tick of the engine. The timer runs this every 15 minutes; it does the
@@ -125,9 +128,11 @@ export async function runTick(deps: CycleDeps): Promise<TickOutcome> {
     return { kind: 'NOTHING_TO_DO' };
   }
 
-  let signal: { target: TargetState; close: Decimal };
+  let signal: Signal;
+  let rules: InstrumentRules;
   try {
     signal = await readSignal(deps, date, at);
+    rules = await deps.market.getInstrumentRules(deps.symbol);
   } catch (error) {
     const reason = describeError(error);
     for (const userId of needing) {
@@ -143,7 +148,7 @@ export async function runTick(deps: CycleDeps): Promise<TickOutcome> {
 
   const users: UserOutcome[] = [];
   for (const userId of needing) {
-    users.push(await runUser({ deps, userId, date, at }, signal.target, signal.close));
+    users.push(await runUser({ deps, userId, date, at }, signal.target, signal.close, rules));
   }
   if ((await deps.runs.pendingFor(date)).length === 0) {
     await heartbeatOnce(deps, date, at);
@@ -152,7 +157,7 @@ export async function runTick(deps: CycleDeps): Promise<TickOutcome> {
 }
 
 /** Fetches and validates the candle window, evaluates the strategy, and records the day's signal once. */
-async function readSignal(deps: CycleDeps, date: string, at: Date): Promise<{ target: TargetState; close: Decimal }> {
+async function readSignal(deps: CycleDeps, date: string, at: Date): Promise<Signal> {
   const candles = await deps.market.getClosedDailyCandles(deps.symbol, deps.candleCount, at.getTime());
   const check = checkCandleWindow(candles, date, deps.maPeriod);
   if (!check.ok) {
@@ -174,10 +179,10 @@ async function readSignal(deps: CycleDeps, date: string, at: Date): Promise<{ ta
       },
     });
   }
-  return { target, close };
+  return { target, close, candles };
 }
 
-async function runUser(run: Run, target: TargetState, signalClose: Decimal): Promise<UserOutcome> {
+async function runUser(run: Run, target: TargetState, signalClose: Decimal, rules: InstrumentRules): Promise<UserOutcome> {
   const { deps, userId, date, at } = run;
   await deps.runs.startAttempt(date, userId, at);
   const account = deps.accountFor(userId);
@@ -187,7 +192,6 @@ async function runUser(run: Run, target: TargetState, signalClose: Decimal): Pro
     if (settled.kind === 'STOPPED') {
       return settled.outcome;
     }
-    const rules = await deps.market.getInstrumentRules(deps.symbol);
     let filled = await filledToday(deps, userId, date);
 
     if (filled === null) {
