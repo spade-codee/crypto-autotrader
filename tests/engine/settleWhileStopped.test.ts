@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { recordOrderOutcome } from '../../src/app/recordOrderOutcome.js';
 import { runTick } from '../../src/engine/cycle.js';
 import type { OrderLookup } from '../../src/exchange/trading.js';
 import { lastDay, trendingCandles } from '../helpers/candles.js';
@@ -14,6 +15,7 @@ import {
   tickTimeAfter,
   type Harness,
 } from '../helpers/engine.js';
+import { RULES } from '../helpers/market.js';
 
 const database = useTestDatabase();
 const UP = trendingCandles('2026-01-01', 300, 'up');
@@ -159,5 +161,54 @@ describe('the kill switch', () => {
     h.clock.now += 61 * MINUTE;
     expect(await runTick(h.deps)).toEqual({ kind: 'KILL_SWITCH' });
     expect((await h.accounts.get('founder'))?.status).toBe('frozen');
+  });
+});
+
+describe('an order the exchange cannot show', () => {
+  it('freezes again after an unfreeze, because time never proves an order was not placed', async () => {
+    const h = await setup();
+    h.wrap = (account) => hidesOrders(failsAfterPlacing(account), Number.POSITIVE_INFINITY);
+    ran(await runTick(h.deps));
+    h.clock.now += 61 * MINUTE;
+    expect(ran(await runTick(h.deps))[0]!.result).toBe('FROZEN');
+
+    await h.accounts.unfreeze('founder', 'looking into it', new Date(h.clock.now));
+    h.clock.now += 15 * MINUTE;
+    expect(ran(await runTick(h.deps))[0]!.result).toBe('FROZEN');
+    expect(await results(h)).toEqual([]);
+  });
+
+  it('is cleared by recording what the founder found, and the day then completes', async () => {
+    const h = await setup();
+    h.wrap = (account) => hidesOrders(failsAfterPlacing(account), Number.POSITIVE_INFINITY);
+    ran(await runTick(h.deps));
+    h.clock.now += 61 * MINUTE;
+    ran(await runTick(h.deps));
+
+    const [intent] = await h.ledger.ofType('ORDER_INTENT', 'founder');
+    const recorded = await recordOrderOutcome(
+      {
+        ledger: h.ledger,
+        account: h.deps.accountFor('founder'),
+        rules: RULES,
+        now: () => new Date(h.clock.now),
+      },
+      {
+        userId: 'founder',
+        clientOrderId: String(intent!.payload.clientOrderId),
+        outcome: { status: 'NOT_PLACED' },
+        evidence: 'Bybit order history shows nothing for that day',
+      },
+    );
+    expect(recorded.status).toBe('recorded');
+
+    // The order the founder checked was in fact placed, so the account is
+    // already long: the run reconciles rather than buying again.
+    await h.accounts.unfreeze('founder', 'recorded what Bybit showed', new Date(h.clock.now));
+    h.wrap = (account) => account;
+    h.clock.now += 15 * MINUTE;
+    const [user] = ran(await runTick(h.deps));
+    expect(user!.result).toBe('COMPLETED');
+    expect(await h.ledger.ofType('ORDER_INTENT', 'founder')).toHaveLength(1);
   });
 });
