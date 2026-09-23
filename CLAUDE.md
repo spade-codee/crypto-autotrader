@@ -19,7 +19,7 @@ user-facing code.** The repository also holds the design, product research, and 
 - **Founder:** a solo technical builder based in Nigeria, with an existing local crypto
   community and a VPS.
 
-## Current state — as of 2026-09-22
+## Current state — as of 2026-09-23
 
 | Area | State |
 |---|---|
@@ -27,7 +27,8 @@ user-facing code.** The repository also holds the design, product research, and 
 | Phase 0 — strategy proof | **Complete and merged to `master`.** 67 tests. Result in `docs/research/phase-0-findings.md` |
 | Phase 0 result | **Passes, with claims narrowed.** Out-of-sample, MA-125 cut max drawdown to 27.4% from buy-and-hold's 53.1%, but gave up ~9 points of annual growth. Insurance, not a return enhancer |
 | Phase 1 — read-only Bybit connection | **Code complete** on branch `phase-1-exchange-adapter`, 156 tests. **Awaiting the founder's check (plan Task 15)** before merging. Bybit refused API key creation on the founder's unverified account; testnet is untested |
-| Phase 2 — paper-trading engine | **Code complete** on branch `phase-2-paper-engine`, 508 tests, after a code review whose six findings were all fixed — see the plan's execution notes. **Awaiting deployment to the VPS** (plan Task 21, the founder's). The phase completes after 14 clean days of paper trading (spec section 12). Trades a paper account on live Bybit prices, so it needs no key |
+| Phase 2 — paper-trading engine | **Code complete** on branch `phase-2-paper-engine`, 508 tests, after a code review whose six findings were all fixed — see the plan's execution notes. **Awaiting deployment to the VPS** (plan Task 21, the founder's). The phase completes after 14 clean days of paper trading (spec section 12). Trades a paper account on live Bybit prices, so it needs no key. Its cross-process lock test was fixed on 2026-09-23 to kill the process that really holds the lock; before, it failed intermittently on Windows and would have failed on Linux, including the `npm test` the runbook asks for on the VPS |
+| Phase 2a — order settlement | **Code complete** on branch `phase-2a-order-settlement`, 537 tests, through pull requests #1 to #6. An order already sent always gets its one recorded answer, whatever state its account is in; pause and freeze are independent; `npm run order:record` records what the founder finds for an order the exchange cannot show. Required before any real order. **Not deployed**: deploying it during the 14 paper-trading days would mix two versions of the engine into the evidence |
 | Product research | Complete. It reopened the business model, which was re-decided 2026-09-17 |
 | Name | **Undecided** — "Keel" was rejected after a verified conflict |
 
@@ -98,7 +99,16 @@ the daily engine, trading a paper account on live Bybit prices. Spec:
 `docs/superpowers/plans/2026-09-22-phase-2-paper-engine.md` — read its execution notes.
 Runbook: `docs/deploy-vps.md`. What remains is the founder's: deploy it (plan Task 21), then
 fourteen clean days of paper trading and the report (Task 23). **Merge order:**
-`phase-1-exchange-adapter`, then `research-robustness`, then `phase-2-paper-engine`.
+`phase-1-exchange-adapter`, then `research-robustness`, then `phase-2-paper-engine`, then
+`phase-2a-order-settlement`.
+
+**Phase 2a is complete on branch `phase-2a-order-settlement`**, built on `phase-2-paper-engine`:
+orders already sent are settled for accounts that are paused, frozen, or under the kill switch,
+which now means no new orders; a pause and a freeze are independent; and `npm run order:record`
+is the way out of an order the exchange cannot show. Spec:
+`docs/superpowers/specs/2026-09-23-phase-2a-order-settlement-design.md`. Plan:
+`docs/superpowers/plans/2026-09-23-phase-2a-order-settlement.md` — read its execution notes.
+Next for the engine is **Phase 2b, real Bybit orders**, which needs a spec first.
 
 Other work, if the founder asks for it:
 
@@ -122,10 +132,11 @@ Other work, if the founder asks for it:
 | `npm run balance` | Read balances with the stored key, after re-validating it |
 | `npm run paper:init` | Open the paper account. `-- --usdt 1000` sets the starting balance |
 | `npm run cycle` | One engine tick: what the systemd timer runs every 15 minutes |
-| `npm run status` | Account state, balances, today's signal and run, the kill switch |
-| `npm run pause` / `resume` | Stop or restart trading on the account |
-| `npm run unfreeze` | Lift a freeze. `-- --reason "what you found"` is required |
-| `npm run kill-switch` | `-- on --reason "why"` halts all trading; `-- off` resumes |
+| `npm run status` | Account state, balances, today's signal and run, the kill switch, and any order waiting for an answer |
+| `npm run pause` / `resume` | Stop or restart new orders on the account. A pause survives an unfreeze |
+| `npm run unfreeze` | Lift a freeze. `-- --reason "what you found"` is required. A pause underneath stays |
+| `npm run order:record` | Record what you found for an order the exchange cannot show: `-- --order <id> --status not-placed --reason "..."`. Refuses if the exchange can show it |
+| `npm run kill-switch` | `-- on --reason "why"` stops new orders for everyone, while orders already sent still settle; `-- off` resumes |
 | `npm run alerts:test` | Send a test Telegram alert |
 | `npm run paper:report` | The paper account against buy-and-hold and against the backtest |
 
@@ -171,6 +182,20 @@ of truth — the remote is.
 - **Keep Node versions matched** across machines, so a test that passes on one passes on the
   other.
 
+## Working through pull requests
+
+Since 2026-09-23 every change ships as a pull request, for Claude and Codex alike.
+
+- **One pull request per task**, on its own branch from the phase branch — for example
+  `phase-2a/kill-switch-settles` from `phase-2a-order-settlement` — merged back into it with a
+  merge commit, so the detailed commits survive. Delete the branch once merged.
+- **Detailed commit messages and descriptions:** what changed, why, and how it was tested.
+- **No `Co-Authored-By` trailers, and no tool attribution** in commits or descriptions. The
+  founder's instruction.
+- **Tests and the type check pass before every merge.** Never merge a red branch.
+- **A pull request is a real unit of work.** Never split or pad a change to add one.
+- Merging a phase branch into `master` still waits for the phase to be complete and verified.
+
 ## Rules that are not negotiable
 
 Each rule prevents a specific way of losing a user's money.
@@ -192,6 +217,9 @@ Each rule prevents a specific way of losing a user's money.
 - **Fail closed.** On any ambiguity — cannot read balances, cannot fetch prices — do nothing and
   alert.
 - **Idempotent orders** through deterministic client order IDs.
+- **An order that has been sent always gets exactly one recorded answer**, whatever state its
+  account is in — paused, frozen, or under the kill switch. Only the exchange's proof, or a
+  person's recorded finding when the exchange cannot show the order, may say it was never placed.
 - **Never accept an API key that has withdrawal permission.** Verify it with the exchange, not by
   trusting the user.
 - **Never ask for, handle, log, or type an API key or secret.** Wrap them in `Secret`. Keys are
