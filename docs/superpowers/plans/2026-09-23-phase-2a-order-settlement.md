@@ -67,7 +67,7 @@ new dependency.
 - Create: `drizzle/0003_pause_and_freeze.sql`, `drizzle/0004_drop_account_status.sql`
 - Create: `tests/db/migrations.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `tests/db/migrations.test.ts`. It runs the migrations by hand on a bare PGlite, so it can
 insert a row in the old shape and check the new columns afterwards.
@@ -120,12 +120,12 @@ describe('the account_state migration', () => {
 });
 ```
 
-- [ ] **Step 2: Run it to make sure it fails**
+- [x] **Step 2: Run it to make sure it fails**
 
 Run: `npx vitest run tests/db/migrations.test.ts`
 Expected: FAIL — `ENOENT` on `drizzle/0003_pause_and_freeze.sql`.
 
-- [ ] **Step 3: Change the schema to add the new columns**
+- [x] **Step 3: Change the schema to add the new columns**
 
 In `src/db/schema.ts`, replace the `accountState` table and its comment with this. Keep
 `status` and `reason` for now: this generate must add columns only, or drizzle-kit asks whether
@@ -149,7 +149,7 @@ export const accountState = pgTable('account_state', {
 });
 ```
 
-- [ ] **Step 4: Generate the first migration**
+- [x] **Step 4: Generate the first migration**
 
 Run: `npm run db:generate -- --name pause_and_freeze`
 Expected: `drizzle/0003_pause_and_freeze.sql` with four `ADD COLUMN` statements, plus
@@ -158,7 +158,7 @@ only adds columns. If your drizzle-kit ignores `--name` and invents one, rename 
 and its `tag` in `drizzle/meta/_journal.json` to `0003_pause_and_freeze`, so the migration test
 finds it.
 
-- [ ] **Step 5: Add the backfill to that migration by hand**
+- [x] **Step 5: Add the backfill to that migration by hand**
 
 Append to `drizzle/0003_pause_and_freeze.sql` (after the last `ADD COLUMN`, with a breakpoint
 before it):
@@ -173,7 +173,7 @@ UPDATE "account_state" SET
   "frozen_reason" = CASE WHEN "status" = 'frozen' THEN "reason" END;
 ```
 
-- [ ] **Step 6: Drop the old columns from the schema and generate the second migration**
+- [x] **Step 6: Drop the old columns from the schema and generate the second migration**
 
 Remove these two lines from `accountState` in `src/db/schema.ts`:
 
@@ -186,12 +186,12 @@ Run: `npm run db:generate -- --name drop_account_status`
 Expected: `drizzle/0004_drop_account_status.sql` with two `DROP COLUMN` statements. The diff only
 drops columns, so again there is no prompt.
 
-- [ ] **Step 7: Run the migration test**
+- [x] **Step 7: Run the migration test**
 
 Run: `npx vitest run tests/db/migrations.test.ts`
 Expected: PASS.
 
-- [ ] **Step 8: Make the rest of the code compile**
+- [x] **Step 8: Make the rest of the code compile**
 
 `src/paper/paperAccount.ts:145` inserts the old columns. Replace that line with:
 
@@ -270,12 +270,12 @@ and change the four writers to set the new columns, leaving their rules alone fo
 
 Delete the now-unused `STATUSES` constant at the top of the file.
 
-- [ ] **Step 9: Run everything**
+- [x] **Step 9: Run everything**
 
 Run: `npm run typecheck && npm test`
 Expected: PASS, with the same number of tests as before plus the new one.
 
-- [ ] **Step 10: Commit**
+- [x] **Step 10: Commit**
 
 ```bash
 git add src/db/schema.ts src/state/accountState.ts src/paper/paperAccount.ts drizzle tests/db/migrations.test.ts tests/state/accountState.test.ts
@@ -291,7 +291,7 @@ git push
 - Modify: `src/state/accountState.ts`
 - Modify: `tests/state/accountState.test.ts`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Replace the test `pauses only an active account and resumes only a paused one` in
 `tests/state/accountState.test.ts` with these four, and keep every other test as it is:
@@ -343,13 +343,13 @@ Replace the test `pauses only an active account and resumes only a paused one` i
   });
 ```
 
-- [ ] **Step 2: Run them to make sure they fail**
+- [x] **Step 2: Run them to make sure they fail**
 
 Run: `npx vitest run tests/state/accountState.test.ts`
 Expected: FAIL — `already paused` is not thrown, `paused` is not a property of the record, and
 pausing a frozen account throws `only an active account`.
 
-- [ ] **Step 3: Make pause and freeze independent**
+- [x] **Step 3: Make pause and freeze independent**
 
 In `src/state/accountState.ts`, widen the record and change the four rules:
 
@@ -441,17 +441,17 @@ Then the rules. Only the guards and the payloads change:
   }
 ```
 
-- [ ] **Step 4: Run the tests**
+- [x] **Step 4: Run the tests**
 
 Run: `npx vitest run tests/state/accountState.test.ts`
 Expected: PASS.
 
-- [ ] **Step 5: Run everything**
+- [x] **Step 5: Run everything**
 
 Run: `npm run typecheck && npm test`
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/state/accountState.ts tests/state/accountState.test.ts
@@ -468,7 +468,7 @@ git push
 - Modify: `src/engine/cycle.ts` — the `reminder` function near the end of the file
 - Modify: `tests/engine/cycleFailures.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Add this to `tests/engine/cycleFailures.test.ts`, inside
 `describe('frozen, paused, and stopped accounts', ...)`:
@@ -487,12 +487,12 @@ Add this to `tests/engine/cycleFailures.test.ts`, inside
   });
 ```
 
-- [ ] **Step 2: Run it to make sure it fails**
+- [x] **Step 2: Run it to make sure it fails**
 
 Run: `npx vitest run tests/engine/cycleFailures.test.ts -t "names both stops"`
 Expected: FAIL — the reminder names only the frozen state.
 
-- [ ] **Step 3: Rewrite the reminder**
+- [x] **Step 3: Rewrite the reminder**
 
 In `src/engine/cycle.ts`, replace `reminder`:
 
@@ -513,13 +513,13 @@ function reminder(account: AccountRecord): string {
 }
 ```
 
-- [ ] **Step 4: Run the tests**
+- [x] **Step 4: Run the tests**
 
 Run: `npx vitest run tests/engine/cycleFailures.test.ts`
 Expected: PASS, including the existing reminder tests, which check the prefixes
 `Reminder: founder is frozen` and `Reminder: founder is paused`.
 
-- [ ] **Step 5: Say what stays in place, in each command**
+- [x] **Step 5: Say what stays in place, in each command**
 
 `src/cli/pause.ts` — replace the body inside the `try`:
 
@@ -559,12 +559,12 @@ Expected: PASS, including the existing reminder tests, which check the prefixes
     return 0;
 ```
 
-- [ ] **Step 6: Run everything**
+- [x] **Step 6: Run everything**
 
 Run: `npm run typecheck && npm test`
 Expected: PASS.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add src/cli/pause.ts src/cli/resume.ts src/cli/unfreeze.ts src/engine/cycle.ts tests/engine/cycleFailures.test.ts
@@ -580,7 +580,7 @@ git push
 - Create: `src/ledger/orderEvents.ts`
 - Create: `tests/ledger/orderEvents.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `tests/ledger/orderEvents.test.ts`:
 
@@ -631,12 +631,12 @@ describe('orderStateFrom', () => {
 });
 ```
 
-- [ ] **Step 2: Run it to make sure it fails**
+- [x] **Step 2: Run it to make sure it fails**
 
 Run: `npx vitest run tests/ledger/orderEvents.test.ts`
 Expected: FAIL — cannot find `src/ledger/orderEvents.ts`.
 
-- [ ] **Step 3: Write the module**
+- [x] **Step 3: Write the module**
 
 Create `src/ledger/orderEvents.ts`:
 
@@ -692,12 +692,12 @@ export function orderStateFrom(payload: Record<string, unknown>): OrderState {
 }
 ```
 
-- [ ] **Step 4: Run the tests**
+- [x] **Step 4: Run the tests**
 
 Run: `npx vitest run tests/ledger/orderEvents.test.ts`
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/ledger/orderEvents.ts tests/ledger/orderEvents.test.ts
@@ -716,7 +716,7 @@ an account is paused, the run that follows must still report it.
 - Modify: `src/engine/cycle.ts`
 - Modify: `tests/engine/cycleFailures.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Add to `tests/engine/cycleFailures.test.ts`, in `describe('orders whose outcome is uncertain', ...)`:
 
@@ -746,13 +746,13 @@ Add to `tests/engine/cycleFailures.test.ts`, in `describe('orders whose outcome 
   });
 ```
 
-- [ ] **Step 2: Run it to make sure it fails**
+- [x] **Step 2: Run it to make sure it fails**
 
 Run: `npx vitest run tests/engine/cycleFailures.test.ts -t "reports the day"`
 Expected: FAIL — the last alert says `no change`. The fill was recorded by the first tick, but the
 second tick asks `settleOutstanding` for it, and that only reports a fill it settled itself.
 
-- [ ] **Step 3: Read the day's fill from the ledger**
+- [x] **Step 3: Read the day's fill from the ledger**
 
 In `src/engine/cycle.ts`, import the reader:
 
@@ -793,17 +793,17 @@ async function filledToday(deps: CycleDeps, userId: string, date: string): Promi
 }
 ```
 
-- [ ] **Step 4: Run the tests**
+- [x] **Step 4: Run the tests**
 
 Run: `npx vitest run tests/engine/cycleFailures.test.ts && npx vitest run tests/engine/cycle.test.ts`
 Expected: PASS.
 
-- [ ] **Step 5: Run everything**
+- [x] **Step 5: Run everything**
 
 Run: `npm run typecheck && npm test`
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/engine/cycle.ts tests/engine/cycleFailures.test.ts
@@ -821,7 +821,7 @@ A refactor with no change in behaviour: every existing test must pass untouched.
 - Create: `src/engine/settleOrders.ts`
 - Modify: `src/engine/cycle.ts`
 
-- [ ] **Step 1: Write the module**
+- [x] **Step 1: Write the module**
 
 Create `src/engine/settleOrders.ts`:
 
@@ -916,7 +916,7 @@ export async function settleOneOrder(
 }
 ```
 
-- [ ] **Step 2: Use it from the run**
+- [x] **Step 2: Use it from the run**
 
 In `src/engine/cycle.ts`: delete the two `*_FREEZE_AFTER_MS` constants and their comments, and
 import them, with the settler, from the new module:
@@ -950,13 +950,13 @@ Delete `recordResult`, which nothing calls now. Keep its doc comment's meaning i
 `settleOrders.ts`. `placeOrder` still records its own result; leave that call as it is — it
 writes `payload: { ...state }` directly.
 
-- [ ] **Step 3: Run everything, with nothing else changed**
+- [x] **Step 3: Run everything, with nothing else changed**
 
 Run: `npm run typecheck && npm test`
 Expected: PASS, with exactly the same tests as before this task. If a test fails, the refactor
 changed behaviour — fix the refactor, not the test.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add src/engine/settleOrders.ts src/engine/cycle.ts
@@ -972,7 +972,7 @@ git push
 - Modify: `src/engine/cycle.ts`
 - Create: `tests/engine/settleWhileStopped.test.ts`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Create `tests/engine/settleWhileStopped.test.ts`:
 
@@ -1128,12 +1128,12 @@ import type { OrderLookup } from '../../src/exchange/trading.js';
       getOrder: async (id): Promise<OrderLookup> => {
 ```
 
-- [ ] **Step 2: Run them to make sure they fail**
+- [x] **Step 2: Run them to make sure they fail**
 
 Run: `npx vitest run tests/engine/settleWhileStopped.test.ts`
 Expected: FAIL — no result is recorded for any stopped account.
 
-- [ ] **Step 3: Settle for accounts that are not trading**
+- [x] **Step 3: Settle for accounts that are not trading**
 
 In `src/engine/cycle.ts`, add these three functions after `settleOutstanding`:
 
@@ -1249,17 +1249,17 @@ Then call the new pass in `runTick`, right after the reminder loop and before `n
   );
 ```
 
-- [ ] **Step 4: Run the tests**
+- [x] **Step 4: Run the tests**
 
 Run: `npx vitest run tests/engine/settleWhileStopped.test.ts`
 Expected: PASS.
 
-- [ ] **Step 5: Run everything**
+- [x] **Step 5: Run everything**
 
 Run: `npm run typecheck && npm test`
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/engine/cycle.ts tests/engine/settleWhileStopped.test.ts
@@ -1275,7 +1275,7 @@ git push
 - Modify: `src/engine/cycle.ts`
 - Modify: `tests/engine/settleWhileStopped.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Add to `tests/engine/settleWhileStopped.test.ts`:
 
@@ -1309,12 +1309,12 @@ describe('the kill switch', () => {
 });
 ```
 
-- [ ] **Step 2: Run them to make sure they fail**
+- [x] **Step 2: Run them to make sure they fail**
 
 Run: `npx vitest run tests/engine/settleWhileStopped.test.ts -t "kill switch"`
 Expected: FAIL — nothing is recorded, because the tick returns before reading any account.
 
-- [ ] **Step 3: Settle inside the kill-switch branch**
+- [x] **Step 3: Settle inside the kill-switch branch**
 
 In `runTick`, replace the kill-switch block with:
 
@@ -1331,17 +1331,17 @@ In `runTick`, replace the kill-switch block with:
   }
 ```
 
-- [ ] **Step 4: Run the tests**
+- [x] **Step 4: Run the tests**
 
 Run: `npx vitest run tests/engine/settleWhileStopped.test.ts`
 Expected: PASS, including the existing kill-switch tests in `tests/engine/cycleFailures.test.ts`.
 
-- [ ] **Step 5: Run everything**
+- [x] **Step 5: Run everything**
 
 Run: `npm run typecheck && npm test`
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/engine/cycle.ts tests/engine/settleWhileStopped.test.ts
@@ -1357,7 +1357,7 @@ git push
 - Create: `src/app/recordOrderOutcome.ts`
 - Create: `tests/app/recordOrderOutcome.test.ts`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Create `tests/app/recordOrderOutcome.test.ts`:
 
@@ -1501,12 +1501,12 @@ describe('recordOrderOutcome', () => {
 });
 ```
 
-- [ ] **Step 2: Run them to make sure they fail**
+- [x] **Step 2: Run them to make sure they fail**
 
 Run: `npx vitest run tests/app/recordOrderOutcome.test.ts`
 Expected: FAIL — cannot find `src/app/recordOrderOutcome.ts`.
 
-- [ ] **Step 3: Write the module**
+- [x] **Step 3: Write the module**
 
 Create `src/app/recordOrderOutcome.ts`:
 
@@ -1667,17 +1667,17 @@ const ZERO = new Decimal(0);
 
 (and change the type-only import of `Decimal` above to this value import).
 
-- [ ] **Step 4: Run the tests**
+- [x] **Step 4: Run the tests**
 
 Run: `npx vitest run tests/app/recordOrderOutcome.test.ts`
 Expected: PASS.
 
-- [ ] **Step 5: Run everything**
+- [x] **Step 5: Run everything**
 
 Run: `npm run typecheck && npm test`
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/app/recordOrderOutcome.ts tests/app/recordOrderOutcome.test.ts
@@ -1693,7 +1693,7 @@ git push
 - Create: `src/cli/order-record.ts`
 - Modify: `src/cli/status.ts`, `package.json`
 
-- [ ] **Step 1: Write the command**
+- [x] **Step 1: Write the command**
 
 Create `src/cli/order-record.ts`:
 
@@ -1797,7 +1797,7 @@ Add the script to `package.json`, after `"unfreeze"`:
     "order:record": "tsx src/cli/order-record.ts",
 ```
 
-- [ ] **Step 2: List what is waiting, in `status`**
+- [x] **Step 2: List what is waiting, in `status`**
 
 In `src/cli/status.ts`, read the rules alongside the price. Replace the price block with:
 
@@ -1840,7 +1840,7 @@ Then, after the run line and before `return 0`:
     }
 ```
 
-- [ ] **Step 3: Check both commands by hand**
+- [x] **Step 3: Check both commands by hand**
 
 Run: `npm run typecheck && npm test`
 Expected: PASS.
@@ -1854,7 +1854,7 @@ Expected: the usage text, and exit code 1.
 Run: `npm run order:record -- --order ca-nothing --status not-placed --reason "checked"`
 Expected: `Nothing was recorded: no order ca-nothing is waiting for an answer on "founder"; npm run status lists the ones that are.`
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add src/cli/order-record.ts src/cli/status.ts package.json
@@ -1869,7 +1869,7 @@ git push
 **Files:**
 - Modify: `tests/engine/settleWhileStopped.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Add to `tests/engine/settleWhileStopped.test.ts`. The first test documents the trap and must pass
 as it is; the second needs the command from Task 9 and proves the way out.
@@ -1932,7 +1932,7 @@ import { recordOrderOutcome } from '../../src/app/recordOrderOutcome.js';
 import { RULES } from '../helpers/market.js';
 ```
 
-- [ ] **Step 2: Run them**
+- [x] **Step 2: Run them**
 
 Run: `npx vitest run tests/engine/settleWhileStopped.test.ts -t "exchange cannot show"`
 Expected: PASS. Both describe behaviour that Tasks 6 to 9 already built: the first is the trap
@@ -1942,7 +1942,7 @@ If the second test fails because the run places a second order, stop: that would
 not see the balances the first order produced, which is a defect worth understanding before going
 on.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add tests/engine/settleWhileStopped.test.ts
@@ -1960,7 +1960,7 @@ git push
 - Modify: `docs/decisions.md`, `docs/deploy-vps.md`, `CLAUDE.md`
 - Modify: `docs/superpowers/plans/2026-09-23-phase-2a-order-settlement.md` (this file)
 
-- [ ] **Step 1: The parent spec**
+- [x] **Step 1: The parent spec**
 
 In `2026-09-22-phase-2-paper-engine-design.md`, add to the header, after the `Revised:` bullet:
 
@@ -1972,7 +1972,7 @@ In `2026-09-22-phase-2-paper-engine-design.md`, add to the header, after the `Re
   now exists.
 ```
 
-- [ ] **Step 2: The prototype spec**
+- [x] **Step 2: The prototype spec**
 
 In `2026-09-22-customer-prototype-design.md`, section 9, change R1's first line to:
 
@@ -1981,7 +1981,7 @@ In `2026-09-22-customer-prototype-design.md`, section 9, change R1's first line 
   (`2026-09-23-phase-2a-order-settlement-design.md`).
 ```
 
-- [ ] **Step 3: The decision log**
+- [x] **Step 3: The decision log**
 
 Add this to `docs/decisions.md`, immediately before `## Corrections made along the way`. Number
 it after the last numbered entry — 24, unless another has been added since.
@@ -1996,7 +1996,7 @@ Full design: `docs/superpowers/specs/2026-09-23-phase-2a-order-settlement-design
   matters most, and reading back an order the engine itself sent changes nothing on the exchange.
   *Rejected:* the earlier meaning, where the engine did nothing at all, which left the ledger
   missing a trade the exchange had already made. A complete stop already exists, and is now in the
-  runbook: `systemctl stop crypto-autotrader.timer`.
+  runbook: `systemctl disable --now crypto-autotrader-cycle.timer`.
 - **A pause and a freeze are independent facts.** The user owns the pause, the engine owns the
   freeze, and lifting one never lifts the other. *Rejected:* one status, where unfreezing an
   account its user had paused would have started trading again on it — which becomes possible as
@@ -2009,18 +2009,18 @@ Full design: `docs/superpowers/specs/2026-09-23-phase-2a-order-settlement-design
   just as stuck; letting a person's word override what the exchange can actually see.
 ```
 
-- [ ] **Step 4: The runbook**
+- [x] **Step 4: The runbook**
 
 In `docs/deploy-vps.md`, add a short section, *Stopping, and orders already sent*:
 
 - `npm run kill-switch -- on --reason "why"` stops new orders. Orders already sent are still
   checked and recorded, and an account can still be frozen.
-- `sudo systemctl stop crypto-autotrader.timer` stops the engine completely. Use it when the
+- `sudo systemctl disable --now crypto-autotrader-cycle.timer` stops the engine completely. Use it when the
   engine itself is the problem.
 - An order the exchange cannot show freezes the account after an hour. Check it on the exchange,
   record what you found with `npm run order:record`, then `npm run unfreeze`.
 
-- [ ] **Step 5: `CLAUDE.md`**
+- [x] **Step 5: `CLAUDE.md`**
 
 - In the state table, add a row for Phase 2a: code complete on `phase-2a-order-settlement`, with
   the test count after this work.
@@ -2029,17 +2029,17 @@ In `docs/deploy-vps.md`, add a short section, *Stopping, and orders already sent
 - In *Rules that are not negotiable*, add: an order that has been sent always gets exactly one
   recorded answer, whatever state its account is in.
 
-- [ ] **Step 6: Write the execution notes**
+- [x] **Step 6: Write the execution notes**
 
 At the end of this plan, add an `## Execution notes` section: what was built, anything that
 differed from the plan and why, the final test count, and any limitation accepted.
 
-- [ ] **Step 7: Run everything one last time**
+- [x] **Step 7: Run everything one last time**
 
 Run: `npm run typecheck && npm test && npm audit --omit=dev`
 Expected: PASS, no vulnerability in production dependencies.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add docs CLAUDE.md
@@ -2056,3 +2056,54 @@ git push
 3. The branch is pushed. **The founder decides when it merges and when it reaches the VPS**:
    during the fourteen paper-trading days, deploying it would mix two versions of the engine into
    the evidence.
+
+---
+
+## Execution notes
+
+Built on 2026-09-23, inline, task by task. **537 tests pass** (508 before, 29 new), the type
+check is clean, and `npm audit --omit=dev` finds no vulnerabilities.
+
+**Before the first task, a flaky test.** The baseline run failed intermittently in
+`tests/ops/lock.test.ts`. The cross-process tests started each contender through the `tsx`
+command, which runs the script in a child process of its own, so killing the process the test
+spawned left the real lock holder alive — on Windows until its job object killed it a moment
+later, and on Linux indefinitely, which would have failed the `npm test` the runbook asks for on
+the VPS. Contenders now run through `node --import tsx` in the spawned process itself, and print
+their process ID for the test to check. Fixed on `phase-2-paper-engine` (`3eef71b`) and merged
+in; five consecutive full runs passed.
+
+**The workflow changed midway.** Tasks 1 to 6 were committed straight to this branch. From Task
+7 on, at the founder's request, each task shipped as its own pull request into it, merged with a
+merge commit: #1 (Task 7) to #6 (Task 12).
+
+**Where the build differs from the plan:**
+
+- **Task 6.** `recordResult` stays: `placeOrder` still records its own result through it. The
+  plan said nothing called it.
+- **Task 7.** `FakeMarket` already counts its calls in `market.calls`, so the test reads
+  `calls.rules` and no helper changed.
+- **Task 9.** The plan's expected average price was wrong: 998.92 / 0.01174 is 85086.88, not
+  85087.73. The code was right; the test was corrected, and a case for recording a rejection was
+  added. The same wrong figure in a code comment was corrected in Task 12.
+- **Task 10.** `status` reads the instrument's rules only when an order is waiting, in its own
+  `try`, so a normal `status` makes no extra request and a failed read leaves the coins unnamed
+  instead of hiding the price. Tried by hand against a throwaway database, never the founder's.
+- **Task 12.** The engine's timer is `crypto-autotrader-cycle.timer`, not
+  `crypto-autotrader.timer` as the spec and this plan first said; both are corrected. The
+  runbook already had a *Stopping* section, which was extended rather than replaced. The
+  prototype spec lives on `product-prototype`, so its R1 line is updated there, in its own pull
+  request. `CLAUDE.md` also gained the pull-request workflow, since Claude's memory is local to
+  each machine.
+
+**Limitations accepted:**
+
+- **A person's recorded finding is final.** If the exchange later shows something different,
+  nothing notices until trade-history reconciliation (R2) in Phase 2b. A wrong finding cannot
+  trade twice, because sizing reads real balances, but it can leave the record wrong — the
+  second test in Task 11 shows exactly that.
+- **Manual trading on a stopped account is not detected until it trades again.** Settling reads
+  no balances. R2 again.
+- **The migration was tested on a bare database** built from the earlier migrations, holding an
+  active, a paused and a frozen account. It has not met real data: this machine has no database,
+  and the VPS has none yet.

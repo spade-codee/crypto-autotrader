@@ -609,7 +609,7 @@ function summary(
   return `${run.date}: ${target}. ${fill[0]!.toUpperCase()}${fill.slice(1)}. ${now}${lateText}`;
 }
 
-/** "bought 0.011740 BTC for 998.92 USDT at 85087.73" */
+/** "bought 0.01174 BTC for 998.92 USDT at 85086.88" */
 function describeFill(state: OrderState, rules: InstrumentRules): string {
   const verb = state.side === 'BUY' ? 'bought' : 'sold';
   const price = state.avgPrice === null ? 'an unknown price' : state.avgPrice.toFixed(2);

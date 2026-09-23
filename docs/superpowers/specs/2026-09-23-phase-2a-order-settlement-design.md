@@ -1,7 +1,8 @@
 # Phase 2a — Settling orders while an account is not trading: design
 
 - **Date:** 2026-09-23
-- **Status:** design agreed with the founder, 2026-09-23. Not implemented.
+- **Status:** design agreed with the founder, 2026-09-23. **Built** the same day on this branch,
+  through pull requests #1 to #6; the plan's execution notes record what differed.
 - **Parent spec:** `2026-09-22-phase-2-paper-engine-design.md`. This revises its section 4
   (one tick), section 8 (`account_state`), section 9 (when things go wrong), and settles one of
   its section 13 carry-forward items.
@@ -61,7 +62,7 @@ in Phase 2b.
 
 | Decision | Choice | Why |
 |---|---|---|
-| What the kill switch means | **No new orders.** Orders already sent are still looked up and recorded, and an account can still be frozen | An operator stop is when the record matters most. Reading an order the engine itself sent changes nothing on the exchange. A complete stop already exists: `systemctl stop crypto-autotrader.timer` on the VPS |
+| What the kill switch means | **No new orders.** Orders already sent are still looked up and recorded, and an account can still be frozen | An operator stop is when the record matters most. Reading an order the engine itself sent changes nothing on the exchange. A complete stop already exists: stopping the engine's timer, `crypto-autotrader-cycle.timer`, on the VPS |
 | Whether a freeze can lift a pause | **Never.** Pause and freeze become two independent facts. Unfreezing an account its user paused returns it to paused | Only the user restarts their own trading. Without this, settling a paused account could freeze it, and the founder's unfreeze would start trading again on an account the user had stopped |
 | What a person may record for an order | **Any settled outcome** — never placed, rejected, filled, or partly filled with its amounts — with the evidence they checked | A partial fill or a rejection that the exchange cannot show would otherwise be as much of a dead end as a missing order |
 | When that is allowed | **Only while the exchange still cannot show the order.** If it can see the order, or can prove it absent, the command refuses | The exchange is the source of truth. A person's word is the last resort, not an override |
@@ -201,9 +202,10 @@ which is R2 in Phase 2b.
 - **`npm run status`** gains a line per order still waiting for an answer: its client order ID,
   side, amount, the day it belongs to, and how long it has been outstanding. This is how the
   founder finds the order to check.
-- **`docs/deploy-vps.md`** gains: how to stop the engine completely — `sudo systemctl stop
-  crypto-autotrader.timer` — and when to use it rather than the kill switch; and what to do about
-  an order the exchange cannot show, ending in `npm run order:record` and then `npm run unfreeze`.
+- **`docs/deploy-vps.md`** gains: when to stop the engine completely — `sudo systemctl disable
+  --now crypto-autotrader-cycle.timer`, already in its section 10 — rather than use the kill
+  switch; and what to do about an order the exchange cannot show, ending in
+  `npm run order:record` and then `npm run unfreeze`.
 
 ## 9. Testing
 

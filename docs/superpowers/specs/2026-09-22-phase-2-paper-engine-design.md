@@ -14,6 +14,11 @@
   run without freezing it (sections 4 and 6); the paper account enforcing the instrument's limits
   on its own execution (section 7); order books checked for their market and freshness (section 9);
   and a fresh signature for every host attempt, which matters from Phase 2b
+- **Revised by Phase 2a**, `2026-09-23-phase-2a-order-settlement-design.md`: orders already sent
+  are settled for accounts that are not trading, including under the kill switch, which now means
+  no new orders (section 4); a pause and a freeze are independent facts on `account_state`
+  (section 8); and the way to record what a person found for an order the exchange cannot show,
+  which section 13 carried forward, now exists as `npm run order:record`
 - **Parent spec:** `2026-09-16-crypto-trading-automation-design.md` — sections 4 to 7, and 9
 - **Builds on:** Phase 1 (`2026-09-17-phase-1-exchange-adapter-design.md`) and the robustness
   research (`docs/research/phase-0-findings.md`)

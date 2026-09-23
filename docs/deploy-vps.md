@@ -155,10 +155,30 @@ A tick missed while stopped runs as soon as the timer starts.
 | To stop | Do |
 |---|---|
 | One account | `sudo -u autotrader npm run pause -- --reason "why"` |
-| All trading, at once | `sudo -u autotrader npm run kill-switch -- on --reason "why"`, or `sudo -u autotrader touch /opt/crypto-autotrader/data/KILL_SWITCH` |
+| New orders, for every account | `sudo -u autotrader npm run kill-switch -- on --reason "why"`, or `sudo -u autotrader touch /opt/crypto-autotrader/data/KILL_SWITCH` |
 | The engine itself | `sudo systemctl disable --now crypto-autotrader-cycle.timer` |
 
-A frozen account restarts only with `npm run unfreeze -- --reason "what you found"`.
+**Pausing and the kill switch stop new orders, not the engine.** An order already on its way is
+still looked up at every tick, recorded when the exchange answers, and alerted; if it goes wrong,
+the account is frozen. Stop the timer instead when the engine itself is the problem: then nothing
+runs at all, and an order already sent is not looked up until the timer starts again.
+
+A frozen account restarts only with `npm run unfreeze -- --reason "what you found"`. A pause and a
+freeze are separate: unfreezing leaves a pause in place, so pause an account before unfreezing it
+if you want it to stay stopped.
+
+**An order the exchange cannot show** freezes its account after an hour, for a person to check:
+
+1. `sudo -u autotrader npm run status` lists the orders waiting for an answer, with their IDs.
+2. Look for the order on Bybit: the order history and the trade history for its day.
+3. Record what you found. The command refuses if Bybit can already show the order, because then
+   the engine records Bybit's own answer at the next tick.
+   ```bash
+   sudo -u autotrader npm run order:record -- --order <id> --status not-placed --reason "what you checked"
+   ```
+   The other statuses are `rejected`, `filled`, and `partly-filled`; the last two also need
+   `--base`, `--quote`, `--fee`, and `--fee-coin`, from the trade history.
+4. Lift the freeze: `sudo -u autotrader npm run unfreeze -- --reason "what you found"`.
 
 ## 11. Healthchecks.io
 
