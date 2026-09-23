@@ -14,7 +14,7 @@ import type { CycleRuns } from '../state/cycleRuns.js';
 import type { Candle, StrategyFn, TargetState } from '../types.js';
 import { checkCandleWindow } from './candleWindow.js';
 import { cycleDate, dueAt, isLate } from './cycleDate.js';
-import { checkSentences, runDailyCheck, type DailyCheck } from './dailyCheck.js';
+import { checkSentences, runDailyCheckSafely, type DailyCheck } from './dailyCheck.js';
 import { borrowedCoins, holdingsFor, lockedCoins, type Holdings } from './holdings.js';
 import { clientOrderId, intentFor } from './orderId.js';
 import { atTarget } from './reconcile.js';
@@ -149,7 +149,7 @@ export async function runTick(deps: CycleDeps): Promise<TickOutcome> {
     return { kind: 'RETRY_LATER', reason };
   }
 
-  const check = await runDailyCheck(deps, signal.candles, rules, date, at);
+  const check = await runDailyCheckSafely(deps, signal.candles, rules, date, at);
 
   const users: UserOutcome[] = [];
   for (const userId of needing) {
