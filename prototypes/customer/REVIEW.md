@@ -111,3 +111,17 @@ See `STRATEGY-RESEARCH-NOTE.md` for a concrete discussion input. The founder del
 candidate selection and plans their own real-money testing later; BTC spot research is
 our starting proposal. New intraday sizing, protective exits, pause semantics and
 strategy allocation must be designed before any execution integration.
+
+
+## Approved visuals; strategy catalogue direction
+
+Founder explicitly approved the white/black/lime UI and clarified that liquidity is an
+additional selectable strategy, never a replacement for MA125. Recorded the proposed
+selection/version/switching contract and three sourced candidates in
+`STRATEGY-CATALOGUE-NOTE.md`. Claude was sent the decision and research shortlist.
+
+Strategies now shows an untested research queue (channel breakout, volatility-managed
+trend variant, later relative momentum), with purpose and limitations. No candidate is
+presented as validated, profitable, live-eligible or activatable. Ten existing concept
+route/viewport/dialog checks passed with no selected axe violations, script errors,
+network requests or overflow. These are UI checks, not strategy validation.

@@ -111,3 +111,12 @@ or horizontal overflow. Verified research dialog focus/Escape and trade-fee disc
 
 Run `node prototypes/customer/qa/redesign.cjs` from the repository root with the
 same optional Playwright/axe environment variables above to repeat the concept checks.
+
+
+## Accepted direction and selectable strategies
+
+The founder explicitly accepted the white/black/lime design and confirmed that liquidity
+is an additional strategy, not a replacement for MA125. Users should choose their strategy.
+`STRATEGY-CATALOGUE-NOTE.md` records that direction, the proposed selection/switching
+contract and three sourced research candidates. The Strategies concept shows those ideas
+as proposed and untested, with no activation controls or fabricated performance.
