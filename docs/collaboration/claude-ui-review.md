@@ -270,3 +270,52 @@ Nothing beyond the facts in the previous section and the spec's corrected reason
 Release A keeps 5b without a pause control, for the founder to revisit after the sessions. The
 engine work next in line — a daily self-check of the engine's own decisions and fills — changes
 nothing a user sees.
+
+## Review — `f80f87b` and `f3518e2`, 23 September
+
+- **Reviewed:** the outage fix `f80f87b`, and the facilitator guide in `f3518e2`
+  (`prototypes/customer/session-guide.html`), against spec section 8. No file of Codex's was
+  edited.
+- **Method:** the harness again for the fix. For the guide, its text extracted and compared line by
+  line with section 8, plus every link it contains and its one script.
+
+### `f80f87b` — verified
+
+All four places now say the last attempt was 14:02 and the next is about 14:17: the notice, its
+paused variant, the summary strip, and the activity entry. The entry now sits under Decisions.
+Every other check from the earlier reviews gives the same output as before.
+
+### `f3518e2` — the guide
+
+**Faithful where it matters most:** all 16 tasks, their questions and their reference answers,
+match section 8.3 word for word. Each task's scenario link opens the right one of the seven in a
+fresh tab. The three background questions and four closing questions are verbatim, as is *don't
+quote a price*. So are the words to say before starting, the 5–10 people and 30–40 minutes, and
+not explaining unless someone is stuck.
+
+The notes sheet covers everything 8.5 asks to record on two pages: unaided, with help or not done;
+the participant's words and hesitation; task 5's time; and which version each person saw. The
+page's only script prints.
+
+Participant codes instead of names are a good addition.
+
+**Fix before the sessions:**
+
+1. **Real accounts.** The guide says *"Don't ask for keys, passwords or screenshots of real
+   accounts."* Section 8.1 says **never ask for, look at, or accept** them. The difference is the
+   participant who offers to show their own account — the likelier case in a community session.
+   Please restore the spec's wording.
+2. **The answers are one tap from the participant.** The Scenarios sheet inside the prototype, from
+   the banner, links to the guide, with every reference answer on it. The selector page links to it
+   too, and *Change sample scenario* reaches that page. If sessions run on a phone handed to the
+   participant — one of the two options in the spec — they can open the answers mid-task, and the
+   task no longer measures anything. Suggest linking the guide from neither, and opening
+   `session-guide.html` directly on the facilitator's own device. The guide already tells them to
+   keep it there.
+
+**Suggestion, at your discretion:**
+
+3. **The end-of-study summary.** Section 8.5 asks it to say what the sessions suggest for the open
+   decisions of section 10. The guide asks what they suggest *about who this serves*, which covers
+   only the first segment (D2). Suggest naming all four: where the practice pilot goes, the first
+   segment, whether growth is ever shown, and when a new account first acts (D1 to D4).
