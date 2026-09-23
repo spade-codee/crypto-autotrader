@@ -1,6 +1,7 @@
-import type Decimal from 'decimal.js';
+import Decimal from 'decimal.js';
 import type { Heartbeat } from '../alerts/heartbeat.js';
 import type { Alerter } from '../alerts/telegram.js';
+import { DEFAULT_COSTS } from '../backtest/costs.js';
 import type { MarketOrderRequest, OrderState, TradingAccount } from '../exchange/trading.js';
 import type { Ledger, LedgerEvent } from '../ledger/ledger.js';
 import { orderStateFrom } from '../ledger/orderEvents.js';
@@ -18,6 +19,7 @@ import { borrowedCoins, holdingsFor, lockedCoins, type Holdings } from './holdin
 import { clientOrderId, intentFor } from './orderId.js';
 import { atTarget } from './reconcile.js';
 import { checkOrder } from './riskGuard.js';
+import { expensiveFillMessage, marketCost, percent } from './selfCheck.js';
 import { settleOneOrder } from './settleOrders.js';
 import { sizeOrder, type SizedOrder } from './sizing.js';
 
@@ -483,8 +485,33 @@ async function reconcile(
   });
   await deps.runs.complete(date, userId, at, late);
   await deps.ledger.append({ occurredAt: at, userId, cycleDate: date, type: 'RUN_COMPLETED', payload: { late } });
-  await deps.alerter.send(summary(run, target, filled, holdings, rules, late, checkSentences(check, userId)));
+  const fillClause = filled === null ? '' : await fillCostClause(run, filled, rules);
+  await deps.alerter.send(summary(run, target, filled, holdings, rules, late, fillClause, checkSentences(check, userId)));
   return { userId, result: 'COMPLETED', detail: filled === null ? 'no change' : `${filled.side} filled` };
+}
+
+/**
+ * What the day's fill cost against the market, for the summary, with the
+ * expensive-fill alert sent straight away rather than the next morning. It never
+ * fails the run: anything that goes wrong leaves the clause out.
+ */
+async function fillCostClause(run: Run, filled: OrderState, rules: InstrumentRules): Promise<string> {
+  const { deps, userId, date, at } = run;
+  try {
+    const order = (await deps.ledger.ordersOn(userId, date)).find(
+      (o) => String(o.intent.payload.clientOrderId) === filled.clientOrderId,
+    );
+    if (order === undefined) {
+      return '';
+    }
+    const cost = marketCost(filled, new Decimal(String(order.intent.payload.midPrice)), rules, DEFAULT_COSTS);
+    if (cost.tooExpensive && (await deps.alertLog.claim(`${date}:${userId}:fill-cost:${filled.clientOrderId}`, at))) {
+      await deps.alerter.send(expensiveFillMessage(filled.clientOrderId, cost));
+    }
+    return `, costing ${percent(cost.againstMarket)} against the market (the backtest assumes ${percent(cost.assumed)})`;
+  } catch {
+    return '';
+  }
 }
 
 async function freeze(run: Run, reason: string): Promise<UserOutcome> {
@@ -613,6 +640,7 @@ function summary(
   holdings: Holdings,
   rules: InstrumentRules,
   late: boolean,
+  fillClause: string,
   checkText: string,
 ): string {
   const lateText = late ? ` Completed late, ${formatDuration(run.at.getTime() - dueAt(run.date))} after the close.` : '';
@@ -621,7 +649,7 @@ function summary(
     return `${run.date}: ${target}, no change. ${now}${lateText}${checkText}`;
   }
   const fill = describeFill(filled, rules);
-  return `${run.date}: ${target}. ${fill[0]!.toUpperCase()}${fill.slice(1)}. ${now}${lateText}${checkText}`;
+  return `${run.date}: ${target}. ${fill[0]!.toUpperCase()}${fill.slice(1)}${fillClause}. ${now}${lateText}${checkText}`;
 }
 
 /** "bought 0.01174 BTC for 998.92 USDT at 85086.88" */

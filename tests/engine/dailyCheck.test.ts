@@ -6,11 +6,13 @@ import type { Candle } from '../../src/types.js';
 import { lastDay, trendingCandles } from '../helpers/candles.js';
 import { useTestDatabase } from '../helpers/database.js';
 import { harness, openFounder, ran, setMarket, tickTimeAfter, type Harness } from '../helpers/engine.js';
+import { bookAround } from '../helpers/market.js';
 
 const database = useTestDatabase();
 const UP = trendingCandles('2026-01-01', 300, 'up');
 const NEXT = trendingCandles('2026-01-01', 301, 'up');
 const DAY_ONE = lastDay(UP);
+const PRICE = UP[UP.length - 1]!.close;
 
 /** Day one: the account opens and buys, on the given order book. */
 async function dayOne(book?: OrderBook): Promise<Harness> {
@@ -137,5 +139,27 @@ describe('the fill, costed the next morning', () => {
     const recorded = (await h.ledger.ofType('FILL_COST', 'founder')).find((c) => c.payload.clientOrderId === 'ca-recorded');
     expect(recorded?.payload.source).toBe('operator');
     expect(h.alerts.messages.at(-1)).toContain(`The ${DAY_ONE} buy, as recorded by a person, cost`);
+  });
+});
+
+describe('the fill, costed the same day', () => {
+  it('says in the day’s summary what the fill cost against the market', async () => {
+    const h = await dayOne();
+    expect(h.alerts.messages.at(-1)).toContain(', costing 0.11% against the market (the backtest assumes 0.15%).');
+    expect(selfCheckAlerts(h)).toHaveLength(0);
+  });
+
+  it('alerts the same day when a fill costs more than the backtest assumes, and only once', async () => {
+    // 0.1% either side of the mid: inside the Risk Guard's 0.5% spread, but a buy
+    // at the ask costs 0.1% plus the 0.1% fee — more than the backtest's 0.15%.
+    const h = await dayOne(bookAround(PRICE, '5', '0.001'));
+    expect(selfCheckAlerts(h)).toHaveLength(1);
+    expect(selfCheckAlerts(h)[0]).toContain('cost 0.20% against the market, more than the 0.15% the backtest assumes');
+
+    dayTwo(h);
+    ran(await runTick(h.deps));
+    expect(selfCheckAlerts(h)).toHaveLength(1);
+    const [cost] = await h.ledger.ofType('FILL_COST', 'founder');
+    expect(new Decimal(String(cost!.payload.againstMarket)).toFixed(6)).toBe('0.002000');
   });
 });
