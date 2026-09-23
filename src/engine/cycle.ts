@@ -2,7 +2,7 @@ import type Decimal from 'decimal.js';
 import type { Heartbeat } from '../alerts/heartbeat.js';
 import type { Alerter } from '../alerts/telegram.js';
 import type { MarketOrderRequest, OrderState, TradingAccount } from '../exchange/trading.js';
-import type { Ledger } from '../ledger/ledger.js';
+import type { Ledger, LedgerEvent } from '../ledger/ledger.js';
 import { orderStateFrom } from '../ledger/orderEvents.js';
 import { midPrice, requireUsableBook, type OrderBook } from '../market/orderBook.js';
 import type { InstrumentRules, MarketData } from '../market/types.js';
@@ -103,6 +103,13 @@ export async function runTick(deps: CycleDeps): Promise<TickOutcome> {
       await deps.alerter.send(reminder(account));
     }
   }
+
+  await settleWhileStoppedSafely(
+    deps,
+    accounts.filter((account) => account.status !== 'active'),
+    date,
+    at,
+  );
 
   const needing: string[] = [];
   for (const account of accounts) {
@@ -267,6 +274,79 @@ async function filledToday(deps: CycleDeps, userId: string, date: string): Promi
     }
   }
   return null;
+}
+
+/**
+ * Settles orders already sent for accounts that are not trading: paused,
+ * frozen, or — while the kill switch is on — every account. It records what the
+ * account says and alerts, and it never sizes, places, or reconciles anything
+ * (Phase 2a spec, section 4). The instrument's rules are read only when there is
+ * something to settle, so a tick with nothing outstanding costs no request.
+ */
+async function settleWhileStopped(deps: CycleDeps, accounts: AccountRecord[], date: string, at: Date): Promise<void> {
+  const waitingFor: { account: AccountRecord; intents: LedgerEvent[] }[] = [];
+  for (const account of accounts) {
+    const intents = await deps.ledger.outstandingIntents(account.userId);
+    if (intents.length > 0) {
+      waitingFor.push({ account, intents });
+    }
+  }
+  if (waitingFor.length === 0) {
+    return;
+  }
+  const rules = await deps.market.getInstrumentRules(deps.symbol);
+  for (const { account, intents } of waitingFor) {
+    const userId = account.userId;
+    for (const intent of intents) {
+      const verdict = await settleOneOrder(deps, userId, deps.accountFor(userId), intent, at, date);
+      if (verdict.kind === 'WAIT') {
+        break;
+      }
+      if (verdict.kind === 'NOT_PLACED') {
+        await deps.alerter.send(
+          `${stopped(account)}; order ${verdict.id} from ${verdict.intentDate} was never placed, and is recorded as such. Nothing was sent in its place.`,
+        );
+        continue;
+      }
+      if (verdict.kind === 'SETTLED' && verdict.state.status === 'FILLED') {
+        await deps.alerter.send(
+          `${stopped(account)}; order ${verdict.id} from ${verdict.intentDate} has now settled: ${describeFill(verdict.state, rules)}. Nothing was traded in its place.`,
+        );
+        continue;
+      }
+      const reason = verdict.kind === 'FREEZE' ? verdict.reason : unfilledReason(verdict.state);
+      if (account.frozen) {
+        await deps.alerter.send(`${stopped(account)}; ${reason}. The account stays frozen.`);
+      } else {
+        await freeze({ deps, userId, date, at }, reason);
+      }
+      break;
+    }
+  }
+}
+
+/** Settling must never fail a tick: the next one tries again. */
+async function settleWhileStoppedSafely(
+  deps: CycleDeps,
+  accounts: AccountRecord[],
+  date: string,
+  at: Date,
+): Promise<void> {
+  try {
+    await settleWhileStopped(deps, accounts, date, at);
+  } catch (error) {
+    const reason = describeError(error);
+    if (await deps.alertLog.claim(`${date}:system:settlement`, at)) {
+      await deps.alerter.send(`Orders already sent could not be settled: ${reason}. The next tick tries again.`);
+    }
+  }
+}
+
+function stopped(account: AccountRecord): string {
+  if (account.frozen) {
+    return `${account.userId} is frozen`;
+  }
+  return account.paused ? `${account.userId} is paused` : `${account.userId} is stopped by the kill switch`;
 }
 
 async function waiting(run: Run, detail: string): Promise<Stop> {
@@ -522,9 +602,15 @@ function summary(
   if (filled === null) {
     return `${run.date}: ${target}, no change. ${now}${lateText}`;
   }
-  const verb = filled.side === 'BUY' ? 'Bought' : 'Sold';
-  const price = filled.avgPrice === null ? 'an unknown price' : filled.avgPrice.toFixed(2);
-  return `${run.date}: ${target}. ${verb} ${filled.filledBaseQty.toFixed()} ${rules.baseCoin} for ${filled.filledQuoteAmount.toFixed(2)} ${rules.quoteCoin} at ${price}. ${now}${lateText}`;
+  const fill = describeFill(filled, rules);
+  return `${run.date}: ${target}. ${fill[0]!.toUpperCase()}${fill.slice(1)}. ${now}${lateText}`;
+}
+
+/** "bought 0.011740 BTC for 998.92 USDT at 85087.73" */
+function describeFill(state: OrderState, rules: InstrumentRules): string {
+  const verb = state.side === 'BUY' ? 'bought' : 'sold';
+  const price = state.avgPrice === null ? 'an unknown price' : state.avgPrice.toFixed(2);
+  return `${verb} ${state.filledBaseQty.toFixed()} ${rules.baseCoin} for ${state.filledQuoteAmount.toFixed(2)} ${rules.quoteCoin} at ${price}`;
 }
 
 /** One line per tick, for the log. */
