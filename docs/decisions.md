@@ -26,7 +26,7 @@ are still open.
 | 9 | Language | TypeScript everywhere | DECIDED |
 | 10 | Hosting | Founder's existing VPS | DECIDED |
 | 11 | Frontend | Vite SPA, not Next.js | DECIDED |
-| 12 | Palette | "Instrument" — navy and teal | DECIDED |
+| 12 | Palette | Soft white, bold black and lime, replacing "Instrument" (navy and teal) | DECIDED, changed 2026-09-23 |
 | 13 | Typography | IBM Plex Sans + IBM Plex Mono | DECIDED — the founder is revisiting it, 2026-09-22 |
 | 14 | Name | Keel chosen, then rejected | **OPEN** |
 | 15 | Build order | Phase 0 offline backtest first | DECIDED |
@@ -314,7 +314,25 @@ Android app later.
 
 Next.js is defensible rather than wrong. The cost is operational.
 
-## 12. Palette — DECIDED
+## 12. Palette — DECIDED, changed 2026-09-23
+
+**Changed 2026-09-23: soft white, bold black and lime.** The founder found the navy-and-teal
+interface stale. They accepted the direction Codex explored in
+`prototypes/customer/design-lab.html` (`70311ab`), and said they love it. Its colour values live in
+`prototypes/customer/design-lab.css` until `docs/brand.md` is rewritten with final values; Codex is
+still refining them.
+
+Three rules carry over. Lime makes the first one stricter: teal was chosen as the accent furthest
+from green, and lime sits right next to it.
+
+- **Lime never marks a gain, and a gain is never shown in lime.** Profit and loss keep their own
+  colours, and never rely on colour alone (`+2.4% ▲`).
+- **Test lime against exchange yellow on a phone in bright sun.** That test rejected brass,
+  because Binance and Bybit own yellow.
+- **Use lime as a fill behind black text, never as text on white.** On the design lab's colours,
+  black `#181b16` on lime `#d8ff62` has a contrast of about 15:1, and lime on white about 1.1:1.
+
+The original decision follows, kept for its reasoning.
 
 Three directions were rendered as real UI cards: **Instrument** (navy and teal), **Vault**
 (black and brass), and **Signal** (charcoal and violet).
