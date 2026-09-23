@@ -75,6 +75,24 @@ describe('Ledger', () => {
     expect(await ledger().ofType('ORDER_INTENT', null)).toHaveLength(0);
   });
 
+  it('lists the events of one type between two days, for everyone, oldest first', async () => {
+    const replay = (day: string): NewLedgerEvent => ({
+      occurredAt: AT,
+      userId: null,
+      cycleDate: day,
+      type: 'DECISION_REPLAY',
+      payload: { verdict: 'HOLDS' },
+    });
+    await ledger().append(replay('2026-09-19'));
+    await ledger().append(replay(DAY_1));
+    await ledger().append(replay(DAY_2));
+    await ledger().append({ occurredAt: AT, userId: 'founder', cycleDate: DAY_1, type: 'FILL_COST', payload: { clientOrderId: 'a' } });
+
+    const between = await ledger().ofTypeBetween('DECISION_REPLAY', '2026-09-20', DAY_2);
+    expect(between.map((e) => e.cycleDate)).toEqual([DAY_1, DAY_2]);
+    expect(await ledger().ofTypeBetween('FILL_COST', DAY_1, DAY_1)).toHaveLength(1);
+  });
+
   it('refuses an event type it does not know', async () => {
     await database().insert(ledgerEvents).values({ ...intent('a', DAY_1), type: 'BOGUS' });
     await expect(ledger().forUser('founder')).rejects.toThrow('unknown ledger event type');

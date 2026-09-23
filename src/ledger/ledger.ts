@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, isNull } from 'drizzle-orm';
+import { and, asc, eq, gte, inArray, isNull, lte } from 'drizzle-orm';
 import type { Database } from '../db/client.js';
 import { ledgerEvents } from '../db/schema.js';
 
@@ -17,6 +17,8 @@ export const LEDGER_EVENT_TYPES = [
   'RESUMED',
   'KILL_SWITCH_SKIP',
   'TOO_SMALL',
+  'DECISION_REPLAY',
+  'FILL_COST',
 ] as const;
 
 export type LedgerEventType = (typeof LEDGER_EVENT_TYPES)[number];
@@ -83,6 +85,16 @@ export class Ledger {
       .select()
       .from(ledgerEvents)
       .where(and(eq(ledgerEvents.type, type), who))
+      .orderBy(asc(ledgerEvents.id));
+    return rows.map(toEvent);
+  }
+
+  /** Every event of one type whose cycle date falls between `from` and `to`, inclusive — for everyone, oldest first. */
+  async ofTypeBetween(type: LedgerEventType, from: string, to: string): Promise<LedgerEvent[]> {
+    const rows = await this.db
+      .select()
+      .from(ledgerEvents)
+      .where(and(eq(ledgerEvents.type, type), gte(ledgerEvents.cycleDate, from), lte(ledgerEvents.cycleDate, to)))
       .orderBy(asc(ledgerEvents.id));
     return rows.map(toEvent);
   }
