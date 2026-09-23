@@ -8,8 +8,9 @@
   its section 13 carry-forward items.
 - **Comes from:** requirement **R1** and the Phase 2b note in
   `2026-09-22-customer-prototype-design.md` and the parent spec's section 13.
-- **Branch:** `phase-2a-order-settlement`, created from `phase-2-paper-engine`. It comes before
-  Phase 2b, because both parts must exist before the first real order.
+- **Branch:** `phase-2a-order-settlement`, created from `phase-2-paper-engine`, and merged back
+  into it in pull request #8 before any deployment. It comes before Phase 2b, because both parts
+  must exist before the first real order.
 - **Nothing here is deployed by an agent.** The founder deploys, as in `docs/deploy-vps.md`.
 
 ## 1. Goal

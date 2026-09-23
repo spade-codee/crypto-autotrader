@@ -27,8 +27,8 @@ user-facing code.** The repository also holds the design, product research, and 
 | Phase 0 — strategy proof | **Complete and merged to `master`.** 67 tests. Result in `docs/research/phase-0-findings.md` |
 | Phase 0 result | **Passes, with claims narrowed.** Out-of-sample, MA-125 cut max drawdown to 27.4% from buy-and-hold's 53.1%, but gave up ~9 points of annual growth. Insurance, not a return enhancer |
 | Phase 1 — read-only Bybit connection | **Code complete** on branch `phase-1-exchange-adapter`, 156 tests. **Awaiting the founder's check (plan Task 15)** before merging. Bybit refused API key creation on the founder's unverified account; testnet is untested |
-| Phase 2 — paper-trading engine | **Code complete** on branch `phase-2-paper-engine`, 508 tests, after a code review whose six findings were all fixed — see the plan's execution notes. **Awaiting deployment to the VPS** (plan Task 21, the founder's). The phase completes after 14 clean days of paper trading (spec section 12). Trades a paper account on live Bybit prices, so it needs no key. Its cross-process lock test was fixed on 2026-09-23 to kill the process that really holds the lock; before, it failed intermittently on Windows and would have failed on Linux, including the `npm test` the runbook asks for on the VPS |
-| Phase 2a — order settlement | **Code complete** on branch `phase-2a-order-settlement`, 537 tests, through pull requests #1 to #6. An order already sent always gets its one recorded answer, whatever state its account is in; pause and freeze are independent; `npm run order:record` records what the founder finds for an order the exchange cannot show. Required before any real order. **Not deployed**: deploying it during the 14 paper-trading days would mix two versions of the engine into the evidence |
+| Phase 2 — paper-trading engine | **Code complete** on branch `phase-2-paper-engine`, 537 tests with Phase 2a, after a code review whose six findings were all fixed — see the plan's execution notes. **Awaiting deployment to the VPS** (plan Task 21, the founder's). The phase completes after 14 clean days of paper trading (spec section 12). Trades a paper account on live Bybit prices, so it needs no key. Its cross-process lock test was fixed on 2026-09-23 to kill the process that really holds the lock; before, it failed intermittently on Windows and would have failed on Linux, including the `npm test` the runbook asks for on the VPS |
+| Phase 2a — order settlement | **Complete, and merged into `phase-2-paper-engine`** (pull request #8) before any deployment, so the 14-day paper run covers it. Built through pull requests #1 to #6. An order already sent always gets its one recorded answer, whatever state its account is in; pause and freeze are independent; `npm run order:record` records what the founder finds for an order the exchange cannot show. Required before any real order |
 | Product research | Complete. It reopened the business model, which was re-decided 2026-09-17 |
 | Name | **Undecided** — "Keel" was rejected after a verified conflict |
 
@@ -99,16 +99,20 @@ the daily engine, trading a paper account on live Bybit prices. Spec:
 `docs/superpowers/plans/2026-09-22-phase-2-paper-engine.md` — read its execution notes.
 Runbook: `docs/deploy-vps.md`. What remains is the founder's: deploy it (plan Task 21), then
 fourteen clean days of paper trading and the report (Task 23). **Merge order:**
-`phase-1-exchange-adapter`, then `research-robustness`, then `phase-2-paper-engine`, then
-`phase-2a-order-settlement`.
+`phase-1-exchange-adapter`, then `research-robustness`, then `phase-2-paper-engine`.
 
-**Phase 2a is complete on branch `phase-2a-order-settlement`**, built on `phase-2-paper-engine`:
-orders already sent are settled for accounts that are paused, frozen, or under the kill switch,
-which now means no new orders; a pause and a freeze are independent; and `npm run order:record`
-is the way out of an order the exchange cannot show. Spec:
-`docs/superpowers/specs/2026-09-23-phase-2a-order-settlement-design.md`. Plan:
-`docs/superpowers/plans/2026-09-23-phase-2a-order-settlement.md` — read its execution notes.
-Next for the engine is **Phase 2b, real Bybit orders**, which needs a spec first.
+**Phase 2a is part of `phase-2-paper-engine`**, merged in pull request #8 before any deployment,
+so the paper run tests the engine that will go live: orders already sent are settled for
+accounts that are paused, frozen, or under the kill switch, which now means no new orders; a
+pause and a freeze are independent; and `npm run order:record` is the way out of an order the
+exchange cannot show. Spec: `docs/superpowers/specs/2026-09-23-phase-2a-order-settlement-design.md`.
+Plan: `docs/superpowers/plans/2026-09-23-phase-2a-order-settlement.md` — read its execution notes.
+The branch `phase-2a-order-settlement` remains only as history.
+
+Next for the engine, in the founder's order: **an engine that checks itself** — each day's
+decision against the backtest, and what each fill really cost — then **a compiled build**, so
+each 15-minute tick runs `node` directly instead of `npm` and `tsx`. Then Phase 2b, real Bybit
+orders. Each needs a spec first.
 
 Other work, if the founder asks for it:
 
