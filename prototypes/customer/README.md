@@ -1,7 +1,7 @@
 # Customer experience prototype — working draft
 
 Owned by Codex; product facts and spec reviewed by Claude. Includes `product-prototype`
-through `b43fcea`. No production code or dependencies are changed.
+through `dfe249a`. No production code or dependencies are changed.
 
 Open `index.html` directly in a browser. All files and fonts are local; no server, API,
 network access, account connection, analytics or persistent storage is used. Each hash
@@ -17,7 +17,9 @@ device; a private hosting decision remains open.
 
 - `fixtures.js`: invented account values and separately labelled real historical evidence.
 - `app.js`: four destinations, seven starting scenarios, onboarding, understanding check,
-  definitions, pause/resume and going-live preview. State is memory-only.
+  definitions, pause/resume and going-live preview. Activity filters retain separate
+  decision, order and fill entries; the prototype banner opens a scenario switcher.
+  State is memory-only.
 - `styles.css`: mobile layout, system light/dark preference, focus states and reduced motion.
 - `fonts/`: self-hosted Latin IBM Plex Sans (400/500/600) and Mono (400), from Fontsource
   5.3.0 packages. SIL Open Font License is included.
@@ -25,14 +27,15 @@ device; a private hosting decision remains open.
 ## Verification and remaining review
 
 Claude's first review is addressed; `REVIEW.md` maps findings to corrections and requests
-a follow-up check. Future reconciliation requirement R1 is still a prototype promise,
-not a claim that the engine has implemented it. The current engine's catch-up timing is
+a follow-up check. Claude reports reconciliation requirement R1 built on 23 September
+on `phase-2a-order-settlement`: sent orders are recorded even while paused or stopped.
+This is a code status, not a deployment claim. The engine's catch-up timing is
 shown: new practice/activation and the seeded paused account can act at the next check.
 
 Chrome checks passed across 112 route/viewport/theme combinations, at 375px and 1440px,
 with no script errors, horizontal overflow or outbound requests. Interaction checks cover
 pause/resume history, stale values, onboarding, sheets and keyboard focus. Axe checks on
-30 screen/theme combinations reported no violations of the selected WCAG A/AA and
+34 screen/theme combinations reported no violations of the selected WCAG A/AA and
 best-practice rules. Actual Android devices, assistive-technology usability and invited
 participant sessions are still to be tested.
 

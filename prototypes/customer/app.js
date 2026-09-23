@@ -67,6 +67,13 @@ let page = "home";
 let paused = false;
 let resumed = false;
 let actionHistory = [];
+let activityFilter = "all";
+const activityFilters = {
+  all: "All",
+  trades: "Trades",
+  decisions: "Decisions",
+  account: "Account",
+};
 let onboardingStep = 0;
 let question = 0;
 let modalTrigger;
@@ -97,6 +104,7 @@ function route() {
     paused = next === "paused";
     resumed = false;
     actionHistory = [];
+    activityFilter = "all";
     onboardingStep = 0;
     question = 0;
   }
@@ -244,7 +252,8 @@ function holdings() {
     d.btc.replace("<", "&lt;") +
     ' BTC</span></div><div class="balance-row"><span class="holding-label"><span class="coin">₮</span>Tether</span><span class="mono">' +
     d.usdt +
-    " USDT</span></div></div></section>"
+    " USDT</span></div></div>" +
+    `<div class="account-summary"><div><span class="small muted">${stale ? "Last recorded holdings" : "Holding"}</span><strong>${d.holding === "BTC + USDT" ? "BTC and USDT" : d.holding}</strong></div><div><span class="small muted">${scenario === "outage" && !isPaused() ? "Next attempt" : "Next decision"}</span><strong>${nextDecision()}</strong></div></div></section>`
   );
 }
 function nextDecision() {
@@ -304,7 +313,7 @@ function decisionCard() {
   );
 }
 function home() {
-  return `${title(mode() === "PRACTICE" ? "Practice account" : "Your overview", scenario === "practice" ? "A place to practise." : "Your account, at a glance.", "Know what’s held. Know what happens next.", controls())}${notice()}<div class="grid"><div class="stack">${holdings()}${decisionCard()}</div><div class="stack"><section class="card"><div class="card-head"><h2>${scenario === "practice" ? "Start with the rule" : "Recent activity"}</h2>${icon("activity")}</div>${scenario === "practice" ? '<p class="muted">You have pretend money and time to understand how this works. There’s no need to connect an account.</p>' : recentActivity()}<hr class="divider"><a class="inline-link" href="#${scenario}/${scenario === "practice" ? "strategy" : "activity"}">${scenario === "practice" ? "Explore the strategy" : "See all activity"} ${icon("arrow")}</a></section><section class="card"><div class="eyebrow">${scenario === "practice" ? "At your own pace" : "Good to know"}</div><h2 style="margin:10px 0">${scenario === "practice" ? "What would going live involve?" : "One account, one strategy."}</h2><p class="muted">${scenario === "practice" ? "Connecting checks the account. Activating is a separate choice." : "The rule applies to every BTC and USDT in the dedicated account, including money added later."}</p>${scenario === "practice" ? button("Preview going live " + icon("arrow"), "connect") : '<button class="text-button" data-action="deposits">What if I add money?</button>'}</section></div></div>`;
+  return `${title(mode() === "PRACTICE" ? "Practice account" : "Your overview", scenario === "practice" ? "A place to practise." : "Your overview.", "Know what’s held. Know what happens next.", controls())}${notice()}<div class="grid"><div class="stack">${holdings()}${decisionCard()}</div><div class="stack"><section class="card"><div class="card-head"><h2>${scenario === "practice" ? "Start with the rule" : "Recent activity"}</h2>${icon("activity")}</div>${scenario === "practice" ? '<p class="muted">You have pretend money and time to understand how this works. There’s no need to connect an account.</p>' : recentActivity()}<hr class="divider"><a class="inline-link" href="#${scenario}/${scenario === "practice" ? "strategy" : "activity"}">${scenario === "practice" ? "Explore the strategy" : "See all activity"} ${icon("arrow")}</a></section><section class="card"><div class="eyebrow">${scenario === "practice" ? "At your own pace" : "Good to know"}</div><h2 style="margin:10px 0">${scenario === "practice" ? "What would going live involve?" : "One account, one strategy."}</h2><p class="muted">${scenario === "practice" ? "Connecting checks the account. Activating is a separate choice." : "The rule applies to every BTC and USDT in the dedicated account, including money added later."}</p>${scenario === "practice" ? button("Preview going live " + icon("arrow"), "connect") : '<button class="text-button" data-action="deposits">What if I add money?</button>'}</section></div></div>`;
 }
 function recentActivity() {
   if (scenario === "practice")
@@ -341,10 +350,11 @@ function entry(date, heading, body) {
 }
 function history() {
   const rows = [...actionHistory];
-  const add = (date, title, detail, summary = "") =>
-    rows.push({ date, title, detail, summary });
+  const add = (kind, date, title, detail, summary = "") =>
+    rows.push({ kind, date, title, detail, summary });
   if (scenario === "operator")
     add(
+      "account",
       "22 Sep, 09:40",
       "Operator stopped all accounts",
       F.copy.operator,
@@ -352,6 +362,7 @@ function history() {
     );
   if (scenario === "outage")
     add(
+      "account",
       "22 Sep, 13:47",
       "Could not reach Bybit · retrying",
       F.copy.outage,
@@ -359,6 +370,7 @@ function history() {
     );
   if (scenario === "review") {
     add(
+      "account",
       "21 Sep, 01:04",
       "Holdings checked",
       "Holdings: " +
@@ -371,6 +383,7 @@ function history() {
       "Holdings recorded after the partial fill.",
     );
     add(
+      "account",
       "21 Sep, 01:03",
       "Trading stopped for review",
       "The exchange cancelled the unfilled remainder. No new orders until review. Reference " +
@@ -379,6 +392,7 @@ function history() {
       "The sale did not complete as expected.",
     );
     add(
+      "trades",
       F.partial.date,
       "Sell partly filled",
       "<dl>" +
@@ -389,12 +403,14 @@ function history() {
       F.partial.quantity + " of " + F.partial.requested + " BTC sold.",
     );
     add(
+      "trades",
       "21 Sep, 01:02",
       "Order sent · sell " + F.partial.requested + " BTC",
       "The order was sent, but was not yet a confirmed fill.",
       "Sent and filled are separate events.",
     );
     add(
+      "decisions",
       "21 Sep, 01:02",
       "Decision: sell BTC",
       "The 20 Sep close fell below the average.",
@@ -402,6 +418,7 @@ function history() {
     );
   } else if (scenario === "paused")
     add(
+      "account",
       "19 Sep, 20:15",
       "Paused by you",
       "No new orders while paused. Holdings stay as they are.",
@@ -409,6 +426,7 @@ function history() {
     );
   else if (["btc", "usdt", "operator"].includes(scenario))
     add(
+      "decisions",
       "22 Sep, 01:02",
       "Decision: hold " + data().holding + " · no change",
       "Daily decision recorded. No order was needed.",
@@ -416,6 +434,7 @@ function history() {
     );
   if (["usdt", "paused"].includes(scenario)) {
     add(
+      "trades",
       F.sale.date,
       "Sold BTC · one completed losing cycle",
       "<dl>" +
@@ -439,12 +458,14 @@ function history() {
       F.sale.quantity + " BTC · order filled",
     );
     add(
+      "trades",
       F.sale.date,
       "Order sent · sell " + F.sale.quantity + " BTC",
       "The sell order was sent to the exchange before its fill was confirmed.",
       "The order and its fill are recorded separately.",
     );
     add(
+      "decisions",
       F.sale.date,
       "Decision: sell BTC",
       "The 17 Sep close fell below the average.",
@@ -452,12 +473,14 @@ function history() {
     );
   } else if (["btc", "operator", "outage"].includes(scenario))
     add(
+      "decisions",
       "4 Aug–21 Sep",
       "49 daily decisions · no change",
       "The account continued to hold BTC. No new order was needed on these days.",
       "The rule continued to hold BTC.",
     );
   add(
+    "trades",
     F.buy.date,
     "Bought BTC · filled",
     "<dl>" +
@@ -474,6 +497,7 @@ function history() {
     F.buy.quantity + " BTC · order filled",
   );
   add(
+    "trades",
     F.buy.date,
     "Order sent · buy with up to " + F.buy.orderLimit + " USDT",
     "An order was sent to the exchange. A " +
@@ -484,18 +508,21 @@ function history() {
     "The order limit and the eventual fill cost are different.",
   );
   add(
+    "decisions",
     F.buy.date,
     "Decision: buy BTC",
     "The 2 Aug daily close rose above its 125-day average.",
     "The rule signalled a move to BTC.",
   );
   add(
+    "decisions",
     "2 Aug, 18:47",
     "Decision: hold USDT · no change",
     "First check after activating. The 1 Aug close was below the average.",
     "The latest daily decision was applied after activation.",
   );
   add(
+    "account",
     F.account.activated,
     "Trading activated by you",
     "Every BTC and USDT in " +
@@ -508,6 +535,7 @@ function history() {
     F.account.version,
   );
   add(
+    "account",
     F.account.connected,
     "Account connected",
     "Connection checked and balances read. Connecting did not activate trading.",
@@ -516,21 +544,41 @@ function history() {
   return rows;
 }
 function activity() {
+  const rows = scenario === "practice" ? [] : history();
+  const visible = rows.filter(
+    (item) => activityFilter === "all" || item.kind === activityFilter,
+  );
+  const filters =
+    scenario === "practice"
+      ? ""
+      : `<div class="activity-toolbar"><div class="activity-filters" role="group" aria-label="Filter activity">${Object.entries(
+          activityFilters,
+        )
+          .map(
+            ([key, label]) =>
+              `<button data-filter="${key}" aria-pressed="${activityFilter === key}" aria-controls="activity-results">${label}</button>`,
+          )
+          .join(
+            "",
+          )}</div><p class="small muted" id="activity-count">${visible.length} entries${activityFilter === "all" ? "" : " · " + activityFilters[activityFilter]}</p></div>`;
   const entries =
     scenario === "practice"
       ? '<div class="callout"><h2>No decisions yet</h2><p>' +
         F.copy.practiceStart +
         "</p><p>This is a static prototype; it will not run a trade.</p></div>"
-      : history()
-          .map((item) => entry(item.date, item.title, item.detail))
-          .join("");
+      : visible.length
+        ? visible
+            .map((item) => entry(item.date, item.title, item.detail))
+            .join("")
+        : '<div class="callout"><h2>No matching activity</h2><p>Choose All to see the full account history.</p></div>';
   return (
     title(
       "Your activity",
       "Every decision has a reason.",
-      "Decisions, orders and fills are shown separately.",
+      "Decisions, orders and fills are shown separately. Open a filled trade to see its fee.",
     ) +
-    '<section class="card">' +
+    filters +
+    '<section class="card" id="activity-results" aria-label="Activity entries">' +
     entries +
     "</section>"
   );
@@ -601,7 +649,7 @@ function onboarding() {
     `<div class="eyebrow">04 · A quick understanding check</div><h1 tabindex="-1">Make sure it’s clear.</h1><p class="muted">Question ${question + 1} of ${questions.length}. You can try again.</p><form id="quiz"><fieldset><legend>${questions[question].title}</legend>${questions[question].choices.map((choice, n) => `<label class="answer"><input required type="radio" name="answer" value="${n}"><span>${choice}</span></label>`).join("")}</fieldset><p id="quiz-feedback" class="feedback" role="status"></p><button class="button primary wide" type="submit">Check answer</button></form>`,
     `<div class="eyebrow">Ready to practise</div><h1 tabindex="-1">Start with pretend money.</h1><p class="lead">${F.practice.value} pretend USDT. No exchange account, no money moving.</p><div class="card"><div class="eyebrow">Your practice balance</div><div class="hero-value mono">${F.practice.value}<span>USDT</span></div><hr class="divider"><p class="muted">The planned practice product follows the real rule on real prices. This prototype uses fixed sample data and runs no decisions.</p></div>`,
   ];
-  return `<main id="content" class="onboard"><div class="onboard-top"><a class="brand" href="#" aria-label="Scenario selector">${brand}</a><span class="mode practice">PRACTICE</span></div><div class="onboard-progress" role="img" aria-label="Step ${onboardingStep + 1} of 6">${screens.map((_, i) => `<span class="${i <= onboardingStep ? "done" : ""}"></span>`).join("")}</div>${screens[onboardingStep]}<div class="onboard-actions">${onboardingStep > 0 ? button("Back", "back") : ""}${onboardingStep === 4 ? "" : button(onboardingStep === 5 ? "Start practice " + icon("arrow") : onboardingStep === 0 ? "Understand the strategy " + icon("arrow") : "Continue " + icon("arrow"), onboardingStep === 5 ? "practice" : "next", true)}</div><p class="sample-note">Prototype · no connection, no real money.</p></main>`;
+  return `<main id="content" class="onboard"><div class="onboard-top"><a class="brand" href="#" aria-label="Scenario selector">${brand}</a><span class="mode practice">PRACTICE</span></div><p class="step-label small muted">Step ${onboardingStep + 1} of 6</p><div class="onboard-progress" aria-hidden="true">${screens.map((_, i) => `<span class="${i <= onboardingStep ? "done" : ""}"></span>`).join("")}</div>${screens[onboardingStep]}<div class="onboard-actions">${onboardingStep > 0 ? button("Back", "back") : ""}${onboardingStep === 4 ? "" : button(onboardingStep === 5 ? "Start practice " + icon("arrow") : onboardingStep === 0 ? "Understand the strategy " + icon("arrow") : "Continue " + icon("arrow"), onboardingStep === 5 ? "practice" : "next", true)}</div><p class="sample-note">Prototype · no connection, no real money.</p></main>`;
 }
 function showDialog(titleText, body, actions = "") {
   if (!dialog.open) modalTrigger = document.activeElement;
@@ -625,6 +673,20 @@ function handleAction(action) {
     window.scrollTo(0, 0);
     return;
   }
+  if (action === "scenarios") {
+    showDialog(
+      "Choose a sample scenario",
+      `<p>Facilitator controls. Switching scenarios resets the preview’s actions and filters. All account figures are invented.</p><nav class="scenario-menu" aria-label="Sample scenarios">${Object.entries(
+        scenarios,
+      )
+        .map(
+          ([key, [n, name]]) =>
+            `<a href="#${key}/home"${scenario === key ? ' aria-current="true"' : ""}><span>${n}</span>${name}</a>`,
+        )
+        .join("")}</nav>`,
+    );
+    return;
+  }
   if (action === "practice") {
     location.hash = "practice/home";
     return;
@@ -640,6 +702,7 @@ function handleAction(action) {
     if (isPaused() || scenario === "review") return;
     paused = true;
     actionHistory.unshift({
+      kind: "account",
       date: "22 Sep, 14:05",
       title: "Paused by you",
       detail: F.copy.pause,
@@ -669,6 +732,7 @@ function handleAction(action) {
             ? "The operator stop still prevents new orders."
             : "Today’s decision was already applied. Next decision tonight, about 01:00.";
     actionHistory.unshift({
+      kind: "account",
       date: "22 Sep, 14:05",
       title: "Resumed in this preview",
       detail: next,
@@ -718,6 +782,27 @@ document.addEventListener("click", (event) => {
     const main = document.querySelector("#content");
     main.setAttribute("tabindex", "-1");
     main.focus();
+    return;
+  }
+  const scenarioLink = event.target.closest(".scenario-menu a");
+  if (scenarioLink) {
+    event.preventDefault();
+    scenario = "";
+    if (scenarioLink.hash === location.hash) route();
+    else location.hash = scenarioLink.hash;
+    return;
+  }
+  const filterTarget = event.target.closest("[data-filter]");
+  if (
+    filterTarget &&
+    Object.hasOwn(activityFilters, filterTarget.dataset.filter)
+  ) {
+    activityFilter = filterTarget.dataset.filter;
+    render();
+    app
+      .querySelector(`[data-filter="${activityFilter}"]`)
+      .focus({ preventScroll: true });
+    announce(document.querySelector("#activity-count").textContent);
     return;
   }
   const actionTarget = event.target.closest("[data-action]");

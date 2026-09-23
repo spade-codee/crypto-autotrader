@@ -63,6 +63,55 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || "playwright");
   await page.setViewportSize({ width: 375, height: 812 });
   await page.emulateMedia({ colorScheme: "dark" });
 
+  // Active mobile accounts expose holdings and the next step above the bottom navigation.
+  for (const state of ["btc", "usdt"]) {
+    await visit(state);
+    const summary = await page.locator(".account-summary").boundingBox();
+    const navigation = await page.locator(".nav").boundingBox();
+    assert(summary.y + summary.height <= navigation.y, "Account next step hidden below first viewport");
+    assert((await page.locator(".account-summary").innerText()).includes("Tonight, about 01:00"));
+  }
+
+  // Filters preserve the audit trail: requests and fills stay distinct, with fees inside fills.
+  await visit("usdt", "activity");
+  const allEntries = await page.locator(".activity-item").count();
+  await click("Trades");
+  assert.equal(await page.locator(".activity-item").count(), 4);
+  assert.equal(await page.locator('[data-filter="trades"]').getAttribute("aria-pressed"), "true");
+  assert.equal(await page.evaluate(() => document.activeElement.dataset.filter), "trades");
+  assert(!(await text()).includes("Decision: sell"));
+  await page.getByText("Sold BTC · one completed losing cycle", { exact: false }).click();
+  assert((await text()).includes("0.98 USDT"));
+  await click("Decisions");
+  assert.equal(await page.locator(".activity-item").count(), 4);
+  await click("Account");
+  assert.equal(await page.locator(".activity-item").count(), 2);
+  await click("All");
+  assert.equal(await page.locator(".activity-item").count(), allEntries);
+  await click("Trades");
+  await page.getByRole("link", { name: "Home", exact: true }).click();
+  await page.getByRole("link", { name: "Activity", exact: true }).click();
+  assert.equal(await page.locator('[data-filter="trades"]').getAttribute("aria-pressed"), "true");
+  await click("Scenarios");
+  await page.locator('.scenario-menu a[href="#review/home"]').click();
+  await page.getByRole("link", { name: "Activity", exact: true }).click();
+  assert.equal(await page.locator('[data-filter="all"]').getAttribute("aria-pressed"), "true");
+  await click("Trades");
+  assert((await text()).includes("Sell partly filled"));
+  assert((await text()).includes("Order sent · sell 0.011740 BTC"));
+
+  // Re-selecting the same scenario clears preview actions, including when already on Home.
+  await visit("btc");
+  await click("Pause");
+  await click("Pause automation");
+  await click("Scenarios");
+  await page.locator('.scenario-menu a[href="#btc/home"]').click();
+  assert(await page.getByRole("button", { name: "Pause", exact: true }).isVisible());
+  assert.equal(await page.locator("dialog[open]").count(), 0);
+  await click("Scenarios");
+  await page.keyboard.press("Escape");
+  assert.equal(await page.evaluate(() => document.activeElement.textContent), "Scenarios");
+
   // The trade cycle and the account have different periods and results.
   await visit("usdt");
   assert(

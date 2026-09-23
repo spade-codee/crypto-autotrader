@@ -171,18 +171,21 @@ button:disabled {
   background: var(--raised);
   border-bottom: 1px solid var(--border);
   z-index: 10;
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
   font-size: 11px;
   letter-spacing: 0.2px;
   padding: 6px 8px;
-  height: 31px;
+  height: 44px;
 }
 .shell {
   max-width: 1440px;
-  margin: 31px auto 0;
+  margin: 44px auto 0;
   display: grid;
   grid-template-columns: 232px 1fr;
-  min-height: calc(100vh - 31px);
+  min-height: calc(100vh - 44px);
 }
 .sidebar {
   padding: 38px 24px;
@@ -191,8 +194,8 @@ button:disabled {
   flex-direction: column;
   gap: 36px;
   position: sticky;
-  top: 31px;
-  height: calc(100vh - 31px);
+  top: 44px;
+  height: calc(100vh - 44px);
 }
 .brand {
   display: flex;
@@ -698,7 +701,7 @@ details p {
 }
 .facilitator {
   max-width: 900px;
-  margin: 31px auto 0;
+  margin: 44px auto 0;
   padding: 48px 24px;
 }
 .facilitator .brand {
@@ -737,7 +740,7 @@ details p {
 }
 .onboard {
   max-width: 580px;
-  margin: 31px auto 0;
+  margin: 44px auto 0;
   padding: 28px 24px 60px;
 }
 .onboard-top {
@@ -1144,5 +1147,115 @@ dialog p {
       opacity: 1;
       transform: none;
     }
+  }
+}
+
+/* The facilitator control stays in the prototype banner, outside the product. */
+.scenario-switch {
+  color: var(--text);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 3px 8px;
+  min-height: 30px;
+  font: inherit;
+  flex-shrink: 0;
+}
+.scenario-switch:hover,
+.activity-filters button:hover {
+  background: var(--raised);
+}
+.scenario-menu {
+  display: grid;
+  gap: 6px;
+  margin-top: 20px;
+}
+.scenario-menu a {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 48px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  text-decoration: none;
+}
+.scenario-menu a[aria-current] {
+  border-color: var(--accent);
+}
+.scenario-menu a span {
+  color: var(--muted);
+  font-size: 12px;
+  min-width: 24px;
+}
+.account-summary {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 16px;
+  margin-top: 16px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+}
+.account-summary div {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.account-summary strong {
+  font-size: 14px;
+  font-weight: 500;
+}
+.account-summary div:last-child {
+  text-align: right;
+}
+.activity-toolbar {
+  margin-bottom: 18px;
+}
+.activity-filters {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+}
+.activity-filters button {
+  padding: 10px 14px;
+  min-height: 44px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 13px;
+}
+.activity-filters button[aria-pressed="true"] {
+  background: var(--raised);
+  border-color: var(--border);
+  color: var(--text);
+  font-weight: 500;
+}
+#activity-count {
+  margin: 12px 0 0;
+}
+.step-label {
+  margin-bottom: 10px;
+}
+@media (max-width: 680px) {
+  .prototype-ribbon {
+    gap: 8px;
+    letter-spacing: 0;
+    font-size: 10px;
+  }
+  .activity-filters {
+    display: flex;
+  }
+  .activity-filters button {
+    flex: 1;
+    padding: 10px 8px;
+  }
+  .account-summary strong {
+    font-size: 13px;
   }
 }

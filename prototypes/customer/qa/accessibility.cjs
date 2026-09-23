@@ -52,6 +52,11 @@ const axeSource =
       await page.goto(url + "#" + route);
       await audit(route + "/" + colorScheme);
     }
+    await page.goto(url + "#usdt/activity");
+    await page.getByRole("button", { name: "Trades", exact: true }).click();
+    await audit("filtered-activity/" + colorScheme);
+    await page.getByRole("button", { name: "Scenarios", exact: true }).click();
+    await audit("scenario-sheet/" + colorScheme);
     await page.goto(url + "#first/home");
     for (let step = 0; step < 5; step++) {
       await audit("onboarding-" + step + "/" + colorScheme);

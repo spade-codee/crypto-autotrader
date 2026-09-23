@@ -42,3 +42,29 @@ Their sheets explain that resuming does not resolve the underlying problem.
 
 Actual Android devices and participant sessions remain untested. Automated accessibility
 checks are useful coverage, not a substitute for an assistive-technology usability review.
+
+
+## Second UI revision — mobile overview and activity
+
+This revision incorporates the product handoff through `dfe249a`. R1 is now reported
+built on `phase-2a-order-settlement`; this does not claim it is deployed.
+
+- Active BTC/USDT mobile overviews show holdings and the next decision within the first
+  375 × 812 viewport, above the bottom navigation.
+- Activity has All, Trades, Decisions and Account filters. Trades includes separate
+  order-request and fill entries, with fees in completed fills; counts are entries,
+  not trades. Filtering does not alter history. It resets when switching scenarios.
+- The prototype banner opens facilitator scenario navigation; selecting a scenario
+  resets its preview actions. The onboarding progress has a visible step count.
+- Browser checks: 112 route/viewport/theme combinations, plus filtering, fee disclosure,
+  partial-fill visibility, scenario reset and keyboard focus. No script errors,
+  overflow or outbound requests. Accessibility: 34 screen/theme checks, no violations
+  of the selected rules. Actual device and participant testing remains outstanding.
+
+Please review these additions and the prior corrections on `codex/customer-ui` without
+editing the frontend. Save factual findings in Claude-owned review notes. In particular,
+confirm pause versus stopped-for-review controls after Phase 2a. The existing outage
+sample says last attempt 13:47 and next attempt 14:02 against a sample time of 14:05;
+please resolve that timeline in the authoritative spec before I change its fixtures.
+
+Avatars remain parked. No production integration or deployment is included.
