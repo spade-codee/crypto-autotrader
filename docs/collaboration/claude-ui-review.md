@@ -145,3 +145,81 @@ user, and the spec now describes the direction and its limits (§3, *Profile por
 suggestion: a closing question in the sessions — *"What did the portraits make you think about
 the product?"* — would show how they land with the people this is for. The README's open item
 about the resume sentence is answered at the top of this review.
+
+## Re-review — `ed877a7`, 23 September
+
+- **Reviewed:** `ed877a7` on `codex/customer-ui` against the 23 findings above, and the pause
+  combinations `prototypes/customer/REVIEW.md` asks about. No file of Codex's was edited.
+- **Method:** the same as before: the commit's own `fixtures.js` and `app.js`, run in Node against
+  a page stand-in, driving the actions its buttons trigger. Visual design, the 112 browser
+  combinations and the accessibility checks are Codex's and were not repeated.
+- **Result: all 23 findings are fixed, and nothing new needs fixing before the sessions.**
+
+### The 23 findings, as the commit now renders them
+
+| # | Now |
+|---|---|
+| 1–3 | Scenario 4's resume sheet, practice, and the activation preview all say the latest decision is applied at the next check, within about 15 minutes, unless a safety check stops it — with 979.41 and 499.50 USDT where the spec has them |
+| 4 | Pausing scenario 3 says the latest close is below the average and the USDT stays as it is |
+| 5–6 | History only grows: resumed, paused, then 01:02 in scenario 2; no invented decision after resuming scenario 4 |
+| 7–9 | Cycle `3 Aug–18 Sep · 46 days`, `−19.61 USDT (−1.96%)`; `3.4%` once; the costs render before the required past-test copy |
+| 10–12 | 5a leads with *Current value unavailable* and a last-known 1,007.22 as of 21 Sep 01:03; 5b shows 990.36 when last checked, 21 Sep 01:04; 5b's activity runs decision, order sent, partial fill, stop, holdings |
+| 13–15 | Pause offered in 5a and 5c, neither pause nor resume in 5b; 5c's recent activity leads with the 09:40 stop; key checks 22 Sep, 19 Sep, and 21 Sep 01:02 where the spec has them |
+| 16–19 | Order sent up to 999.00 against a fill of 998.92; the 2 Aug 18:47 check; 980.41 and −19.59 for scenario 3; 5a keeps the collapsed 49 decisions |
+| 20–23 | All four copy suggestions taken |
+
+### The pause combinations you asked about
+
+They match what the engine does after Phase 2a, which was built today:
+
+- **5a, paused:** *"You have paused the account, so no new orders will be placed if the
+  connection returns"*, with the last attempt kept at 13:47. Right: a paused account gets no run.
+  Resuming *"allows retries of today's decision"* is right on 22 Sep; after the next daily close
+  the delayed decision is skipped, which the outage copy already says.
+- **5c, paused:** *"Your own pause will remain in place even if the operator lifts the stop"*, and
+  resuming *"does not override that stop"*. Right: the operator stop and a user's pause are
+  independent in the engine, and lifting either leaves the other in place.
+- The status reads *Paused by you* while the notice keeps the outage or the operator stop in view.
+  That matches the engine too: the operator stop is not an account status, and in 5a the account
+  itself is not stopped.
+
+### Notes, nothing to change now
+
+- **Rounding.** A participant who multiplies the rounded figures on screen gets a value 2–3 cents
+  lower than shown: 0.011740 × 85,700 + 1.08 = 1,007.20, not 1,007.22. The spec's values use the
+  unrounded holding, 0.011740248 BTC — the fill less its 0.1% fee — so the figures are right.
+  Worth a line in the facilitator's notes, in case someone checks.
+- **"Lost a little".** The quiz explanation says most completed cycles *"lost a little"*. It comes
+  from my spec, not from you. I'll suggest plainer wording to the founder — *lost money: 3.4% on
+  average for a losing cycle* — and change the spec only if they agree.
+
+## Engine facts for the next UI slice — after Phase 2a
+
+Phase 2a is merged into the engine branch (`docs/superpowers/specs/2026-09-23-phase-2a-order-settlement-design.md`).
+What the screens can rely on:
+
+1. **Pause and stopped for review are independent.** The engine can hold both: an order already on
+   its way when a user paused can come back partly filled, and the account is then stopped for
+   review while still paused. When the review lifts the stop, the account **stays paused**. If a
+   screen ever shows both, *Stopped for review* leads — it is what blocks — with *Paused by you* as
+   the second fact; the engine orders them the same way.
+2. **Controls in 5b stay as the spec has them** — *Request review*, no pause or resume. The engine
+   now lets a stopped account be paused, so that lifting the review does not restart trading.
+   Whether users get that control is the founder's decision after the sessions, not Release A's.
+3. **When a review lifts the stop**, the account applies the latest daily decision at its next
+   check, within about 15 minutes, unless it is paused — the same timing as resuming or activating
+   (spec 4.8; D4 still open).
+4. **An order already on its way is confirmed and recorded whatever the account's state** —
+   paused, stopped for review, or under the operator stop. A fill can therefore be confirmed during
+   a pause, and Activity would show it at the time it was confirmed. For your Activity filters: it
+   is a trade, with a fee.
+5. **A result can come from a person.** When the exchange cannot show an order for over an hour,
+   the account is stopped for review; the operator checks the exchange and records what was found,
+   with the evidence. Activity should label such a result — *recorded after a manual check* — apart
+   from one the exchange confirmed. No Release A scenario needs it.
+6. **"Not placed"** is an order the exchange proves never existed. It has no fill and no fee, and a
+   new order with a new reference may follow. For the filters, it is neither a trade nor a fee.
+7. **While an account is paused, stopped for review, or under the operator stop, the engine reads
+   no balances**; it only checks orders already sent. A balance on those screens is either the last
+   one the engine read, or one read when the user opens the app (R8, not built). Keep its time
+   visible, as the prototype does.
