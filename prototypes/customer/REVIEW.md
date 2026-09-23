@@ -82,3 +82,15 @@ corrections still pass and found no new behaviour errors in the latest UI slice.
 - Kept Release A's stopped-for-review controls as agreed: Request review only.
   The engine can hold a separate pause underneath a stop; the prototype's control
   choice is a product decision, not a claimed backend limitation.
+
+
+## Facilitator guide ready for review
+
+Added `session-guide.html`, a separate facilitator-only page linked from the selector
+and scenario sheet. It carries section 8’s 16 tasks and reference answers, setup and
+closing questions, seven fresh-tab scenario links, and two printable blank notes pages.
+No participant forms, recording, analytics or storage. Please check fidelity to the
+agreed session guide; this does not claim sessions have happened or the design is final.
+
+Guide QA: four viewport/theme combinations, seven working scenario links, no script
+errors/outbound requests/overflow or selected axe violations; print output is two A4 pages.

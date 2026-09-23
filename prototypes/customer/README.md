@@ -13,6 +13,18 @@ libraries and typography before settling the visual direction. No avatar pack ha
 selected, bought or integrated. Sessions can initially run from a facilitator's local
 device; a private hosting decision remains open.
 
+## Run a participant session
+
+Open `session-guide.html` from the scenario selector or the Scenarios sheet. It contains
+the 16 agreed tasks, seven scenario links, collapsible facilitator references and a
+two-page printable blank notes sheet. Keep the guide with the facilitator; show only
+the prototype to the participant. Use participant codes and record the UI commit.
+The guide has no forms or storage. Actual sessions have not yet been conducted.
+
+Verified the guide at 375px and 1440px in light/dark: all seven scenario links open,
+no horizontal overflow, script errors or network requests, no selected axe violations,
+and exactly two A4 pages for the blank notes sheet.
+
 ## Files
 
 - `fixtures.js`: invented account values and separately labelled real historical evidence.

@@ -123,7 +123,7 @@ function render(focus = false) {
   if (focus) app.querySelector("h1")?.focus({ preventScroll: true });
 }
 function facilitator() {
-  return `<main id="content" class="facilitator"><a class="brand" href="#">${brand}</a><div class="eyebrow">Facilitator · customer experience study</div><h1 tabindex="-1">One rule. Seven moments to understand.</h1><p class="muted">Choose a starting point. Each scenario resets to its own invented account.<br>No exchange is connected and nothing is saved between visits.</p><div class="scenario-grid">${Object.entries(
+  return `<main id="content" class="facilitator"><a class="brand" href="#">${brand}</a><div class="eyebrow">Facilitator · customer experience study</div><h1 tabindex="-1">One rule. Seven moments to understand.</h1><p class="muted">Choose a starting point. Each scenario resets to its own invented account.<br>No exchange is connected and nothing is saved between visits.</p><p style="margin-top:18px"><a href="session-guide.html">Open the facilitator guide and printable notes sheet</a></p><div class="scenario-grid">${Object.entries(
     scenarios,
   )
     .map(
@@ -676,7 +676,7 @@ function handleAction(action) {
   if (action === "scenarios") {
     showDialog(
       "Choose a sample scenario",
-      `<p>Facilitator controls. Switching scenarios resets the preview’s actions and filters. All account figures are invented.</p><nav class="scenario-menu" aria-label="Sample scenarios">${Object.entries(
+      `<p>Facilitator controls. Switching scenarios resets the preview’s actions and filters. All account figures are invented.</p><p><a href="session-guide.html" target="_blank" rel="noopener">Facilitator guide and notes sheet ↗</a></p><nav class="scenario-menu" aria-label="Sample scenarios">${Object.entries(
         scenarios,
       )
         .map(
