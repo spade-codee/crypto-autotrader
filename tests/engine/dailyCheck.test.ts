@@ -86,3 +86,56 @@ describe('the decision, replayed the next morning', () => {
     expect(h.alerts.messages.at(-1)).not.toContain('Checked');
   });
 });
+
+describe('the fill, costed the next morning', () => {
+  it('records what yesterday’s buy cost, and says so in the summary', async () => {
+    const h = await dayOne();
+    dayTwo(h);
+    ran(await runTick(h.deps));
+    const [cost] = await h.ledger.ofType('FILL_COST', 'founder');
+    expect(cost).toMatchObject({ cycleDate: DAY_ONE, payload: { side: 'BUY', source: 'exchange' } });
+    // A buy at the ask, 0.01% above the mid, plus the 0.1% fee.
+    expect(new Decimal(String(cost!.payload.againstMarket)).toFixed(6)).toBe('0.001100');
+    // Against day two's open, 80,000, from a fill at 79,907.99: 0.115% cheaper, less the fee.
+    expect(new Decimal(String(cost!.payload.againstBacktestPrice)).toFixed(6)).toBe('-0.000150');
+    expect(h.alerts.messages.at(-1)).toContain(
+      `The ${DAY_ONE} buy cost -0.02% against the backtest's price; the backtest assumes 0.15%.`,
+    );
+  });
+
+  it('costs a fill recorded by a person, and labels it', async () => {
+    const h = await dayOne();
+    const at = new Date(h.clock.now);
+    await h.ledger.append({
+      occurredAt: at,
+      userId: 'founder',
+      cycleDate: DAY_ONE,
+      type: 'ORDER_INTENT',
+      payload: { clientOrderId: 'ca-recorded', intent: 'ENTER_LONG', attempt: 9, side: 'BUY', quoteAmount: '10', midPrice: '79900' },
+    });
+    await h.ledger.append({
+      occurredAt: at,
+      userId: 'founder',
+      cycleDate: DAY_ONE,
+      type: 'ORDER_RESULT',
+      payload: {
+        clientOrderId: 'ca-recorded',
+        side: 'BUY',
+        status: 'FILLED',
+        filledBaseQty: '0.000125',
+        filledQuoteAmount: '10',
+        avgPrice: '80000',
+        fee: '0.000000125',
+        feeCoin: 'BTC',
+        rejectReason: null,
+        source: 'operator',
+        evidence: 'checked by hand',
+      },
+    });
+    dayTwo(h);
+    ran(await runTick(h.deps));
+    const recorded = (await h.ledger.ofType('FILL_COST', 'founder')).find((c) => c.payload.clientOrderId === 'ca-recorded');
+    expect(recorded?.payload.source).toBe('operator');
+    expect(h.alerts.messages.at(-1)).toContain(`The ${DAY_ONE} buy, as recorded by a person, cost`);
+  });
+});
