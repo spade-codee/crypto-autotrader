@@ -17,17 +17,8 @@ import { borrowedCoins, holdingsFor, lockedCoins, type Holdings } from './holdin
 import { clientOrderId, intentFor } from './orderId.js';
 import { atTarget } from './reconcile.js';
 import { checkOrder } from './riskGuard.js';
+import { settleOneOrder } from './settleOrders.js';
 import { sizeOrder, type SizedOrder } from './sizing.js';
-
-/** An order still pending this long after its intent freezes the account. */
-export const PENDING_FREEZE_AFTER_MS = 60 * 60_000;
-
-/**
- * An order the account still cannot see this long after its intent freezes the
- * account for a person to check. Time never proves absence, so the engine
- * waits rather than retries.
- */
-export const NOT_VISIBLE_FREEZE_AFTER_MS = 60 * 60_000;
 
 export type CycleDeps = {
   ledger: Ledger;
@@ -250,45 +241,15 @@ type Settlement = { kind: 'CLEAR' } | Stop;
 async function settleOutstanding(run: Run, account: TradingAccount): Promise<Settlement> {
   const { deps, userId, date, at } = run;
   for (const intent of await deps.ledger.outstandingIntents(userId)) {
-    const id = String(intent.payload.clientOrderId);
-    const intentDate = intent.cycleDate ?? date;
-    const age = at.getTime() - intent.occurredAt.getTime();
-    const lookup = await account.getOrder(id);
-    if (lookup.kind === 'ABSENT') {
-      await deps.ledger.append({
-        occurredAt: at,
-        userId,
-        cycleDate: intentDate,
-        type: 'ORDER_RESULT',
-        payload: { clientOrderId: id, status: 'NOT_PLACED' },
-      });
-      continue;
+    const verdict = await settleOneOrder(deps, userId, account, intent, at, date);
+    if (verdict.kind === 'WAIT') {
+      return waiting(run, verdict.reason);
     }
-    if (lookup.kind === 'NOT_VISIBLE') {
-      if (age >= NOT_VISIBLE_FREEZE_AFTER_MS) {
-        return {
-          kind: 'STOPPED',
-          outcome: await freeze(
-            run,
-            `order ${id} from ${intentDate} has not been visible for over an hour, and the account cannot prove it was never placed; check the exchange by hand`,
-          ),
-        };
-      }
-      return waiting(
-        run,
-        `order ${id} from ${intentDate} is not visible yet; no replacement is placed until the account can say what happened to it`,
-      );
+    if (verdict.kind === 'FREEZE') {
+      return { kind: 'STOPPED', outcome: await freeze(run, verdict.reason) };
     }
-    const { state } = lookup;
-    if (state.status === 'PENDING') {
-      if (age >= PENDING_FREEZE_AFTER_MS) {
-        return { kind: 'STOPPED', outcome: await freeze(run, `order ${id} from ${intentDate} has been pending for over an hour`) };
-      }
-      return waiting(run, `order ${id} from ${intentDate} is still pending`);
-    }
-    await recordResult(run, intentDate, state);
-    if (state.status !== 'FILLED') {
-      return { kind: 'STOPPED', outcome: await freeze(run, unfilledReason(state)) };
+    if (verdict.kind === 'SETTLED' && verdict.state.status !== 'FILLED') {
+      return { kind: 'STOPPED', outcome: await freeze(run, unfilledReason(verdict.state)) };
     }
   }
   return { kind: 'CLEAR' };
