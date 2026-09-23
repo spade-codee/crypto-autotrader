@@ -228,6 +228,18 @@ describe('frozen, paused, and stopped accounts', () => {
     expect(await h.ledger.ofType('KILL_SWITCH_SKIP', null)).toHaveLength(1);
     expect(await h.ledger.ofType('ORDER_INTENT', 'founder')).toHaveLength(0);
   });
+
+  it('names both stops in the daily reminder when an account is paused and frozen', async () => {
+    const h = await setup();
+    await h.accounts.pause('founder', 'travelling', new Date(h.clock.now));
+    await h.accounts.freeze('founder', DAY_ONE, 'a partial fill', new Date(h.clock.now));
+    await runTick(h.deps);
+    const [reminder] = h.alerts.messages.filter((m) => m.startsWith('Reminder:'));
+    expect(reminder).toContain('frozen: a partial fill');
+    expect(reminder).toContain('paused: travelling');
+    expect(reminder).toContain('npm run unfreeze');
+    expect(reminder).toContain('npm run resume');
+  });
 });
 
 describe('when the market moves between the Risk Guard and the fill', () => {

@@ -518,9 +518,18 @@ function describeError(error: unknown): string {
 }
 
 function reminder(account: AccountRecord): string {
-  const why = account.reason === null ? '' : `: ${account.reason.replace(/\.\s*$/, '')}`;
-  const how = account.status === 'frozen' ? 'npm run unfreeze -- --reason "what you found"' : 'npm run resume';
-  return `Reminder: ${account.userId} is ${account.status}${why}. Nothing trades on it until you run ${how}.`;
+  const say = (state: string, why: string | null) => (why === null ? state : `${state}: ${why.replace(/\.\s*$/, '')}`);
+  const stops: string[] = [];
+  if (account.frozen) {
+    stops.push(say('frozen', account.frozenReason));
+  }
+  if (account.paused) {
+    stops.push(say('paused', account.pausedReason));
+  }
+  const unfreeze = 'npm run unfreeze -- --reason "what you found"';
+  const how =
+    account.frozen && account.paused ? `${unfreeze} and then npm run resume` : account.frozen ? unfreeze : 'npm run resume';
+  return `Reminder: ${account.userId} is ${stops.join(', and ')}. Nothing trades on it until you run ${how}.`;
 }
 
 export function formatDuration(ms: number): string {
