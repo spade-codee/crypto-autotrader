@@ -163,3 +163,49 @@ describe('the fill, costed the same day', () => {
     expect(new Decimal(String(cost!.payload.againstMarket)).toFixed(6)).toBe('0.002000');
   });
 });
+
+describe('the check itself', () => {
+  it('never fails the run when something inside it goes wrong, and still costs the rest', async () => {
+    const h = await dayOne();
+    const at = new Date(h.clock.now);
+    await h.ledger.append({
+      occurredAt: at,
+      userId: 'founder',
+      cycleDate: DAY_ONE,
+      type: 'ORDER_INTENT',
+      payload: { clientOrderId: 'ca-broken', intent: 'ENTER_LONG', attempt: 8, side: 'BUY', quoteAmount: '10', midPrice: '79900' },
+    });
+    await h.ledger.append({
+      occurredAt: at,
+      userId: 'founder',
+      cycleDate: DAY_ONE,
+      type: 'ORDER_RESULT',
+      payload: {
+        clientOrderId: 'ca-broken',
+        side: 'BUY',
+        status: 'FILLED',
+        filledBaseQty: '0.0001',
+        filledQuoteAmount: '8',
+        avgPrice: 'not a number',
+        fee: '0',
+        feeCoin: 'BTC',
+        rejectReason: null,
+      },
+    });
+    dayTwo(h);
+    const [user] = ran(await runTick(h.deps));
+    expect(user!.result).toBe('COMPLETED');
+    expect(h.alerts.messages.filter((m) => m.startsWith('The self-check could not finish'))).toHaveLength(1);
+    // Day one's real buy is still costed.
+    expect(await h.ledger.ofType('FILL_COST', 'founder')).toHaveLength(1);
+  });
+
+  it('asks the market for nothing more than the run already did', async () => {
+    const h = await dayOne();
+    dayTwo(h);
+    const before = { ...h.market.calls };
+    ran(await runTick(h.deps));
+    expect(h.market.calls.candles - before.candles).toBe(1);
+    expect(h.market.calls.rules - before.rules).toBe(1);
+  });
+});
