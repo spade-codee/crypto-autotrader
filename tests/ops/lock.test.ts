@@ -1,6 +1,5 @@
 import { spawn, type ChildProcess } from 'node:child_process';
 import { mkdirSync, mkdtempSync, rmSync, symlinkSync } from 'node:fs';
-import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -88,13 +87,18 @@ describe('lockAddress', () => {
 });
 
 describe('the lock across processes', () => {
-  const TSX = createRequire(import.meta.url).resolve('tsx/cli');
   const CONTENDER = fileURLToPath(new URL('./lockContender.ts', import.meta.url));
 
   type Contender = { child: ChildProcess; output: () => string; exited: Promise<number | null> };
 
+  // The contender runs in the process spawned here, through tsx's loader. The
+  // tsx command itself would run it in a grandchild, so killing the process
+  // spawned here would leave the real holder alive: on Linux indefinitely, and
+  // on Windows until its job object catches up.
   function contend(name: string, marker: string, hold: string): Contender {
-    const child = spawn(process.execPath, [TSX, CONTENDER, name, marker, hold], { stdio: ['ignore', 'pipe', 'pipe'] });
+    const child = spawn(process.execPath, ['--import', 'tsx', CONTENDER, name, marker, hold], {
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
     let output = '';
     child.stdout!.on('data', (chunk: Buffer) => (output += chunk.toString()));
     child.stderr!.on('data', (chunk: Buffer) => (output += chunk.toString()));
@@ -129,6 +133,8 @@ describe('the lock across processes', () => {
     const holder = contend(name, join(dir, 'marker'), 'forever');
     running.push(holder);
     await saw(holder, 'HOLDING');
+    // The process this test kills must be the one holding the lock, not a parent of it.
+    expect(holder.output()).toContain(`HOLDING ${holder.child.pid}`);
     await expect(acquireLock(name, { waitMs: 0 })).rejects.toThrow(LockBusyError);
 
     holder.child.kill('SIGKILL');
