@@ -665,6 +665,25 @@ because #23, the practice pilot's placement, is recorded on the `product-prototy
   edited. *Rejected:* allowing only "never placed", which leaves a partial fill or a rejection
   just as stuck; letting a person's word override what the exchange can actually see.
 
+## 25. The engine's daily self-check — DECIDED 2026-09-23
+
+Full design: `docs/superpowers/specs/2026-09-23-engine-self-check-design.md`. The founder asked
+for the engine to be made "more efficient and smart"; this is the "smart" half, and "smart" here
+means the engine knows itself, not the market.
+
+- **A failed self-check records and alerts. It never freezes, pauses, or changes a trade.** If
+  Bybit revises a price after the engine traded on it, the next day's run already trades on the
+  revised data, so the account corrects itself. *Rejected:* freezing on a changed decision, which
+  would stop exactly that correction.
+- **It reports through one sentence in the daily summary**, and a separate alert only when
+  something is off — the founder's choice. *Rejected:* a separate daily message; a weekly digest.
+- **A fill is too expensive when it costs more than the backtest's own assumption**, 0.15% a
+  trade, against the market when its order was sized. Its cost against the backtest's price, the
+  day's open, is reported but never alerted: minutes of price movement make single trades noise.
+- **It runs inside the tick, on the candles already fetched**, with the instrument's rules now
+  read once per tick instead of once per account, so it costs no request. *Rejected:* a separate
+  command on its own timer; running `paper:report` on a schedule.
+
 ## Corrections made along the way
 
 Recorded so the reasoning trail stays honest.

@@ -29,6 +29,7 @@ user-facing code.** The repository also holds the design, product research, and 
 | Phase 1 — read-only Bybit connection | **Code complete** on branch `phase-1-exchange-adapter`, 156 tests. **Awaiting the founder's check (plan Task 15)** before merging. Bybit refused API key creation on the founder's unverified account; testnet is untested |
 | Phase 2 — paper-trading engine | **Code complete** on branch `phase-2-paper-engine`, 537 tests with Phase 2a, after a code review whose six findings were all fixed — see the plan's execution notes. **Awaiting deployment to the VPS** (plan Task 21, the founder's). The phase completes after 14 clean days of paper trading (spec section 12). Trades a paper account on live Bybit prices, so it needs no key. Its cross-process lock test was fixed on 2026-09-23 to kill the process that really holds the lock; before, it failed intermittently on Windows and would have failed on Linux, including the `npm test` the runbook asks for on the VPS |
 | Phase 2a — order settlement | **Complete, and merged into `phase-2-paper-engine`** (pull request #8) before any deployment, so the 14-day paper run covers it. Built through pull requests #1 to #6. An order already sent always gets its one recorded answer, whatever state its account is in; pause and freeze are independent; `npm run order:record` records what the founder finds for an order the exchange cannot show. Required before any real order |
+| Engine self-check | **Complete**, built through pull requests #15 to #24 and merged into `phase-2-paper-engine` before any deployment. Each morning the engine replays the previous days' decisions on fresh data and costs their fills against the backtest's 0.15% a trade, recording both and alerting only when something is off. It never changes a trade and makes no extra request. Spec: `docs/superpowers/specs/2026-09-23-engine-self-check-design.md` |
 | Product research | Complete. It reopened the business model, which was re-decided 2026-09-17 |
 | Name | **Undecided** — "Keel" was rejected after a verified conflict |
 
@@ -109,10 +110,9 @@ exchange cannot show. Spec: `docs/superpowers/specs/2026-09-23-phase-2a-order-se
 Plan: `docs/superpowers/plans/2026-09-23-phase-2a-order-settlement.md` — read its execution notes.
 The branch `phase-2a-order-settlement` remains only as history.
 
-Next for the engine, in the founder's order: **an engine that checks itself** — each day's
-decision against the backtest, and what each fill really cost — then **a compiled build**, so
-each 15-minute tick runs `node` directly instead of `npm` and `tsx`. Then Phase 2b, real Bybit
-orders. Each needs a spec first.
+Next for the engine, in the founder's order: **a compiled build**, so each 15-minute tick runs
+`node` directly instead of `npm` and `tsx` — it needs a spec first. Then Phase 2b, real Bybit
+orders. The engine's daily self-check is built: see the state table.
 
 Other work, if the founder asks for it:
 
@@ -142,7 +142,7 @@ Other work, if the founder asks for it:
 | `npm run order:record` | Record what you found for an order the exchange cannot show: `-- --order <id> --status not-placed --reason "..."`. Refuses if the exchange can show it |
 | `npm run kill-switch` | `-- on --reason "why"` stops new orders for everyone, while orders already sent still settle; `-- off` resumes |
 | `npm run alerts:test` | Send a test Telegram alert |
-| `npm run paper:report` | The paper account against buy-and-hold and against the backtest |
+| `npm run paper:report` | The paper account against buy-and-hold and against the backtest, and what the daily self-check found |
 
 Settings for the key commands, read from the environment or `.env.local`: `BYBIT_ENV`
 (`testnet`, the default, or `mainnet`), `USER_ID` (default `founder`), `DB_DIR` (default

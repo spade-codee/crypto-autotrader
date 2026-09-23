@@ -1,7 +1,8 @@
 # The engine checks itself: design
 
 - **Date:** 2026-09-23
-- **Status:** design agreed with the founder, 2026-09-23. Not implemented.
+- **Status:** design agreed with the founder, 2026-09-23. **Built** the same day, through pull
+  requests #15 to #24; the plan's execution notes record what differed.
 - **Parent spec:** `2026-09-22-phase-2-paper-engine-design.md`, with Phase 2a
   (`2026-09-23-phase-2a-order-settlement-design.md`). This adds to its section 4 (one tick) and
   its paper report, and changes nothing about how the engine trades.

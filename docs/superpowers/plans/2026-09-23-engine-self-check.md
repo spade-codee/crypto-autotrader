@@ -64,7 +64,7 @@ Branch: `self-check/ledger-types`.
 - Modify: `src/ledger/ledger.ts`
 - Test: `tests/ledger/ledger.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Add to `tests/ledger/ledger.test.ts`, inside `describe('Ledger', …)`:
 
@@ -88,12 +88,12 @@ Add to `tests/ledger/ledger.test.ts`, inside `describe('Ledger', …)`:
   });
 ```
 
-- [ ] **Step 2: Run it to make sure it fails**
+- [x] **Step 2: Run it to make sure it fails**
 
 Run: `npx vitest run tests/ledger/ledger.test.ts -t "between two days"`
 Expected: FAIL — `ofTypeBetween` is not a function, and TypeScript rejects the two type names.
 
-- [ ] **Step 3: Add the types and the query**
+- [x] **Step 3: Add the types and the query**
 
 In `src/ledger/ledger.ts`, add the two types at the end of `LEDGER_EVENT_TYPES`:
 
@@ -125,12 +125,12 @@ and this method to `Ledger`, after `ofType`:
   }
 ```
 
-- [ ] **Step 4: Run it**
+- [x] **Step 4: Run it**
 
 Run: `npx vitest run tests/ledger/ledger.test.ts`
 Expected: PASS.
 
-- [ ] **Step 5: Ship it** — commit `feat: let the ledger record a decision replay and a fill's cost`, then the pull
+- [x] **Step 5: Ship it** — commit `feat: let the ledger record a decision replay and a fill's cost`, then the pull
 request as described at the top.
 
 ---
@@ -143,7 +143,7 @@ Branch: `self-check/replay-decision`.
 - Create: `src/engine/selfCheck.ts`
 - Test: `tests/engine/selfCheck.test.ts`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Create `tests/engine/selfCheck.test.ts`:
 
@@ -210,12 +210,12 @@ describe('replayDecision', () => {
 The window's last close is 50,000 + 199 × 100 = 69,900, which is why the revisions use 69,901 and
 1,000.
 
-- [ ] **Step 2: Run them to make sure they fail**
+- [x] **Step 2: Run them to make sure they fail**
 
 Run: `npx vitest run tests/engine/selfCheck.test.ts`
 Expected: FAIL — cannot find `src/engine/selfCheck.js`.
 
-- [ ] **Step 3: Write the module**
+- [x] **Step 3: Write the module**
 
 Create `src/engine/selfCheck.ts`:
 
@@ -275,12 +275,12 @@ export function replayDecision(
 }
 ```
 
-- [ ] **Step 4: Run them**
+- [x] **Step 4: Run them**
 
 Run: `npx vitest run tests/engine/selfCheck.test.ts`
 Expected: PASS.
 
-- [ ] **Step 5: Ship it** — commit `feat: judge a recorded decision again on current data`, then the pull request.
+- [x] **Step 5: Ship it** — commit `feat: judge a recorded decision again on current data`, then the pull request.
 
 ---
 
@@ -292,7 +292,7 @@ Branch: `self-check/fill-cost`.
 - Modify: `src/engine/selfCheck.ts`
 - Modify: `tests/engine/selfCheck.test.ts`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Add to `tests/engine/selfCheck.test.ts` — the imports first:
 
@@ -390,12 +390,12 @@ describe('percent', () => {
 });
 ```
 
-- [ ] **Step 2: Run them to make sure they fail**
+- [x] **Step 2: Run them to make sure they fail**
 
 Run: `npx vitest run tests/engine/selfCheck.test.ts`
 Expected: FAIL — `marketCost` and the rest are not exported.
 
-- [ ] **Step 3: Add the functions**
+- [x] **Step 3: Add the functions**
 
 In `src/engine/selfCheck.ts`, change the imports to:
 
@@ -476,12 +476,12 @@ export function expensiveFillMessage(clientOrderId: string, cost: MarketCost): s
 }
 ```
 
-- [ ] **Step 4: Run them**
+- [x] **Step 4: Run them**
 
 Run: `npx vitest run tests/engine/selfCheck.test.ts`
 Expected: PASS.
 
-- [ ] **Step 5: Ship it** — commit `feat: cost a fill against the market and against the backtest's price`, then the
+- [x] **Step 5: Ship it** — commit `feat: cost a fill against the market and against the backtest's price`, then the
 pull request.
 
 ---
@@ -498,7 +498,7 @@ Branch: `self-check/rules-once-per-tick`.
 - Modify: `src/engine/cycle.ts`
 - Modify: `tests/engine/cycleFailures.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Add to `tests/engine/cycleFailures.test.ts`, inside `describe('when the market cannot be read', …)`:
 
@@ -511,13 +511,13 @@ Add to `tests/engine/cycleFailures.test.ts`, inside `describe('when the market c
   });
 ```
 
-- [ ] **Step 2: Run it to make sure it fails**
+- [x] **Step 2: Run it to make sure it fails**
 
 Run: `npx vitest run tests/engine/cycleFailures.test.ts -t "rules cannot be read"`
 Expected: FAIL — `expected RETRY_LATER, got RAN`: today the failure is caught inside the account's
 run.
 
-- [ ] **Step 3: Fetch the rules once, beside the candles**
+- [x] **Step 3: Fetch the rules once, beside the candles**
 
 In `src/engine/cycle.ts`:
 
@@ -582,13 +582,13 @@ Delete this line from its body:
     const rules = await deps.market.getInstrumentRules(deps.symbol);
 ```
 
-- [ ] **Step 4: Run everything**
+- [x] **Step 4: Run everything**
 
 Run: `npm run typecheck && npm test`
 Expected: PASS, including the new test. No other test changes: none counted the rules requests of a
 running account.
 
-- [ ] **Step 5: Ship it** — commit `refactor: read the instrument's rules once per tick, beside the candles`, with a
+- [x] **Step 5: Ship it** — commit `refactor: read the instrument's rules once per tick, beside the candles`, with a
 message saying a rules failure now retries the whole tick like a candle failure; then the pull request.
 
 ---
@@ -602,7 +602,7 @@ Branch: `self-check/replay-each-morning`.
 - Modify: `src/engine/cycle.ts`
 - Create: `tests/engine/dailyCheck.test.ts`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Create `tests/engine/dailyCheck.test.ts`:
 
@@ -695,13 +695,13 @@ describe('the decision, replayed the next morning', () => {
 });
 ```
 
-- [ ] **Step 2: Run them to make sure they fail**
+- [x] **Step 2: Run them to make sure they fail**
 
 Run: `npx vitest run tests/engine/dailyCheck.test.ts`
 Expected: FAIL — no `DECISION_REPLAY` is recorded and no summary says *Checked*. The first-day
 test passes already: it guards against a replay with nothing to replay.
 
-- [ ] **Step 3: Write the daily check**
+- [x] **Step 3: Write the daily check**
 
 Create `src/engine/dailyCheck.ts`:
 
@@ -824,7 +824,7 @@ function replaySentence(day: string, replay: Replay): string {
 The `void rules;` line keeps the parameter the next task needs without an unused-variable error;
 Task 6 replaces it.
 
-- [ ] **Step 4: Run the check in the tick, and say what it found**
+- [x] **Step 4: Run the check in the tick, and say what it found**
 
 In `src/engine/cycle.ts`:
 
@@ -888,12 +888,12 @@ function summary(
 }
 ```
 
-- [ ] **Step 5: Run everything**
+- [x] **Step 5: Run everything**
 
 Run: `npm run typecheck && npm test`
 Expected: PASS.
 
-- [ ] **Step 6: Ship it** — commit `feat: replay yesterday's decision each morning, and say whether it holds`, then
+- [x] **Step 6: Ship it** — commit `feat: replay yesterday's decision each morning, and say whether it holds`, then
 the pull request.
 
 ---
@@ -906,7 +906,7 @@ Branch: `self-check/cost-fills`.
 - Modify: `src/engine/dailyCheck.ts`
 - Modify: `tests/engine/dailyCheck.test.ts`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Add to `tests/engine/dailyCheck.test.ts`:
 
@@ -950,12 +950,12 @@ describe('the fill, costed the next morning', () => {
 });
 ```
 
-- [ ] **Step 2: Run them to make sure they fail**
+- [x] **Step 2: Run them to make sure they fail**
 
 Run: `npx vitest run tests/engine/dailyCheck.test.ts -t "the fill, costed"`
 Expected: FAIL — no `FILL_COST` is recorded.
 
-- [ ] **Step 3: Cost the fills**
+- [x] **Step 3: Cost the fills**
 
 In `src/engine/dailyCheck.ts`, add to the imports:
 
@@ -1040,12 +1040,12 @@ async function costFills(scope: Scope, rules: InstrumentRules): Promise<void> {
 and update the doc comment on `runDailyCheck` to say it replays the decisions **and costs their
 fills**.
 
-- [ ] **Step 4: Run everything**
+- [x] **Step 4: Run everything**
 
 Run: `npm run typecheck && npm test`
 Expected: PASS.
 
-- [ ] **Step 5: Ship it** — commit `feat: cost each fill the morning after, against the backtest's price`, then the
+- [x] **Step 5: Ship it** — commit `feat: cost each fill the morning after, against the backtest's price`, then the
 pull request.
 
 ---
@@ -1058,7 +1058,7 @@ Branch: `self-check/fill-day-cost`.
 - Modify: `src/engine/cycle.ts`
 - Modify: `tests/engine/dailyCheck.test.ts`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Add to `tests/engine/dailyCheck.test.ts`, with `bookAround` and `PRICE`:
 
@@ -1092,12 +1092,12 @@ describe('the fill, costed the same day', () => {
 });
 ```
 
-- [ ] **Step 2: Run them to make sure they fail**
+- [x] **Step 2: Run them to make sure they fail**
 
 Run: `npx vitest run tests/engine/dailyCheck.test.ts -t "the same day"`
 Expected: FAIL — the summary has no cost, and no alert is sent on day one.
 
-- [ ] **Step 3: Cost the fill in the run that makes it**
+- [x] **Step 3: Cost the fill in the run that makes it**
 
 In `src/engine/cycle.ts`, make `Decimal` a value import, and add:
 
@@ -1165,13 +1165,13 @@ function summary(
 }
 ```
 
-- [ ] **Step 4: Run everything**
+- [x] **Step 4: Run everything**
 
 Run: `npm run typecheck && npm test`
 Expected: PASS. The existing summary tests match `LONG\. Bought [\d.]+ BTC` and `FLAT\. Sold`,
 which the clause leaves intact.
 
-- [ ] **Step 5: Ship it** — commit `feat: say what a fill cost on the day it happens, and alert if too much`, then
+- [x] **Step 5: Ship it** — commit `feat: say what a fill cost on the day it happens, and alert if too much`, then
 the pull request.
 
 ---
@@ -1184,7 +1184,7 @@ Branch: `self-check/never-fails-a-run`.
 - Modify: `src/engine/dailyCheck.ts`, `src/engine/cycle.ts`
 - Modify: `tests/engine/dailyCheck.test.ts`
 
-- [ ] **Step 1: Write the tests**
+- [x] **Step 1: Write the tests**
 
 Add to `tests/engine/dailyCheck.test.ts`:
 
@@ -1223,13 +1223,13 @@ describe('the check itself', () => {
 });
 ```
 
-- [ ] **Step 2: Run them**
+- [x] **Step 2: Run them**
 
 Run: `npx vitest run tests/engine/dailyCheck.test.ts -t "the check itself"`
 Expected: the first FAILS — the broken result throws out of `runTick`. The second passes already:
 it guards the promise of no extra request, and must keep passing.
 
-- [ ] **Step 3: Catch every failure inside the check**
+- [x] **Step 3: Catch every failure inside the check**
 
 In `src/engine/dailyCheck.ts`, add:
 
@@ -1370,12 +1370,12 @@ import { checkSentences, runDailyCheckSafely, type DailyCheck } from './dailyChe
   const check = await runDailyCheckSafely(deps, signal.candles, rules, date, at);
 ```
 
-- [ ] **Step 4: Run everything**
+- [x] **Step 4: Run everything**
 
 Run: `npm run typecheck && npm test`
 Expected: PASS.
 
-- [ ] **Step 5: Ship it** — commit `fix: never let the self-check fail a run, and keep its promise of no extra
+- [x] **Step 5: Ship it** — commit `fix: never let the self-check fail a run, and keep its promise of no extra
 request`, then the pull request.
 
 ---
@@ -1388,7 +1388,7 @@ Branch: `self-check/paper-report`.
 - Modify: `src/app/paperReport.ts`, `src/cli/paper-report.ts`
 - Modify: `tests/app/paperReport.test.ts`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 In `tests/app/paperReport.test.ts`, add `replays: [],` to the object `input()` returns, then:
 
@@ -1427,12 +1427,12 @@ describe('the self-check section', () => {
 });
 ```
 
-- [ ] **Step 2: Run them to make sure they fail**
+- [x] **Step 2: Run them to make sure they fail**
 
 Run: `npx vitest run tests/app/paperReport.test.ts`
 Expected: FAIL — `replays` is not part of the input, and there is no `selfCheck`.
 
-- [ ] **Step 3: Build and format the section**
+- [x] **Step 3: Build and format the section**
 
 In `src/app/paperReport.ts`, add the imports:
 
@@ -1531,12 +1531,12 @@ In `src/cli/paper-report.ts`, pass the replays and fail on a changed decision:
     return report.tradesMatch && report.signalMismatches.length === 0 && report.selfCheck.changed.length === 0 ? 0 : 1;
 ```
 
-- [ ] **Step 4: Run everything**
+- [x] **Step 4: Run everything**
 
 Run: `npm run typecheck && npm test`
 Expected: PASS.
 
-- [ ] **Step 5: Ship it** — commit `feat: add the self-check to the paper report`, then the pull request.
+- [x] **Step 5: Ship it** — commit `feat: add the self-check to the paper report`, then the pull request.
 
 ---
 
@@ -1548,7 +1548,7 @@ Branch: `self-check/docs`.
 - Modify: `docs/decisions.md`, `docs/superpowers/specs/2026-09-22-phase-2-paper-engine-design.md`,
   `docs/superpowers/specs/2026-09-23-engine-self-check-design.md`, `CLAUDE.md`, and this plan
 
-- [ ] **Step 1: The decision log.** Add before `## Corrections made along the way`:
+- [x] **Step 1: The decision log.** Add before `## Corrections made along the way`:
 
 ```markdown
 ## 25. The engine's daily self-check — DECIDED 2026-09-23
@@ -1569,7 +1569,7 @@ Full design: `docs/superpowers/specs/2026-09-23-engine-self-check-design.md`.
   timer; running `paper:report` on a schedule.
 ```
 
-- [ ] **Step 2: The specs.** In the Phase 2 spec's header, after the Phase 2a note:
+- [x] **Step 2: The specs.** In the Phase 2 spec's header, after the Phase 2a note:
 
 ```markdown
 - **Extended by the self-check**, `2026-09-23-engine-self-check-design.md`: each tick that fetches
@@ -1579,7 +1579,7 @@ Full design: `docs/superpowers/specs/2026-09-23-engine-self-check-design.md`.
 
 In the self-check spec, set **Status** to built, with the pull request numbers.
 
-- [ ] **Step 3: `CLAUDE.md`.** Three edits:
+- [x] **Step 3: `CLAUDE.md`.** Three edits:
 
 In the state table, after the Phase 2a row, add:
 
@@ -1601,10 +1601,10 @@ In the commands table, change the `paper:report` row to:
 | `npm run paper:report` | The paper account against buy-and-hold and against the backtest, and what the daily self-check found |
 ```
 
-- [ ] **Step 4: This plan.** Tick every step, and add execution notes: what differed from the plan
+- [x] **Step 4: This plan.** Tick every step, and add execution notes: what differed from the plan
 and why, the final test count, and any limitation accepted.
 
-- [ ] **Step 5: Run everything, then ship it.** `npm run typecheck && npm test && npm audit
+- [x] **Step 5: Run everything, then ship it.** `npm run typecheck && npm test && npm audit
 --omit=dev`; commit `docs: record the engine's daily self-check`; the pull request.
 
 ---
@@ -1628,3 +1628,38 @@ fourteen paper-trading days, so they record the self-check from the first day, o
 2. `npm test`, `npm run typecheck`, the parity test, and `npm audit --omit=dev` pass.
 3. The feature is merged into `phase-2-paper-engine` through pull requests, and nothing is deployed
    by an agent.
+
+---
+
+## Execution notes
+
+Built on 2026-09-23, inline, one pull request per task, #15 to #24 plus this documentation. Task 11, the merge into `phase-2-paper-engine`, is recorded by its own pull request.
+**565 tests pass** (537 before, 28 new), the type check is clean, and `npm audit --omit=dev` finds
+no vulnerabilities.
+
+**Before Task 2, test runs that timed out under load.** Two full runs failed on timeouts, never on
+an assertion. Both were in tests that start PGlite, Postgres in WebAssembly, which seventeen test
+files do, while Vitest started a worker per core on this 16-core machine with Codex running on it
+too. Four workers ran the suite just as fast — 47 and 49 seconds against 48 — so
+`vitest.config.ts` now caps it there (#17). No timeout recurred in the runs that followed.
+
+**Where the build differs from the plan or the spec:**
+
+- **The summary's sentences use ISO dates**, as the engine's summaries already do — *"Checked
+  2026-09-21: …"* — where the spec's examples wrote *"21 Sep"*.
+- **The fill sentence names its day and side** — *"The 2026-09-21 buy cost …"* — where the spec
+  wrote *"Its buy cost …"*, so it stays clear when a catch-up checks several days at once.
+- **Task 8, formatting.** I ran `npx prettier` on `src/engine/dailyCheck.ts`. Prettier is not a
+  project tool, so npx downloaded it from the npm registry and restyled the file in double quotes.
+  I reverted the file and wrote the change by hand in the project's style; nothing restyled was
+  committed. The project has no formatter: match the surrounding code.
+
+**Limitations accepted:**
+
+- **The check runs only on ticks that fetch candles**, so a day on which no account needs a run
+  leaves it to the next day that does. Anything among the seven cycle dates before that day's is
+  picked up then; older gaps are not.
+- **A single fill's cost against the backtest's price is noise.** It is reported and averaged, and
+  never alerted, by design.
+- **A fill recorded by a person is costed on that person's figures**, and labelled so.
+- **It does not detect manual trading.** That is R2, for Phase 2b.
