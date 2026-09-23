@@ -63,8 +63,10 @@ urgency, results always with a period and fees; and that nothing could pass for 
 
 A quick reference; the spec is authoritative.
 
-- **One decision a day, about 01:00 Lagos time**, after the 00:00 UTC daily close. The 15-minute
-  checks appear only where they explain recovery (5a).
+- **One decision a day, about 01:00 Lagos time**, after the 00:00 UTC daily close. But an account
+  that becomes active later in the day — practice started, trading activated, or resumed — gets
+  the latest daily decision at its next check, within about 15 minutes (spec §4.8, added after
+  reviewing your first draft).
 - **All in or all out.** A buy spends 99.9% of the USDT, which is why the BTC state keeps about 1
   USDT. The 0.1% fee comes off what is received: in BTC on a buy, in USDT on a sale.
 - **Six states:** practice (not activated), active, paused by you, a temporary problem (retrying,

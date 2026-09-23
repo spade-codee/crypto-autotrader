@@ -8,6 +8,10 @@
 - **Input:** the founder's draft product plan, kept unchanged at
   `docs/product/2026-09-22-product-plan-draft.md`. It is input to planning, not approval of
   every feature in it.
+- **Revised:** 2026-09-22, after reviewing Codex's first draft: when decisions happen (§4.8, and
+  the new decision D4), the resume sheet, sample figures corrected or added in §5, pause in the
+  problem states, and history that only grows (§6). Review notes:
+  `docs/collaboration/claude-ui-review.md`.
 - **Builds on:** `docs/decisions.md` #5, #16–#22; `docs/brand.md` §§1, 3–6; the parent spec's
   dashboard (`2026-09-16-crypto-trading-automation-design.md` §4.7); the Phase 2 engine
   (`2026-09-22-phase-2-paper-engine-design.md`).
@@ -52,7 +56,16 @@ This spec is **not** production implementation and **not** deployment.
     and result, and the last and next decision.
 - **Look:** the decided "Instrument" palette and IBM Plex fonts (`docs/brand.md` §§3–4). No
   product name, since the name is undecided (#14): a plain placeholder mark only. Light or dark
-  follows the phone's setting.
+  follows the phone's setting. The founder is revisiting typography (#13); Plex stays until they
+  decide.
+- **Profile portraits.** The founder chose soft 3D human characters as the visual direction on
+  22 September, as Codex recorded it (`prototypes/customer/README.md`, `13ac344`): one consistent
+  family with varied skin tones, hair, facial hair, and glasses. The exact pack is open and
+  nothing has been bought. Portraits show **only the user**, never the strategy, a trader, an
+  "AI", other users, or a testimonial (`docs/brand.md` §§1, 5, and the fraud context in
+  `docs/decisions.md`). They are presentational: a sample-only preset picker is fine, but there
+  is no sign-in, no profile data, and nothing stored. Keep them light, since users are often on
+  metered data.
 - **English only** for this round.
 
 ## 4. Content rules
@@ -146,7 +159,26 @@ Required copy, in the Account screen and the going-live preview:
 - `docs/brand.md` §6: profit and loss always carry a sign and an arrow, never colour alone;
   screens read in greyscale; body text at least 4.5:1 contrast.
 - The daily decision is shown as **"about 01:00"** — the daily close is 00:00 UTC, 01:00 in Lagos.
-  The 15-minute checks are mentioned only where they explain recovery (scenario 5a).
+  The 15-minute checks are mentioned only where they explain what happens next (4.8) or recovery
+  (scenario 5a).
+
+### 4.8 When decisions happen
+
+This is what the engine does today (`src/engine/cycle.ts`), and screens must not contradict it:
+
+- The engine checks every active account every 15 minutes, at :02, :17, :32, and :47.
+- Normally the day's decision is made at the first check after the daily close — about 01:00 in
+  Lagos.
+- **An account that becomes active later in the day** — practice just started, trading just
+  activated, or resumed after a pause — gets the latest daily decision at its **next check,
+  within about 15 minutes**, if that decision has not yet been applied to it. The decision comes
+  from the latest daily close, the same one every other account used that day.
+- Once the day's decision has been applied to an account, nothing more happens to it until after
+  the next close.
+- An order is placed only if the safety checks pass at that moment; otherwise nothing is traded.
+
+Every screen that says what happens next — starting practice, activating, resuming — follows this.
+Whether a newly active account should instead wait for the next daily close is open decision D4.
 
 ## 5. The scenarios
 
@@ -158,13 +190,17 @@ not carry into another. Scenario 5b's partial sale, for instance, never happens 
 | | Figure |
 |---|---|
 | Live account | Bybit sub-account `···7f3a`, connected 2 Aug 18:31, activated 2 Aug 18:40, 1,000.00 USDT at activation |
-| First decision | 3 Aug 01:02: buy. Bought 0.011752 BTC at 85,000.00 for 998.92 USDT; fee 0.000012 BTC (about 1.00 USDT) |
+| First check after activating | 2 Aug 18:47: hold USDT, no change — the 1 Aug close was below the average (4.8) |
+| First trade | 3 Aug 01:02: buy, after the 2 Aug close rose above the average. Order sent: buy with up to 999.00 USDT, 99.9% of the USDT. Filled: 0.011752 BTC at 85,000.00 for 998.92 USDT; fee 0.000012 BTC (about 1.00 USDT) |
 | Holding BTC | 0.011740 BTC and 1.08 USDT |
-| Price today, 22 Sep | 86,100.00 USDT; 125-day average 82,400.00 (price 4.5% above) |
+| Latest daily close, 21 Sep | 86,100.00 USDT; 125-day average 82,400.00 (4.5% above). For simplicity, balances at 14:05 are valued at the same price |
 | Value holding BTC | 1,011.92 USDT; result since activation on 2 Aug `+11.92 USDT ▲ (+1.19%)`, fees 1.00 USDT |
 | The sale (scenario 3) | 18 Sep 01:02: sell, after the 17 Sep close fell below the average. Sold 0.011740 BTC at 83,500.00 for 980.29 USDT; fee 0.98 USDT |
-| Holding USDT | 980.39 USDT and a remainder under 0.000001 BTC; result since activation on 2 Aug `−19.61 USDT ▼ (−1.96%)`, fees 1.98 USDT |
-| Price in scenario 3 | 82,900.00 USDT; average 84,500.00 (price 1.9% below) |
+| The completed cycle | 3 Aug to 18 Sep, 46 days: `−19.61 USDT ▼ (−1.96%)`, fees 1.98 USDT — what the purchase cost against what the sale returned |
+| Holding USDT | 980.39 USDT and a remainder under 0.000001 BTC, together worth 980.41 USDT; result since activation on 2 Aug `−19.59 USDT ▼ (−1.96%)`, fees 1.98 USDT |
+| Latest daily close in scenario 3 | 82,900.00 USDT; average 84,500.00 (1.9% below) |
+| Stopped for review (5b) | Holdings when checked at 21 Sep 01:04: 0.006740 BTC and 422.16 USDT, worth 990.36 USDT at 84,300.00 |
+| Key last checked | Scenarios 2, 3, and 5c: 22 Sep 01:02. Scenario 4: 19 Sep 01:02, its last check before the pause. Scenarios 5a and 5b: 21 Sep 01:02 |
 
 ### 1. First visit (PRACTICE)
 
@@ -188,8 +224,9 @@ A short sequence, each screen one idea:
    - What happens when you pause? — *No new orders; what you hold stays as it is. BTC is not
      sold.*
 6. **Start practice.** 1,000 pretend USDT, following the real rule on real prices; no money moves.
-7. **Practice Home.** PRACTICE label; 1,000.00 USDT and 0 BTC; "No decisions yet. First decision:
-   tonight, about 01:00."
+7. **Practice Home.** PRACTICE label; 1,000.00 USDT and 0 BTC; "No decisions yet. The first
+   decision comes at the next check, within about 15 minutes, from the latest daily close. After
+   that, one decision a day, about 01:00." (4.8)
 
 **Going-live preview**, reachable from Practice Home, as two separate steps and no key form:
 
@@ -197,7 +234,10 @@ A short sequence, each screen one idea:
   and nothing else — no withdrawals — restricted to our server's address. We check the key and
   show your balances. Nothing trades.
 - **Step 2 — Activate.** See exactly what the strategy will control — "every BTC and USDT in
-  `···7f3a`: now 0 BTC and 500.00 USDT (sample)" — the rule and its version, and what pause does.
+  `···7f3a`: now 0 BTC and 500.00 USDT (sample)" — the rule and its version, what pause does, and
+  what activating does next: "The strategy applies the latest daily decision at its next check,
+  within about 15 minutes. The latest close is above the average, so it would buy BTC with about
+  499.50 USDT, unless a safety check stops it. After that, one decision a day, about 01:00." (4.8)
   You confirm.
 - Available to users in Nigeria (#5). The manual-trading copy of 4.6 appears here.
 
@@ -213,8 +253,9 @@ A short sequence, each screen one idea:
   - today 01:02, decision: hold BTC, no change;
   - 4 Aug to 21 Sep, collapsed: "49 daily decisions, no change";
   - 3 Aug 01:02, filled: bought 0.011752 BTC at 85,000.00 for 998.92 USDT, fee 0.000012 BTC;
-  - 3 Aug 01:02, order sent: buy with 998.92 USDT;
+  - 3 Aug 01:02, order sent: buy with up to 999.00 USDT;
   - 3 Aug 01:02, decision: buy, after the 2 Aug close rose above the average;
+  - 2 Aug 18:47, decision: hold USDT, no change — the 1 Aug close was below the average;
   - 2 Aug 18:40, trading activated by you; 2 Aug 18:31, account connected.
 - **Account:** *Connection* and *Trading* as separate sections. Connection: `···7f3a`, key
   checked today 01:02 — spot trading only, withdrawals off, restricted to our server. Trading:
@@ -226,12 +267,14 @@ A short sequence, each screen one idea:
 
 ### 3. Active, holding USDT (LIVE)
 
-- **Home:** Active; holding USDT; 980.39 USDT; result `−19.61 USDT ▼ (−1.96%) since 2 Aug · 51
-  days · fees 1.98 USDT`.
-- **Strategy:** why it holds USDT now (price 1.9% below its average) and what would make it buy
-  (a daily close above the average).
+- **Home:** Active; holding USDT; 980.39 USDT and less than 0.000001 BTC, worth 980.41 USDT;
+  result `−19.59 USDT ▼ (−1.96%) since 2 Aug · 51 days · fees 1.98 USDT`.
+- **Strategy:** why it holds USDT now (the latest close 1.9% below its average) and what would
+  make it buy (a daily close above the average).
 - **Activity:** the 18 Sep sale, its decision, and the 3 Aug purchase — together one completed
-  cycle, a losing one, labelled as such.
+  cycle, a losing one, labelled as such, with the cycle's own result and period: `−19.61 USDT ▼
+  (−1.96%)`, 3 Aug to 18 Sep, fees 1.98 USDT. Not the account's result since activation, which
+  runs to today.
 - **"What if I add money?"**, the copy of 4.5.
 
 ### 4. Paused by you (LIVE)
@@ -239,13 +282,26 @@ A short sequence, each screen one idea:
 - **Home:** "Paused by you since 19 Sep, 20:15. Nothing is bought or sold while paused." Holdings
   as scenario 3. "The strategy's latest decision is to hold BTC — the price closed above its
   average on 21 Sep — but nothing is traded while you are paused."
-- **Resume sheet:** current holdings, then "If you resume now, at the next decision, about 01:00,
-  the strategy will use about 979.41 USDT to buy BTC." Confirm → active.
+- **Resume sheet:** current holdings, then: "If you resume now, the strategy applies today's
+  decision at its next check, within about 15 minutes. The latest daily close, on 21 Sep, was
+  above the average, so it will use about 979.41 USDT to buy BTC, unless a safety check stops it.
+  After that, one decision a day, about 01:00." (4.8) Confirm → active. Home and Activity then
+  show the same next step, and nothing about today's decision beyond it.
+- **Resuming when today's decision was already applied** — pausing at 14:05 in scenario 2 or 3,
+  after that day's 01:02 check — changes nothing until the next decision, tonight about 01:00;
+  what happens then depends on that close and the safety checks.
+- *Corrected after reviewing the first draft:* this sheet first said the purchase would happen
+  "at the next decision, about 01:00", unconditionally. The engine acts at the next check, and
+  only if the safety checks pass.
 
 ### 5. Problem states (LIVE)
 
 Each variant is its own link. Values that could not be refreshed are shown as last known, with
-their time, never as current.
+their time, never as current — and marked as such where the number is, not only in a caption.
+
+**Pause stays available in 5a and 5c**, where the account itself is still active: the user can
+pause it so it does not trade when the problem clears. **5b offers neither pause nor resume**: the
+engine cannot pause an account stopped for review, and only a review lifts the stop.
 
 **5a — Can't reach the exchange (temporary; nothing to do).** Holding BTC, as scenario 2.
 
@@ -261,7 +317,12 @@ their time, never as current.
 - "Trading stopped for review on 21 Sep at 01:03. An order to sell your BTC was only partly
   filled; the exchange cancelled the rest."
 - What is known: sold 0.005000 of 0.011740 BTC at 84,300.00; holdings when checked at 01:04,
-  0.006740 BTC and 422.16 USDT.
+  0.006740 BTC and 422.16 USDT, worth 990.36 USDT then. The exchange is reachable here, so do not
+  say the current value is unavailable — that is 5a's message; show the holdings as last checked,
+  with their time.
+- Activity shows the steps separately: the 21 Sep 01:02 decision to sell, after the 20 Sep close
+  fell below the average; the order sent to sell 0.011740 BTC; the partial fill at 01:03; the stop
+  for review.
 - "No new orders will be placed until this is reviewed." One action: **Request review**, with a
   sample reference `R-0921-7F3A`. **No resume button.** The copy of 4.6.
 
@@ -282,6 +343,9 @@ Tab switching; the pause and resume sheets; the going-live preview; activity ent
 show their details, including a sample order reference; short definitions on tap for *completed
 cycle*, *drop from a peak*, *fee*, and *pending order*; the understanding check. Nothing is saved
 between visits.
+
+**History only grows**, as the ledger does. Pausing and resuming each add an entry; a later action
+never removes an earlier one, and no decision appears for an account on a day it was paused.
 
 ## 7. Out of scope
 
@@ -318,14 +382,14 @@ customer software.
 | 3 | 1 | "Could it ever lose more than the 27.4% shown?" | Yes — the past worst drop is not a limit |
 | 4 | 1 | "If you went live, which of your money would it control?" | Every BTC and USDT in the dedicated account, including money added later |
 | 5 | 1 | "Start practising." | Done unaided; time it |
-| 6 | 1 | "What's the difference between connecting and activating?" | Connecting only checks and reads; activating starts trading, after confirming the funds |
+| 6 | 1 | "What's the difference between connecting and activating?" | Connecting only checks and reads; activating starts trading, after confirming the funds, and can trade within about 15 minutes |
 | 7 | 2 | "Is it working right now? What does it hold, and when does it next decide?" | Active; BTC; about 01:00 tonight |
 | 8 | 2 | "Find the last trade. What was the fee?" | Opens the 3 Aug fill and reads the fee |
 | 9 | 2 | "Pause it. What happens to your BTC?" | Stays BTC; no new orders |
 | 10 | 3 | "Why is it holding USDT, and what would make it buy?" | Price below the average; a daily close above it |
 | 11 | 3 | "If you added 200 USDT, what might happen?" | It may be used to buy BTC at the next eligible decision, if checks pass |
 | 12 | 3 | "If you bought some BTC in this account yourself, what could happen?" | The strategy may sell it again at its next decision |
-| 13 | 4 | "It's paused. If you resume now, what happens next?" | It buys BTC at about 01:00 with its USDT |
+| 13 | 4 | "It's paused. If you resume now, what happens next?" | Within about 15 minutes it buys BTC with its USDT, unless a safety check stops it |
 | 14 | 5a | "Is something wrong? Do you need to do anything?" | Temporary; nothing needed; the figures are last known |
 | 15 | 5b | "What happened, and what can you do?" | Stopped for review; request review; it can't simply be resumed |
 | 16 | 5c | "What does this mean for your account?" | The operator stopped everyone; not their account's fault; nothing to do |
@@ -390,6 +454,12 @@ None of these is built as part of this spec. Each belongs in a later engine or p
   sessions' background questions inform it.
 - **D3 — Whether annual growth is ever shown**, and where. Not in this prototype; the founder and
   the lawyer decide before any public page.
+- **D4 — When a newly active account first acts.** Today the engine applies the latest daily
+  decision at the next check, within about 15 minutes, when practice starts, trading is
+  activated, or an account resumes (4.8) — the catch-up rule of #22 applied to a new start. The
+  alternative is to wait for the next daily close. Recommendation: keep it, so an account that
+  becomes active mid-day holds what the strategy holds, as a caught-up run would; activation and
+  resume screens say so plainly. Changing it is an engine change and the founder's decision.
 
 ## 11. Done when
 
