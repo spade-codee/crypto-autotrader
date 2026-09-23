@@ -42,16 +42,49 @@ describe('AccountStates', () => {
     expect(await eventsOf('UNFROZEN')).toHaveLength(1);
   });
 
-  it('pauses only an active account and resumes only a paused one', async () => {
+  it('pauses an account that is not paused, and resumes only a paused one', async () => {
     const states = await withAccount();
     await expect(states.resume('founder', AT)).rejects.toThrow('not paused');
     await states.pause('founder', 'travelling', AT);
     expect((await states.get('founder'))?.status).toBe('paused');
-    await expect(states.pause('founder', null, AT)).rejects.toThrow('only an active account');
+    await expect(states.pause('founder', null, AT)).rejects.toThrow('already paused');
     await states.resume('founder', AT);
     expect((await states.get('founder'))?.status).toBe('active');
     expect(await eventsOf('PAUSED')).toHaveLength(1);
     expect(await eventsOf('RESUMED')).toHaveLength(1);
+  });
+
+  it('keeps a pause underneath a freeze, and gives it back when the freeze is lifted', async () => {
+    const states = await withAccount();
+    await states.pause('founder', 'travelling', AT);
+    await states.freeze('founder', '2026-09-21', 'a partial fill', AT);
+    expect(await states.get('founder')).toMatchObject({ status: 'frozen', reason: 'a partial fill', paused: true });
+
+    await states.unfreeze('founder', 'checked the account on Bybit', AT);
+    expect(await states.get('founder')).toMatchObject({ status: 'paused', reason: 'travelling', frozen: false });
+    const [frozen] = await eventsOf('FROZEN');
+    expect(frozen?.payload).toMatchObject({ reason: 'a partial fill', alsoPaused: true });
+    const [unfrozen] = await eventsOf('UNFROZEN');
+    expect(unfrozen?.payload).toMatchObject({ stillPaused: true });
+  });
+
+  it('can be paused while frozen, so lifting the freeze does not start trading', async () => {
+    const states = await withAccount();
+    await states.freeze('founder', null, 'a partial fill', AT);
+    await states.pause('founder', 'I want to look first', AT);
+    expect((await states.get('founder'))?.status).toBe('frozen');
+    await states.unfreeze('founder', 'checked', AT);
+    expect((await states.get('founder'))?.status).toBe('paused');
+  });
+
+  it('resuming a frozen account leaves it frozen', async () => {
+    const states = await withAccount();
+    await states.pause('founder', 'travelling', AT);
+    await states.freeze('founder', null, 'a partial fill', AT);
+    await states.resume('founder', AT);
+    expect(await states.get('founder')).toMatchObject({ status: 'frozen', paused: false, frozen: true });
+    const [resumed] = await eventsOf('RESUMED');
+    expect(resumed?.payload).toMatchObject({ stillFrozen: true });
   });
 
   it('names the fix when an account does not exist', async () => {

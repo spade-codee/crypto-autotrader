@@ -5,20 +5,39 @@ import type { AccountStatus } from '../types.js';
 
 export type AccountRecord = {
   userId: string;
+  /** Derived: frozen first, then paused, then active. */
   status: AccountStatus;
+  /** Why it is in that status, when a reason was given. */
   reason: string | null;
+  /** The user's own stop. */
+  paused: boolean;
+  pausedReason: string | null;
+  /** The engine's stop, which only a person lifts. */
+  frozen: boolean;
+  frozenReason: string | null;
   updatedAt: Date;
 };
 
 function toRecord(row: typeof accountState.$inferSelect): AccountRecord {
   const status: AccountStatus = row.frozen ? 'frozen' : row.paused ? 'paused' : 'active';
-  return { userId: row.userId, status, reason: row.frozen ? row.frozenReason : row.pausedReason, updatedAt: row.updatedAt };
+  return {
+    userId: row.userId,
+    status,
+    reason: row.frozen ? row.frozenReason : row.pausedReason,
+    paused: row.paused,
+    pausedReason: row.pausedReason,
+    frozen: row.frozen,
+    frozenReason: row.frozenReason,
+    updatedAt: row.updatedAt,
+  };
 }
 
 /**
- * Whether each account may trade. Accounts are created with the paper account
- * (PaperAccount.open). Every change is written to the ledger in the same
- * transaction, so the track record can always explain the current state.
+ * Whether each account may trade. A pause and a freeze are independent: the
+ * user owns the pause, the engine owns the freeze, and lifting one never lifts
+ * the other. Accounts are created with the paper account (PaperAccount.open).
+ * Every change is written to the ledger in the same transaction, so the track
+ * record can always explain the current state.
  */
 export class AccountStates {
   constructor(private readonly db: Database) {}
@@ -36,38 +55,54 @@ export class AccountStates {
   /** Stops an account trading after something the engine did not understand. Already frozen: no change. */
   async freeze(userId: string, cycleDate: string | null, reason: string, at: Date): Promise<void> {
     const current = await this.#require(userId);
-    if (current.status === 'frozen') {
+    if (current.frozen) {
       return;
     }
-    await this.#change(userId, { frozen: true, frozenReason: reason }, 'FROZEN', cycleDate, at, { reason });
+    await this.#change(userId, { frozen: true, frozenReason: reason }, 'FROZEN', cycleDate, at, {
+      reason,
+      alsoPaused: current.paused,
+    });
   }
 
-  /** Lifting a freeze needs a person, and a reason that goes on the record. */
+  /** Lifting a freeze needs a person, and a reason that goes on the record. A pause underneath it stays. */
   async unfreeze(userId: string, reason: string, at: Date): Promise<void> {
     if (reason.trim() === '') {
       throw new Error('unfreezing needs a reason');
     }
     const current = await this.#require(userId);
-    if (current.status !== 'frozen') {
+    if (!current.frozen) {
       throw new Error(`"${userId}" is ${current.status}, not frozen`);
     }
-    await this.#change(userId, { frozen: false, frozenReason: null }, 'UNFROZEN', null, at, { reason: reason.trim() });
+    await this.#change(userId, { frozen: false, frozenReason: null }, 'UNFROZEN', null, at, {
+      reason: reason.trim(),
+      stillPaused: current.paused,
+    });
   }
 
+  /**
+   * The user's own stop. It can be set while the account is frozen, so that
+   * lifting the freeze does not let the next tick trade.
+   */
   async pause(userId: string, reason: string | null, at: Date): Promise<void> {
     const current = await this.#require(userId);
-    if (current.status !== 'active') {
-      throw new Error(`"${userId}" is ${current.status}; only an active account can be paused`);
+    if (current.paused) {
+      throw new Error(`"${userId}" is already paused`);
     }
-    await this.#change(userId, { paused: true, pausedReason: reason }, 'PAUSED', null, at, { reason });
+    await this.#change(userId, { paused: true, pausedReason: reason }, 'PAUSED', null, at, {
+      reason,
+      alsoFrozen: current.frozen,
+    });
   }
 
+  /** Lifts the user's own stop. A freeze underneath it stays. */
   async resume(userId: string, at: Date): Promise<void> {
     const current = await this.#require(userId);
-    if (current.status !== 'paused') {
+    if (!current.paused) {
       throw new Error(`"${userId}" is ${current.status}, not paused`);
     }
-    await this.#change(userId, { paused: false, pausedReason: null }, 'RESUMED', null, at, { reason: null });
+    await this.#change(userId, { paused: false, pausedReason: null }, 'RESUMED', null, at, {
+      stillFrozen: current.frozen,
+    });
   }
 
   async #require(userId: string): Promise<AccountRecord> {
