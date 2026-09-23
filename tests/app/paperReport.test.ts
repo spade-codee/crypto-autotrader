@@ -40,6 +40,7 @@ function input(overrides: { buySide?: string; signalOn127?: string } = {}): Repo
     candles: CANDLES,
     strategy: trendFilter({ maPeriod: CHOSEN_MA_PERIOD }),
     costs: { feeRate: new Decimal('0.001'), slippageRate: new Decimal('0.0001') },
+    replays: [],
   };
 }
 
@@ -92,5 +93,41 @@ describe('formatPaperReport', () => {
     expect(text).toContain('3 completed (1 late)');
     expect(text).toContain(`${day(126)}  BUY`);
     expect(text).toContain('Trades match the backtest');
+  });
+});
+
+describe('the self-check section', () => {
+  it('summarises the decisions rechecked and the fills costed', () => {
+    const base = input();
+    const report = buildPaperReport({
+      ...base,
+      replays: [
+        event('DECISION_REPLAY', day(126), { verdict: 'HOLDS' }, null),
+        event('DECISION_REPLAY', day(127), { verdict: 'DATA_REVISED' }, null),
+      ],
+      events: [
+        ...base.events,
+        event('FILL_COST', day(126), { clientOrderId: 'a', againstMarket: '0.0011', againstBacktestPrice: '0.0009' }),
+        event('FILL_COST', day(127), { clientOrderId: 'b', againstMarket: '0.0013', againstBacktestPrice: '0.0031' }),
+      ],
+    });
+    expect(report.selfCheck).toMatchObject({ decisionsRechecked: 2, changed: [], revised: [day(127)], fillsCosted: 2 });
+    expect(report.selfCheck.againstMarket?.average.toFixed(4)).toBe('0.0012');
+    expect(report.selfCheck.againstMarket?.worst.toFixed(4)).toBe('0.0013');
+    expect(report.selfCheck.againstBacktestPrice?.worst.toFixed(4)).toBe('0.0031');
+
+    const text = formatPaperReport(report);
+    expect(text).toContain(`Decisions rechecked: 2. Revised data on ${day(127)}, the decision holding.`);
+    expect(text).toContain('Fills costed: 2. Against the market: average 0.12%, worst 0.13% (the backtest assumes 0.15%).');
+    expect(text).toContain("Against the backtest's price: average 0.20%, worst 0.31%.");
+  });
+
+  it('flags a decision the check found changed', () => {
+    const report = buildPaperReport({
+      ...input(),
+      replays: [event('DECISION_REPLAY', day(127), { verdict: 'DECISION_CHANGED' }, null)],
+    });
+    expect(report.selfCheck.changed).toEqual([day(127)]);
+    expect(formatPaperReport(report)).toContain(`DECISIONS CHANGED on ${day(127)}.`);
   });
 });

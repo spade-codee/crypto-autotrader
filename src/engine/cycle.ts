@@ -1,6 +1,7 @@
-import type Decimal from 'decimal.js';
+import Decimal from 'decimal.js';
 import type { Heartbeat } from '../alerts/heartbeat.js';
 import type { Alerter } from '../alerts/telegram.js';
+import { DEFAULT_COSTS } from '../backtest/costs.js';
 import type { MarketOrderRequest, OrderState, TradingAccount } from '../exchange/trading.js';
 import type { Ledger, LedgerEvent } from '../ledger/ledger.js';
 import { orderStateFrom } from '../ledger/orderEvents.js';
@@ -10,13 +11,15 @@ import { mean } from '../math.js';
 import type { AccountRecord, AccountStates } from '../state/accountState.js';
 import type { AlertLog } from '../state/alertLog.js';
 import type { CycleRuns } from '../state/cycleRuns.js';
-import type { StrategyFn, TargetState } from '../types.js';
+import type { Candle, StrategyFn, TargetState } from '../types.js';
 import { checkCandleWindow } from './candleWindow.js';
 import { cycleDate, dueAt, isLate } from './cycleDate.js';
+import { checkSentences, runDailyCheckSafely, type DailyCheck } from './dailyCheck.js';
 import { borrowedCoins, holdingsFor, lockedCoins, type Holdings } from './holdings.js';
 import { clientOrderId, intentFor } from './orderId.js';
 import { atTarget } from './reconcile.js';
 import { checkOrder } from './riskGuard.js';
+import { expensiveFillMessage, marketCost, percent } from './selfCheck.js';
 import { settleOneOrder } from './settleOrders.js';
 import { sizeOrder, type SizedOrder } from './sizing.js';
 
@@ -57,6 +60,9 @@ export type TickOutcome =
 
 type Run = { deps: CycleDeps; userId: string; date: string; at: Date };
 type Stop = { kind: 'STOPPED'; outcome: UserOutcome };
+
+/** The day's decision, and the validated candle window it was made from. */
+type Signal = { target: TargetState; close: Decimal; candles: Candle[] };
 
 /**
  * One tick of the engine. The timer runs this every 15 minutes; it does the
@@ -125,9 +131,11 @@ export async function runTick(deps: CycleDeps): Promise<TickOutcome> {
     return { kind: 'NOTHING_TO_DO' };
   }
 
-  let signal: { target: TargetState; close: Decimal };
+  let signal: Signal;
+  let rules: InstrumentRules;
   try {
     signal = await readSignal(deps, date, at);
+    rules = await deps.market.getInstrumentRules(deps.symbol);
   } catch (error) {
     const reason = describeError(error);
     for (const userId of needing) {
@@ -141,9 +149,11 @@ export async function runTick(deps: CycleDeps): Promise<TickOutcome> {
     return { kind: 'RETRY_LATER', reason };
   }
 
+  const check = await runDailyCheckSafely(deps, signal.candles, rules, date, at);
+
   const users: UserOutcome[] = [];
   for (const userId of needing) {
-    users.push(await runUser({ deps, userId, date, at }, signal.target, signal.close));
+    users.push(await runUser({ deps, userId, date, at }, signal.target, signal.close, rules, check));
   }
   if ((await deps.runs.pendingFor(date)).length === 0) {
     await heartbeatOnce(deps, date, at);
@@ -152,7 +162,7 @@ export async function runTick(deps: CycleDeps): Promise<TickOutcome> {
 }
 
 /** Fetches and validates the candle window, evaluates the strategy, and records the day's signal once. */
-async function readSignal(deps: CycleDeps, date: string, at: Date): Promise<{ target: TargetState; close: Decimal }> {
+async function readSignal(deps: CycleDeps, date: string, at: Date): Promise<Signal> {
   const candles = await deps.market.getClosedDailyCandles(deps.symbol, deps.candleCount, at.getTime());
   const check = checkCandleWindow(candles, date, deps.maPeriod);
   if (!check.ok) {
@@ -174,10 +184,16 @@ async function readSignal(deps: CycleDeps, date: string, at: Date): Promise<{ ta
       },
     });
   }
-  return { target, close };
+  return { target, close, candles };
 }
 
-async function runUser(run: Run, target: TargetState, signalClose: Decimal): Promise<UserOutcome> {
+async function runUser(
+  run: Run,
+  target: TargetState,
+  signalClose: Decimal,
+  rules: InstrumentRules,
+  check: DailyCheck,
+): Promise<UserOutcome> {
   const { deps, userId, date, at } = run;
   await deps.runs.startAttempt(date, userId, at);
   const account = deps.accountFor(userId);
@@ -187,7 +203,6 @@ async function runUser(run: Run, target: TargetState, signalClose: Decimal): Pro
     if (settled.kind === 'STOPPED') {
       return settled.outcome;
     }
-    const rules = await deps.market.getInstrumentRules(deps.symbol);
     let filled = await filledToday(deps, userId, date);
 
     if (filled === null) {
@@ -223,7 +238,7 @@ async function runUser(run: Run, target: TargetState, signalClose: Decimal): Pro
     }
 
     // 7. Reconcile, on total balances.
-    return await reconcile(run, account, rules, target, filled);
+    return await reconcile(run, account, rules, target, filled, check);
   } catch (error) {
     // Nothing is recorded as a result here. An intent written before the error
     // stays outstanding, and the next tick settles it through its client order ID.
@@ -448,6 +463,7 @@ async function reconcile(
   rules: InstrumentRules,
   target: TargetState,
   filled: OrderState | null,
+  check: DailyCheck,
 ): Promise<UserOutcome> {
   const { deps, userId, date, at } = run;
   const holdings = holdingsFor(await account.getBalances(), rules);
@@ -469,8 +485,33 @@ async function reconcile(
   });
   await deps.runs.complete(date, userId, at, late);
   await deps.ledger.append({ occurredAt: at, userId, cycleDate: date, type: 'RUN_COMPLETED', payload: { late } });
-  await deps.alerter.send(summary(run, target, filled, holdings, rules, late));
+  const fillClause = filled === null ? '' : await fillCostClause(run, filled, rules);
+  await deps.alerter.send(summary(run, target, filled, holdings, rules, late, fillClause, checkSentences(check, userId)));
   return { userId, result: 'COMPLETED', detail: filled === null ? 'no change' : `${filled.side} filled` };
+}
+
+/**
+ * What the day's fill cost against the market, for the summary, with the
+ * expensive-fill alert sent straight away rather than the next morning. It never
+ * fails the run: anything that goes wrong leaves the clause out.
+ */
+async function fillCostClause(run: Run, filled: OrderState, rules: InstrumentRules): Promise<string> {
+  const { deps, userId, date, at } = run;
+  try {
+    const order = (await deps.ledger.ordersOn(userId, date)).find(
+      (o) => String(o.intent.payload.clientOrderId) === filled.clientOrderId,
+    );
+    if (order === undefined) {
+      return '';
+    }
+    const cost = marketCost(filled, new Decimal(String(order.intent.payload.midPrice)), rules, DEFAULT_COSTS);
+    if (cost.tooExpensive && (await deps.alertLog.claim(`${date}:${userId}:fill-cost:${filled.clientOrderId}`, at))) {
+      await deps.alerter.send(expensiveFillMessage(filled.clientOrderId, cost));
+    }
+    return `, costing ${percent(cost.againstMarket)} against the market (the backtest assumes ${percent(cost.assumed)})`;
+  } catch {
+    return '';
+  }
 }
 
 async function freeze(run: Run, reason: string): Promise<UserOutcome> {
@@ -599,14 +640,16 @@ function summary(
   holdings: Holdings,
   rules: InstrumentRules,
   late: boolean,
+  fillClause: string,
+  checkText: string,
 ): string {
   const lateText = late ? ` Completed late, ${formatDuration(run.at.getTime() - dueAt(run.date))} after the close.` : '';
   const now = `Holding ${describeHoldings(holdings, rules)}.`;
   if (filled === null) {
-    return `${run.date}: ${target}, no change. ${now}${lateText}`;
+    return `${run.date}: ${target}, no change. ${now}${lateText}${checkText}`;
   }
   const fill = describeFill(filled, rules);
-  return `${run.date}: ${target}. ${fill[0]!.toUpperCase()}${fill.slice(1)}. ${now}${lateText}`;
+  return `${run.date}: ${target}. ${fill[0]!.toUpperCase()}${fill.slice(1)}${fillClause}. ${now}${lateText}${checkText}`;
 }
 
 /** "bought 0.01174 BTC for 998.92 USDT at 85086.88" */

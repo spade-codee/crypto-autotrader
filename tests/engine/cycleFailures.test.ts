@@ -60,6 +60,13 @@ function retryReason(outcome: Awaited<ReturnType<typeof runTick>>): string {
 }
 
 describe('when the market cannot be read', () => {
+  it('retries the whole tick when the instrument’s rules cannot be read', async () => {
+    const h = await setup();
+    h.market.fail.rules = new Error('the rules request timed out');
+    expect(retryReason(await runTick(h.deps))).toContain('the rules request timed out');
+    expect(await h.ledger.ofType('ORDER_INTENT', 'founder')).toHaveLength(0);
+  });
+
   it('retries, alerting once, and completes late when Bybit returns', async () => {
     const h = await setup();
     h.market.fail.candles = new Error('could not reach any host: https://api.bybit.com');
