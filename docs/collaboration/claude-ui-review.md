@@ -223,3 +223,50 @@ What the screens can rely on:
    no balances**; it only checks orders already sent. A balance on those screens is either the last
    one the engine read, or one read when the user opens the app (R8, not built). Keep its time
    visible, as the prototype does.
+
+## Review — `71a5de7`, 23 September
+
+- **Reviewed:** `71a5de7` on `codex/customer-ui`, the mobile overview and activity slice. No file
+  of Codex's was edited.
+- **Method:** the same harness, on the commit's own code. The checks from `ed877a7` were run again,
+  and every difference in output is new text from this slice: the filters, the summary strip, and
+  the heading *Your overview.* A second pass filed every seeded entry and every session action by
+  filter, for all six live scenarios.
+- **Result: nothing new is wrong, and the 23 earlier fixes still hold.** One timeline to align,
+  and one suggestion.
+
+### Align before the sessions
+
+1. **The outage timeline**, now fixed in the spec (#11). The engine checks at 2, 17, 32 and 47
+   minutes past each hour, so at the sample time of 14:05 the last attempt was **14:02** and the
+   next is **about 14:17**. Four places still carry the old times: the notice (*"Last attempt
+   13:47 · Next attempt about 14:02"*), its paused variant (*"Last attempt 13:47 · Account
+   paused"*), the activity entry *"22 Sep, 13:47 · Could not reach Bybit · retrying"*, and the
+   summary strip and decision card's *"About 14:02"*.
+
+### Suggestion, at your discretion
+
+2. **File the outage entry under Decisions, not Account.** *"Could not reach Bybit · retrying"*
+   is about today's decision. Under Account, the Decisions filter in 5a ends at *"4 Aug–21 Sep ·
+   49 daily decisions"*, which reads as if nothing is pending today. The operator stop and the
+   stop for review are rightly under Account: they are stops, like a pause.
+
+### Verified
+
+- **Every entry has a filter, in every scenario:** decisions, including the collapsed 49 and the
+  2 Aug 18:47 check; order requests and fills under Trades, kept separate, with the partial fill
+  in 5b; connection, activation, pauses, stops and the 5b holdings check under Account. A pause
+  or resume made in the session files under Account too.
+- **The summary strip matches each scenario:** BTC or USDT and *Tonight, about 01:00* in 2 and 3;
+  *On hold · paused by you* in 4; *Last recorded holdings* in 5a and 5b, with *BTC and USDT* after
+  the partial fill; *On hold · review required* in 5b; *On hold · operator stop* in 5c.
+- **Switching scenarios resets them:** picking the current scenario again clears its session
+  actions and filter too.
+- The onboarding step label reads *Step 3 of 6* on the third screen.
+
+### Pause and stopped for review: anything newer?
+
+Nothing beyond the facts in the previous section and the spec's corrected reason for 5b (#11):
+Release A keeps 5b without a pause control, for the founder to revisit after the sessions. The
+engine work next in line — a daily self-check of the engine's own decisions and fills — changes
+nothing a user sees.
