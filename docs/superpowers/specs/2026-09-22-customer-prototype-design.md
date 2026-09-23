@@ -300,8 +300,11 @@ Each variant is its own link. Values that could not be refreshed are shown as la
 their time, never as current — and marked as such where the number is, not only in a caption.
 
 **Pause stays available in 5a and 5c**, where the account itself is still active: the user can
-pause it so it does not trade when the problem clears. **5b offers neither pause nor resume**: the
-engine cannot pause an account stopped for review, and only a review lifts the stop.
+pause it so it does not trade when the problem clears. **5b offers neither pause nor resume**, and
+only a review lifts the stop. Since Phase 2a (2026-09-23) the engine can hold a pause underneath
+a stop for review, so that lifting the stop does not restart trading, and a review leaves an
+existing pause in place. Whether users get a pause control in 5b is the founder's decision after
+the sessions; Release A keeps 5b without one.
 
 **5a — Can't reach the exchange (temporary; nothing to do).** Holding BTC, as scenario 2.
 
@@ -310,7 +313,10 @@ engine cannot pause an account stopped for review, and only a review lifts the s
   today's decision still can't run by then, it is skipped and we'll tell you. You don't need to
   do anything."
 - Balances as of yesterday 01:03: 0.011740 BTC and 1.08 USDT. Value then: 1,007.22 USDT, at
-  85,700.00. Current value: unavailable. Last attempt 13:47; next about 14:02.
+  85,700.00. Current value: unavailable. Last attempt 14:02; next about 14:17 — the engine
+  checks at 2, 17, 32 and 47 minutes past each hour, so at the sample time, 14:05, the last
+  attempt was 14:02. (Corrected 2026-09-23: this said 13:47 and 14:02, which put the next attempt
+  before the sample time.)
 
 **5b — Stopped for review (an order didn't complete as expected).**
 
