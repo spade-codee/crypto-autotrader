@@ -76,6 +76,12 @@ to spell), Stoic (can read pretentious).
 
 ## 3. Colour — "Instrument"
 
+> **Replaced on 2026-09-23** (`docs/decisions.md` #12). The founder accepted soft white, bold black
+> and lime, as Codex explored them in `prototypes/customer/design-lab.html` (`70311ab`). The tokens
+> below are superseded. This section will be rewritten with the final values once Codex settles
+> them. The rule that follows still applies, and matters more now: lime sits next to green, so
+> lime must never mark a gain.
+
 **The rule that drives everything: green and red are reserved for profit and loss. They are
 never brand colours.** In a P&L product, if green is also the button colour and the logo
 colour, green stops carrying information. This rules out most of the category, which is a
