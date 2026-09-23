@@ -13,6 +13,7 @@ import type { CycleRuns } from '../state/cycleRuns.js';
 import type { Candle, StrategyFn, TargetState } from '../types.js';
 import { checkCandleWindow } from './candleWindow.js';
 import { cycleDate, dueAt, isLate } from './cycleDate.js';
+import { checkSentences, runDailyCheck, type DailyCheck } from './dailyCheck.js';
 import { borrowedCoins, holdingsFor, lockedCoins, type Holdings } from './holdings.js';
 import { clientOrderId, intentFor } from './orderId.js';
 import { atTarget } from './reconcile.js';
@@ -146,9 +147,11 @@ export async function runTick(deps: CycleDeps): Promise<TickOutcome> {
     return { kind: 'RETRY_LATER', reason };
   }
 
+  const check = await runDailyCheck(deps, signal.candles, rules, date, at);
+
   const users: UserOutcome[] = [];
   for (const userId of needing) {
-    users.push(await runUser({ deps, userId, date, at }, signal.target, signal.close, rules));
+    users.push(await runUser({ deps, userId, date, at }, signal.target, signal.close, rules, check));
   }
   if ((await deps.runs.pendingFor(date)).length === 0) {
     await heartbeatOnce(deps, date, at);
@@ -182,7 +185,13 @@ async function readSignal(deps: CycleDeps, date: string, at: Date): Promise<Sign
   return { target, close, candles };
 }
 
-async function runUser(run: Run, target: TargetState, signalClose: Decimal, rules: InstrumentRules): Promise<UserOutcome> {
+async function runUser(
+  run: Run,
+  target: TargetState,
+  signalClose: Decimal,
+  rules: InstrumentRules,
+  check: DailyCheck,
+): Promise<UserOutcome> {
   const { deps, userId, date, at } = run;
   await deps.runs.startAttempt(date, userId, at);
   const account = deps.accountFor(userId);
@@ -227,7 +236,7 @@ async function runUser(run: Run, target: TargetState, signalClose: Decimal, rule
     }
 
     // 7. Reconcile, on total balances.
-    return await reconcile(run, account, rules, target, filled);
+    return await reconcile(run, account, rules, target, filled, check);
   } catch (error) {
     // Nothing is recorded as a result here. An intent written before the error
     // stays outstanding, and the next tick settles it through its client order ID.
@@ -452,6 +461,7 @@ async function reconcile(
   rules: InstrumentRules,
   target: TargetState,
   filled: OrderState | null,
+  check: DailyCheck,
 ): Promise<UserOutcome> {
   const { deps, userId, date, at } = run;
   const holdings = holdingsFor(await account.getBalances(), rules);
@@ -473,7 +483,7 @@ async function reconcile(
   });
   await deps.runs.complete(date, userId, at, late);
   await deps.ledger.append({ occurredAt: at, userId, cycleDate: date, type: 'RUN_COMPLETED', payload: { late } });
-  await deps.alerter.send(summary(run, target, filled, holdings, rules, late));
+  await deps.alerter.send(summary(run, target, filled, holdings, rules, late, checkSentences(check, userId)));
   return { userId, result: 'COMPLETED', detail: filled === null ? 'no change' : `${filled.side} filled` };
 }
 
@@ -603,14 +613,15 @@ function summary(
   holdings: Holdings,
   rules: InstrumentRules,
   late: boolean,
+  checkText: string,
 ): string {
   const lateText = late ? ` Completed late, ${formatDuration(run.at.getTime() - dueAt(run.date))} after the close.` : '';
   const now = `Holding ${describeHoldings(holdings, rules)}.`;
   if (filled === null) {
-    return `${run.date}: ${target}, no change. ${now}${lateText}`;
+    return `${run.date}: ${target}, no change. ${now}${lateText}${checkText}`;
   }
   const fill = describeFill(filled, rules);
-  return `${run.date}: ${target}. ${fill[0]!.toUpperCase()}${fill.slice(1)}. ${now}${lateText}`;
+  return `${run.date}: ${target}. ${fill[0]!.toUpperCase()}${fill.slice(1)}. ${now}${lateText}${checkText}`;
 }
 
 /** "bought 0.01174 BTC for 998.92 USDT at 85086.88" */
