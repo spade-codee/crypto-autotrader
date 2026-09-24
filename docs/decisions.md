@@ -26,7 +26,7 @@ are still open.
 | 9 | Language | TypeScript everywhere | DECIDED |
 | 10 | Hosting | Founder's existing VPS | DECIDED |
 | 11 | Frontend | Vite SPA, not Next.js | DECIDED |
-| 12 | Palette | "Instrument" — navy and teal | DECIDED |
+| 12 | Palette | Soft white, bold black and lime, replacing "Instrument" (navy and teal) | DECIDED, changed 2026-09-23 |
 | 13 | Typography | IBM Plex Sans + IBM Plex Mono | DECIDED — the founder is revisiting it, 2026-09-22 |
 | 14 | Name | Keel chosen, then rejected | **OPEN** |
 | 15 | Build order | Phase 0 offline backtest first | DECIDED |
@@ -38,6 +38,7 @@ are still open.
 | 21 | Which assets are tradable | BTC only; meme coins excluded on evidence; an asset must pass the out-of-asset check | **RECOMMENDED — founder to review** |
 | 22 | Phase 2 execution rules | Whole dedicated account; catch up missed runs; founder-only unfreeze; systemd timer | DECIDED 2026-09-22 |
 | 23 | Where the multi-user practice pilot sits | Keep it in Phase 4, bring it forward, or run a small founder-operated version | **OPEN** — decide after the prototype sessions and the Bybit key test |
+| 26 | Strategies are additions the user chooses | A versioned catalogue; one version per dedicated account; eligibility per version; MA-125 stays | DECIDED 2026-09-23 |
 
 **What blocks what:** Phase 0 is complete and #16 is decided, so Phase 1 is unblocked. The legal
 opinion (#18) gates opening the pilot to anyone other than the founder.
@@ -313,7 +314,25 @@ Android app later.
 
 Next.js is defensible rather than wrong. The cost is operational.
 
-## 12. Palette — DECIDED
+## 12. Palette — DECIDED, changed 2026-09-23
+
+**Changed 2026-09-23: soft white, bold black and lime.** The founder found the navy-and-teal
+interface stale. They accepted the direction Codex explored in
+`prototypes/customer/design-lab.html` (`70311ab`), and said they love it. Its colour values live in
+`prototypes/customer/design-lab.css` until `docs/brand.md` is rewritten with final values; Codex is
+still refining them.
+
+Three rules carry over. Lime makes the first one stricter: teal was chosen as the accent furthest
+from green, and lime sits right next to it.
+
+- **Lime never marks a gain, and a gain is never shown in lime.** Profit and loss keep their own
+  colours, and never rely on colour alone (`+2.4% ▲`).
+- **Test lime against exchange yellow on a phone in bright sun.** That test rejected brass,
+  because Binance and Bybit own yellow.
+- **Use lime as a fill behind black text, never as text on white.** On the design lab's colours,
+  black `#181b16` on lime `#d8ff62` has a contrast of about 15:1, and lime on white about 1.1:1.
+
+The original decision follows, kept for its reasoning.
 
 Three directions were rendered as real UI cards: **Instrument** (navy and teal), **Vault**
 (black and brass), and **Signal** (charcoal and violet).
@@ -668,6 +687,43 @@ live in Phase 3.
 **Decide after** the prototype sessions and the Bybit key test (#8). **Ask the lawyer** whether a
 practice-only pilot counts as opening the pilot beyond the founder (#18).
 
+## 26. Strategies are additions the user chooses — DECIDED 2026-09-23
+
+Numbered 26 because #24 and #25 are recorded on `phase-2-paper-engine`.
+
+**The founder's decision, relayed by Codex:** the liquidity strategy the founder brought is an
+**addition, never a replacement for MA-125**. Users choose among strategies, and more are added
+over time. The requirements are in `docs/product/strategy-catalogue.md`:
+
+- **A versioned catalogue.** Any change to what a strategy trades, when, how much, or how it exits
+  is a new version, with its own evidence.
+- **Eligibility belongs to a version:** research, tested, practice, founder live, or live. Each
+  step has its own evidence. It never comes from a blanket switch.
+- **One version per dedicated exchange account in the first release.** A user who wants more
+  strategies needs more dedicated accounts, ideally sub-accounts. Two strategies never control
+  one account. This keeps #22.
+- **Switching**, between strategies or to a new version:
+  - settles the orders already sent;
+  - never removes protection from an open position;
+  - lets the user choose what happens to current holdings, with costs shown;
+  - says when the new version first decides;
+  - requires confirming the exact version.
+
+  No version changes under a user silently.
+- **MA-125 stays.** The liquidity candidate is research only
+  (`docs/research/liquidity-sweep-candidate.md`).
+
+**Alternatives rejected:**
+
+- **Replacing MA-125 with the new idea.** Nothing supports it yet, and MA-125's evidence is what
+  the product rests on.
+- **One on/off switch for strategies.** It would let an untested version trade.
+- **Two strategies sharing one account.** MA-125 is all in or all out, so each strategy would sell
+  the other's holdings. Slices of the account would make our database the source of truth (#22).
+
+**Not permission to trade.** Codex proposed the account rule and the switching contract. This
+entry adopts them and adds details.
+
 ## Corrections made along the way
 
 Recorded so the reasoning trail stays honest.
@@ -692,3 +748,4 @@ Recorded so the reasoning trail stays honest.
 | `docs/research/competitors.md` | Exchange-native tools, eight automation platforms, the Nigerian landscape |
 | `docs/research/naming.md` | Stress test of Keel and ten alternatives |
 | `docs/research/landing-copy.md` | Waitlist page draft — uses the rejected placeholder name |
+| `docs/research/liquidity-sweep-candidate.md` | The founder's liquidity idea as fixed rules and a test plan, with the bar written before any data. A draft: nothing is built or run |
