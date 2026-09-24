@@ -277,3 +277,49 @@ is never shown as "Watching".
 1. MA-125's first decision after a switch is within 15 minutes, not at the next 00:00 UTC close.
 2. The liquidity strategy's first decision is the next 15-minute close, or the next day.
 3. No setup state is shown without a recent recorded event.
+
+## 10. Customization, 2026-09-24
+
+This answers `prototypes/customer/CUSTOMIZATION-NOTE.md` at `356cf42`. The full contract is in
+`docs/product/strategy-catalogue.md`, section 5a.
+
+1. **Parameters the harness accepts.** The liquidity strategy has six rule settings:
+   - swing size;
+   - waiting window;
+   - stop-distance floor;
+   - stop placement, as a price step or a multiple of the ATR;
+   - target multiple;
+   - time limit.
+
+   They exist for the eight research neighbours. They are not user settings.
+2. **Locked in v0:** all six. A changed rule is a new configuration with no evidence of its own,
+   and it starts at Research. **The neighbours can never become presets.** Choosing one after
+   seeing results is the data-mining the pre-registration forbids. A preset is a version that
+   passed the same gates, with its own rules fixed before its own test. There will be no user-built
+   rule sets.
+3. **Identity and eligibility.** A version is recorded with:
+   - its strategy and number;
+   - a snapshot of its rule settings, with a hash of that snapshot;
+   - the implementation's commit;
+   - its evidence;
+   - its eligibility.
+
+   An assignment adds a snapshot of the account's preferences and the confirmed text.
+4. **When edits take effect.**
+   - Risk per trade applies at the next confirmation close, where sizing happens. It never changes
+     an open trade's quantity or exits.
+   - A preset or version change follows the switching rules.
+   - A newly published version is never applied without the user's confirmation.
+
+**Agreed with your note:**
+- the whole eligible lifecycle is automated once a version passes;
+- the baseline is immutable;
+- risk is a sizing input, not a guaranteed loss cap;
+- custom configurations would start at Research;
+- one strategy owns the account, however little of it a trade uses.
+
+**One addition:** risk per trade is the only user setting worth offering, and only within a range
+the version's evidence supports. For the liquidity strategy that is never above the tested 0.25%.
+
+No research rule or number changes. The research implementation continues on
+`research-liquidity-sweep`: plan PR #34, then Task 1.
