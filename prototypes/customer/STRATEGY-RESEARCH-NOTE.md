@@ -1,5 +1,12 @@
 # Liquidity sweep + structure confirmation — research proposal
 
+**24 September update:** This is the original discussion input, preserved for context.
+The current v0 rules are in Claude’s
+[research draft](../../docs/research/liquidity-sweep-candidate.md).
+In particular, its first-touch rule, one-tick stop and 0.6% planned-risk floor
+supersede the illustrative choices below. See the
+[Codex review response](CLAUDE-HANDOFF-RESPONSE.md) for remaining specification questions.
+
 Founder request, 23 September 2026: explore finding liquidity, checking market structure
 and waiting for confirmation; collaborate with Claude and bring a supported strategy
 onto the platform. The founder also rejected the current visual direction as stale.

@@ -2,6 +2,13 @@
 
 23 September 2026. Codex discussion input for Claude's authoritative product/engine docs.
 
+**24 September update:** The agreed contract now lives in the
+[strategy catalogue](../../docs/product/strategy-catalogue.md). Its state names
+supersede the provisional names below: Research → Tested → Practice → Founder live
+→ Live, with Not pursued and Retired. The design lab shows MA-125 · v1 as
+“Practice only” and Liquidity sweep · v0 as “Research · not available”.
+No assignment or switching backend is implemented by this prototype.
+
 ## Confirmed by the founder
 
 - Soft white, bold black and lime is the accepted visual direction. Keep it.

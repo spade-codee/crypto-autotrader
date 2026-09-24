@@ -54,7 +54,7 @@
     </div>
     <dialog id="research-dialog" aria-labelledby="dialog-title">
       <button class="close" aria-label="Close research outline">×</button>
-      <p class="kicker">RESEARCH / NOT AVAILABLE TO ACTIVATE</p>
+      <p class="kicker">LIQUIDITY SWEEP · v0 / RESEARCH · NOT AVAILABLE</p>
       <h2 id="dialog-title">Wait for the setup.<br />Then the confirmation.</h2>
       <p class="muted">
         A proposed sequence to test. These steps are not current market signals,
@@ -64,36 +64,39 @@
         <li>
           <strong>Read the structure</strong
           ><span
-            >Use completed higher-timeframe candles to identify confirmed rising
-            swing highs and lows.</span
+            >Use completed 4-hour candles: the last two confirmed swing highs
+            and lows must rise, and the latest close must stay above the last
+            swing low.</span
           >
         </li>
         <li>
           <strong>Mark a prior low</strong
           ><span
-            >Start with the previous day’s low as a possible liquidity area. It
-            does not reveal real stop orders.</span
+            >Start with the previous UTC day’s low as a possible liquidity area.
+            It does not reveal real stop orders.</span
           >
         </li>
         <li>
           <strong>Wait for a sweep and reclaim</strong
           ><span
-            >Price trades below that level, then a candle closes back above
-            it.</span
+            >The day’s first 15-minute candle to dip below that level must close
+            back above it. Otherwise there is no setup that day.</span
           >
         </li>
         <li>
           <strong>Wait for confirmation</strong
           ><span
-            >A later candle must close above a swing high identified before the
-            sweep. Otherwise the setup expires.</span
+            >Within the next eight candles, a close must clear a reference swing
+            high known before the sweep candle opened. A lower sweep low or
+            failed structure cancels the setup first; otherwise it
+            expires.</span
           >
         </li>
         <li>
           <strong>Check the trade conditions</strong
           ><span
-            >Entry, position size, protective exit, fees and slippage must
-            satisfy the tested rules. If they don’t, skip.</span
+            >Entry, position size, protective exit, fees and slippage must meet
+            rules fixed before any testing. If they don’t, skip.</span
           >
         </li>
       </ol>
