@@ -119,3 +119,15 @@ export function parseAsset(value: string | undefined): Asset {
   }
   throw new Error(`ASSET must be one of ${Object.keys(ASSETS).join(', ')}, not "${value}"`);
 }
+
+/**
+ * Bybit spot BTCUSDT in 15-minute candles, for the liquidity-sweep research
+ * (docs/research/liquidity-sweep-candidate.md on product-prototype). History
+ * begins 2021-07-05 12:00 UTC; the early months were thin (section 6.2).
+ */
+export const LIQUIDITY_15M: Dataset = {
+  symbol: 'BTCUSDT',
+  category: 'spot',
+  file: 'data/BTCUSDT-spot-15m.csv',
+  purpose: 'liquidity-sweep research, 15-minute candles',
+};
