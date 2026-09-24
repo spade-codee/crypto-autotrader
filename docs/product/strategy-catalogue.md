@@ -145,6 +145,82 @@ A pause is not a switch: it stops new entries under the same assignment. What a 
 and the kill switch mean for a strategy with protective exits is set per strategy. For the
 liquidity candidate, see its draft, section 8, question 4.
 
+## 5a. What a user may change, and when
+
+Added 2026-09-24. The founder asked whether the liquidity strategy will be automated and whether
+users can tweak it. Codex proposed a contract (`prototypes/customer/CUSTOMIZATION-NOTE.md` at
+`356cf42`), and this section is the backend's answer to its four questions.
+
+**Automation.** If a version passes every gate in section 3, the engine runs its whole life
+without a person:
+- it watches, arms, confirms and enters;
+- it reconciles the fills;
+- it keeps the position protected until it exits.
+
+Nothing is automated before then: version 0 is offline research.
+
+**Two kinds of setting, kept apart.**
+
+| Kind | Examples | Who sets it | Changes the version? |
+|---|---|---|---|
+| **Strategy rules** | Swing size, confirmation window, the stop-distance floor, stop placement, target, time limit | Only a published version | **Yes**: every change is a new version |
+| **Account preferences** | Risk per trade, within the version's allowed range; pause; notifications | The user | No |
+
+**Which rules the research harness accepts.** The liquidity strategy's configuration has six rule
+settings:
+- swing size;
+- waiting window;
+- stop-distance floor;
+- stop placement, as one price step or a multiple of the ATR;
+- target multiple;
+- time limit.
+
+The price step is an exchange fact, not a setting. The fields exist so the research can run its
+eight neighbours; they are not user settings. **In version 0 all six are locked.**
+
+- **A changed rule is a new configuration with no evidence of its own.** It inherits nothing from
+  version 0's results, and it starts at Research.
+- **The neighbours can never become presets.** They are shown, and never used to choose (the
+  draft, 6.4). Picking the best one after seeing results is the data-mining the pre-registration
+  exists to prevent. A preset is a version that went through the same gates: its own rules, fixed
+  before any data, and its own test.
+- **There will be no user-built rule sets.** Each would be a separate, untested hypothesis traded
+  with this engine under this product's name. "Tweak your bot" is also the language of the signal
+  sellers that the fraud context in `docs/decisions.md` warns about.
+
+**Risk per trade is the one user setting worth offering,** once a version is live-eligible:
+
+- It changes the size of a trade, never which trades happen. Results in R do not depend on it, so
+  a version's evidence holds across its allowed range. The one exception is a buy too small for the
+  exchange's minimum, which is skipped.
+- **Its allowed range belongs to the version.** It is set from that version's evidence and never
+  above the risk it was tested at. For the liquidity strategy that is 0.25%, the research setting.
+  The floor is the lowest risk at which the account's buys still clear the exchange minimum of 5
+  USDT, and the screen shows that minimum account.
+- **A risk setting is an input to sizing, not a guaranteed cap on loss.** A price that jumps past
+  the stop can lose more.
+- **It never frees the rest of the account for anything else.** A strategy still owns its whole
+  dedicated account (#22), however much of it a trade uses.
+
+**How a configuration is identified.** Each version is recorded with:
+- its strategy and version number;
+- a snapshot of every rule setting, with a hash of that snapshot, so identical rules are one
+  configuration;
+- the commit of its implementation;
+- its evidence;
+- its eligibility.
+
+An assignment records the version, a snapshot of the account's preferences, the text the user
+confirmed, and when (section 4).
+
+**When a change takes effect.**
+
+| Change | Takes effect | Never |
+|---|---|---|
+| Risk per trade | At the next confirmation close, where sizing happens. A setup already waiting is sized with the setting in force at its confirmation | Changes an open trade's quantity or its exits |
+| Another version or preset | By the switching rules (section 5). Waiting for the open trade to finish is the default; a waiting setup is discarded when the switch is requested | Alters the protection of an open trade |
+| A new version published | Never on its own: the user confirms it. Until then the account runs the version it confirmed, while that version stays eligible | Silently upgrades anyone |
+
 ## 6. Operator controls
 
 - **The global kill switch, unchanged:** no new orders for anyone, while orders already sent
