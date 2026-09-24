@@ -130,6 +130,9 @@ Other work, if the founder asks for it:
 | `npm run backtest` | MA-200 against buy-and-hold on both datasets. Set `MA_PERIOD` to change |
 | `npm run sweep` | Every period, in-sample and out-of-sample — the Phase 0 result |
 | `npm run out-of-asset` | Judges BTC's MA-125, unchanged, on another asset. `ASSET=DOGE npm run out-of-asset` |
+| `npm run liquidity:fetch` | Fetches Bybit spot BTCUSDT 15-minute candles into `data/` for the liquidity-sweep research, up to 2025-01-01 unless `-- --until YYYY-MM-DD` |
+| `npm run liquidity:check` | Checks those candles, and compares the 4-hour and daily candles built from them with Bybit's own |
+| `npm run liquidity:research` | `-- --period development`, run with `--count-only` first. The locked period also needs `--unlock-locked-period`, in its own pull request |
 | `npm run vault:init` | Create this machine's `.env.local` with a vault master key. Refuses to overwrite |
 | `npm run key:add` | Validate a Bybit key and store it encrypted. Interactive terminal only; secret input is hidden |
 | `npm run key:check` | Re-validate the stored key |
@@ -266,7 +269,9 @@ docs/
 src/
   types.ts, math.ts           shared types; exact Decimal mean and rounding
   strategy/trendFilter.ts     THE strategy — pure, reused unchanged in production
-  backtest/                   engine (next-open execution, warm-up), costs, metrics, report
+  strategy/liquiditySweep.ts  the liquidity-sweep research candidate, with bars, swings and structure; nothing trades it
+  backtest/                   engine (next-open execution, warm-up), costs, metrics, report; also the
+                              liquidity-sweep backtester, evidence, report and lock
   data/                       public market data: Bybit candle fetcher, CSV storage, datasets
   net/http.ts                 GET with host fallback and deadlines, shared by market data and account access
   secrets/secret.ts           Secret — prints [redacted] everywhere
