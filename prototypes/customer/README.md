@@ -1,7 +1,28 @@
 # Customer experience prototype — working draft
 
 Owned by Codex; product facts and spec reviewed by Claude. Includes `product-prototype`
-through `91cd081`. No production code or dependencies are changed.
+through `f21ebd5`. No production code or dependencies are changed.
+
+## Current customer design — 24 September 2026
+
+The accepted soft-white, black and lime design now covers every `index.html` route:
+onboarding, overview, strategy evidence, activity, account, and paused/error scenarios,
+including their dialogs. `customer-theme.css` applies the shared appearance without
+altering the trading facts or prototype actions. It intentionally stays light under
+either OS colour preference. `design-lab.html` remains the strategy-library entry point;
+its links now lead to matching customer screens. The liquidity outline explains planned
+automation and proposed bounded customization; neither feature is implemented here.
+
+`study.html` preserves the previous visual entry point and original `styles.css`.
+The facilitator guide now links to it so its seven session scenarios retain their
+original design. Both entries reuse `app.js` and fixtures; functional changes still
+require study review. Avatars remain parked. Sections below record earlier milestones.
+
+Verification for this rollout: 112 route/viewport/theme combinations and interaction
+checks passed; 34 accessibility screens and 10 design-lab checks passed. All seven
+facilitator links resolve to the preserved study entry point. Desktop/mobile screenshots
+were inspected. Two QA selectors were stabilized for hash-change rendering and the
+additional research disclosure. These checks cover the prototype, not live trading.
 
 Open `index.html` directly in a browser. All files and fonts are local; no server, API,
 network access, account connection, analytics or persistent storage is used. Each hash

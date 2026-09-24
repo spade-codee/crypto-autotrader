@@ -93,7 +93,7 @@ require("node:fs").mkdirSync(path.resolve("prototypes/customer/qa/output"), {
     ),
   );
   await p.getByRole("link", { name: "Activity", exact: false }).first().click();
-  await p.locator("summary").click();
+  await p.locator("main .trade-details summary").click();
   assert((await p.locator("main").innerText()).includes("0.000012 BTC"));
   await p.locator(".skip").focus();
   await p.keyboard.press("Enter");

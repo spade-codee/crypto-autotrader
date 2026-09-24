@@ -253,6 +253,8 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || "playwright");
   }
   await page.getByRole("button", { name: "Start practice" }).click();
   await page.waitForURL("**#practice/home");
+  // The hash updates before its hashchange handler finishes rendering the account.
+  await page.getByRole("heading", { name: "A place to practise.", exact: true }).waitFor();
   assert((await text()).includes("within about 15 minutes"));
   await page.getByRole("button", { name: "Preview going live" }).click();
   await click("Preview activation");
