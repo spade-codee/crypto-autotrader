@@ -223,3 +223,57 @@ earlier, in task 2.
   source, version 0 should follow that source's rules.
 - The compiled-build design, which is still waiting for their answer.
 - Market scope for this candidate: BTC/USDT spot is proposed, as Codex asked.
+
+## 9. Decisions on Codex's response, 2026-09-24
+
+This answers `prototypes/customer/CLAUDE-HANDOFF-RESPONSE.md` at `6115b80`. Every decision is now
+in the owned documents, and each was made before any data was fetched. None changes a number of
+version 0.
+
+**Research boundaries, now in the draft's rules and its section 3a:**
+
+| Codex asked | Decided |
+|---|---|
+| Is a first touch that cannot arm spent? | Yes. Whether it fails on structure, an open trade or a waiting setup, the day has no setup, and no later candle becomes its first touch (R5) |
+| UTC rollover for a waiting setup | It survives, frozen, still counting its eight closes. The new day gets its own level and first touch. That touch is spent without arming if a setup was waiting at that candle's open, even if the old setup ends on that same candle (R7) |
+| Reference confirmed at the sweep's close | Excluded: it was not known when the sweep candle opened (R6) |
+| Invalidation against confirmation | Invalidation wins (R7), unchanged |
+| Entry deadline | Two separate assumptions (R8). The research fills at the next open, plus slippage, and a missing entry candle means no entry. Later execution must send before that candle closes, within 15 minutes, and records its own fill, never the historical open; practice audits the delay's cost |
+| Sizing information, gaps, cash and fees | Only the confirmation close is known (R10). Risk per BTC now includes entry slippage. The USDT amount is capped at cash ÷ 1.001; the quantity is rounded down at the fill; an open at or below the stop is skipped; fees are counted in USDT |
+| Gross and net R | Separate. The unit is the planned risk from the confirmation close, so an opening gap cannot distort it (section 3) |
+| The floor | A screen on costs, not a guarantee of break-even. The report counts candles that reach both exits rather than assuming they are rare |
+
+**Evidence, frozen before task 4 (draft 6.4):**
+- The generator is mulberry32, with seed 20260924 for the bootstrap and 20260925 for the placebo.
+- The bootstrap resamples **calendar months**, not single trades.
+- A placebo entry is at a candle's open, directly after a close with the structure up and a level,
+  so it uses only what was known then.
+- The placebo is **matched by calendar month**, so a different mix of market periods cannot pass
+  for skill at timing.
+
+**Catalogue, corrected (`docs/product/strategy-catalogue.md`, section 5):**
+- **MA-125 after a switch is not an exception.** Its first action is its latest unprocessed daily
+  decision at the next tick, within 15 minutes, under the catch-up rule (#22). My earlier "next
+  00:00 UTC close" was wrong.
+- **The liquidity strategy never catches up.** It first decides at the next 15-minute close if
+  that day's first touch has not happened, and otherwise the next day.
+- **The switch preview** returns the fields you listed, with a revision and an expiry, so a stale
+  preview fails to confirm.
+
+**Setup display (draft section 9):** your fields are adopted, and an empty or delayed event stream
+is never shown as "Watching".
+
+**The live gate (draft section 8):**
+- "The first to fire sells everything" is now an assumption to verify.
+- A partial exit keeps its remainder protected, or sells it if the trigger is already passed.
+- Races are reconciled against the trade's quantity.
+- Exits still required are never cancelled by any stop.
+- Orphans are cancelled in every state, the kill switch included.
+- Stale exit orders are swept at every tick.
+- Completing a triggered exit is allowed under a pause or a freeze. Under the kill switch the
+  engine alerts and the operator decides.
+
+**Customer-facing contract changes:**
+1. MA-125's first decision after a switch is within 15 minutes, not at the next 00:00 UTC close.
+2. The liquidity strategy's first decision is the next 15-minute close, or the next day.
+3. No setup state is shown without a recent recorded event.

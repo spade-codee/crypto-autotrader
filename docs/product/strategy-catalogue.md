@@ -110,14 +110,36 @@ an upgrade to a new version of the same strategy. **No version changes under a u
    - what the account holds now;
    - what will happen to it under the chosen option, with estimated costs;
    - which protective orders remain, and until when;
-   - when B first decides: for MA-125 the next 00:00 UTC close, for the liquidity strategy the
-     next day it can arm a setup;
+   - when B first decides, as one effective time the backend computes (see below);
    - B's version summary.
 
    Switching does not change the product fee, which is a flat yearly fee (#16).
 6. **Confirmation of the exact version,** recorded as for an assignment.
 7. **Recorded and repeatable safely.** A switch is recorded when requested and when completed. A
    repeated request changes nothing, and an account never has two active assignments.
+8. **A preview is confirmed against a revision.** The backend returns:
+   - the exact version;
+   - its eligibility, or the reason it is blocked;
+   - the current position and any unresolved orders;
+   - the exits kept;
+   - the transitions allowed;
+   - the estimated cost, with its timestamp;
+   - the earliest possible new decision.
+
+   The preview carries the account's revision and an expiry. Confirming it after the account has
+   changed, or after it has expired, fails, and a fresh preview is needed.
+
+**When B first decides** (corrected 2026-09-24, after Codex's review at `6115b80`). An earlier
+version of this document said MA-125 first acts at the next 00:00 UTC close. That was wrong.
+**Switching is not an exception to a strategy's own timing:**
+
+| Version | First decision after the switch |
+|---|---|
+| **MA-125** | Its latest unprocessed daily decision, at the next tick, within 15 minutes. This is the same catch-up rule as any late run (#22), and like one it is abandoned at the next daily close. The prototype's activation rule already says this |
+| **The liquidity strategy** | The next 15-minute close, if that UTC day's first touch has not happened yet; otherwise the next UTC day. It never catches up, because it allows no late entries |
+
+The difference between strategies is the point to show. MA-125 catches up its latest decision; the
+liquidity strategy never does.
 
 A pause is not a switch: it stops new entries under the same assignment. What a pause, a freeze
 and the kill switch mean for a strategy with protective exits is set per strategy. For the
@@ -129,6 +151,10 @@ liquidity candidate, see its draft, section 8, question 4.
   still settle (#24, on `phase-2-paper-engine`).
 - **A stop for one version, new:** it stops new entries for that version everywhere, while exits
   and settlement continue. It is needed before a second version runs anywhere.
+- **No stop of any kind cancels an exit that still protects a position.** An orphaned exit is one
+  whose position is confirmed gone. It is cancelled in every state, the kill switch included,
+  because a stale sell could act on funds deposited later. The liquidity draft's live gate, in
+  section 8, sets out partial exits, races and completing a triggered exit.
 
 ## 7. What the engine will need later
 
