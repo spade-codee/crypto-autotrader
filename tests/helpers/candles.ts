@@ -30,3 +30,21 @@ export function lastDay(candles: Candle[]): string {
 export function nextDay(date: string): string {
   return new Date(Date.parse(`${date}T00:00:00Z`) + DAY).toISOString().slice(0, 10);
 }
+
+/** A candle at `time` with these prices and a volume of 1. */
+export function bar(
+  time: number,
+  open: number | string,
+  high: number | string,
+  low: number | string,
+  close: number | string,
+): Candle {
+  return {
+    time,
+    open: new Decimal(open),
+    high: new Decimal(high),
+    low: new Decimal(low),
+    close: new Decimal(close),
+    volume: new Decimal(1),
+  };
+}
