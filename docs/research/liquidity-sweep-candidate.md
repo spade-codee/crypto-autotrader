@@ -57,8 +57,15 @@ the same.
 ## 3. Rules, version 0
 
 Every value below is fixed here, and none was chosen by looking at data. Results are reported in
-**R**, the entry's distance to its stop trigger: a trade stopped out is about −1R and a trade that
-reaches its target about +2R, before costs.
+**R**, the trade's **planned risk**: the confirmation close's distance to the stop trigger (R8). A
+trade stopped out is about −1R and a trade that reaches its target about +2R, before costs.
+
+- **Net R** is the profit per BTC after fees and slippage, divided by the planned risk.
+- **Gross R** is the same before costs.
+
+Measuring from the confirmation close, not the fill, stops an opening gap from distorting the
+unit. The clarifications of 2026-09-24, all made before any data was fetched, are listed in
+section 3a.
 
 **R1. Candles.** Bybit spot BTCUSDT 15-minute candles, and only completed ones. The 4-hour and
 daily figures are built from them, aligned to UTC (4-hour blocks start at 00:00, 04:00 and so on;
@@ -93,12 +100,18 @@ whose low is below the level is the only candidate that day.
 - If it **closes at or below it**, the level broke rather than swept, and the day has no setup.
 
 A sweep arms a setup only if, at its close, the structure is up (R3), the account holds no trade
-and no other setup is waiting, and a reference swing high exists (R6). If the account is in a
-trade when the day's first touch comes, the day has no setup.
+and no other setup is waiting, and a reference swing high exists (R6).
+
+**The first touch is spent whether or not it arms.** It may fail to arm because the account is in
+a trade, a setup is still waiting, the structure is not up, or there is no reference. Either way
+the day has no setup, and no later candle that day becomes its first touch. A day with no level
+has no touch at all.
 
 **R6. The reference swing high** is the most recent 15-minute swing high that was already known
 when the sweep candle opened and sits above the sweep candle's close. If there is none, there is
-no setup. It is frozen at arming, with the level and the sweep low. Nothing is recalculated later.
+no setup. A swing confirmed by the sweep candle's own close was not known when it opened, so it
+cannot be the reference. The reference is frozen at arming, with the level, the sweep low and the
+stop trigger. Nothing is recalculated later.
 
 **R7. Waiting.** At each of the next eight 15-minute closes (two hours), in this order:
 
@@ -110,12 +123,25 @@ no setup. It is frozen at arming, with the level and the sweep low. Nothing is r
 Discarding comes before confirming, so a candle that does both counts as a failure. When the order
 of events inside a candle is unknown, the rules take the worse one.
 
-**R8. Entry.** A market buy at the open of the candle after the confirmation.
+**A waiting setup survives midnight.** Everything frozen at arming stays frozen, and it keeps
+counting its eight closes. The new day still gets its own level: yesterday's low, which may be the
+sweep's own low. It also gets its own first touch. If that touch comes on a candle that opened
+while the old setup was still waiting, the touch is spent without arming, even if the old setup
+ends on that same candle.
+
+**R8. Entry.** A market buy, decided at the confirmation close.
 
 - **Planned risk** is the confirmation close minus the stop trigger (R9). If it is under **0.6% of
-  the confirmation close**, skip the trade (section 4 derives this floor from costs).
-- **No late entries, ever.** If the buy cannot go out during that candle, the setup is void. That
-  covers an outage, stale data and a failed request.
+  the confirmation close**, skip the trade. Section 4 derives this screen from costs.
+- **In the research,** the buy fills at the open of the next candle, plus slippage. If that candle
+  is missing, there is no entry. The trade never takes a later open.
+- **In practice and live trading, later,** the buy must be sent before that next candle closes,
+  within 15 minutes of the confirmation. Otherwise the setup is void, whether the cause is an
+  outage, stale data or a failed request. **No late entries, ever.** A practice or real fill is
+  recorded at its own price, never at the historical open. Practice must show that the average
+  cost of the delay stays within the slippage assumed here.
+- **An entry open at or below the stop trigger is skipped.** The trade would be stopped at once,
+  with no risk distance left.
 
 **R9. Exits.** Set when the entry fills, from its fill price:
 
@@ -137,12 +163,21 @@ They are checked on every completed candle, starting with the entry candle itsel
 The stop never moves to break-even, and there are no partial exits.
 
 **R10. Size.** Risk **0.25%** of the account's value per trade. This is a research setting, not a
-product decision. The quantity is 0.25% of equity divided by the risk per BTC. That risk counts
-the distance from the confirmation close to the stop trigger, both fees, and the stop's slippage. The quantity is capped by
-the USDT available, with no borrowing, rounded down to the exchange's lot step, and skipped if it
-falls under the exchange minimum. A price that jumps past the stop can lose more than 0.25%, so
-intended risk is not the maximum loss. Pass or fail is judged on per-trade R, which sizing does
-not change.
+product decision. Sizing uses only what is known at the confirmation close:
+
+- **Risk per BTC** is the loss if the buy fills at the confirmation close plus slippage and the stop
+  sells at its trigger less slippage, with both fees on those two prices.
+- **The order is an amount of USDT:** 0.25% of equity divided by the risk per BTC, times the
+  confirmation close plus slippage. It is capped at the available USDT divided by 1.001, so the buy
+  fee can never overdraw the account. There is no borrowing.
+- **At the fill,** the BTC bought is that amount divided by the fill price, rounded down to the
+  exchange's lot step of 0.000001 BTC. An opening gap therefore buys a little more or less than
+  planned. A buy under the exchange minimum of 5 USDT is skipped.
+- **Fees are counted in USDT on both sides.** Bybit takes a buy's fee in BTC; its value is the
+  same.
+
+A price that jumps past the stop can lose more than 0.25%, so intended risk is not the maximum
+loss. Pass or fail is judged on per-trade R, which sizing does not change.
 
 **R11. Costs.** A **0.1% fee** and **0.05% slippage** on every fill: entry, stop, target and time
 exit are all market orders once triggered. Section 8 explains why the target cannot be a resting
@@ -160,6 +195,23 @@ UTC day.
 3. Update swings, structure, and the day's level.
 4. A waiting setup: discard, confirm, or expire.
 5. A new sweep, only if the account was flat when this candle opened.
+
+## 3a. Clarifications, 2026-09-24, before any data
+
+Codex's review of the handoff (`prototypes/customer/CLAUDE-HANDOFF-RESPONSE.md` at `6115b80`)
+found boundary cases the rules had left open. Each was settled before any data was fetched, and
+the rules above now say so. None changes a number.
+
+| Question | Settled |
+|---|---|
+| Is a first touch that cannot arm still spent? | Yes (R5) |
+| Does a waiting setup survive midnight? | Yes, frozen, still counting its eight closes. The new day's first touch is spent without arming if a setup was waiting at that candle's open (R7) |
+| Can the sweep candle's own close confirm the reference? | No: it was not known when that candle opened (R6) |
+| Next open, or "during the candle"? | Two separate assumptions. The research fills at the next open. Later execution must send within 15 minutes and records its own fill (R8) |
+| An entry open at or below the stop | Skipped (R8) |
+| What sizing may know | Only the confirmation close. Entry slippage is now in the risk per BTC, and the USDT cap includes the buy fee (R10) |
+| The unit of R | The planned risk from the confirmation close, not from the fill, so an opening gap cannot distort it. Net and gross R are reported separately (section 3) |
+| Bootstrap and placebo | Months are the resampling unit. The placebo is matched by calendar month and timed like a real entry. The seeds are fixed (6.4) |
 
 ## 4. Costs, and the floor on the stop distance
 
@@ -180,7 +232,9 @@ This is approximate, since time exits land between the two outcomes. Below 0.6%,
 would need to win more than half its trades just to break even, so R8 skips those trades. The
 floor comes from the cost arithmetic, not from any data. It has a second effect. A candle can only
 reach both the stop and the target if its range is at least 3R, which is 1.8% in 15 minutes at the
-floor. That is rare, so treating such candles as losses (R9) costs little.
+floor. That should be rare, so treating such candles as losses (R9) should cost little. The report
+counts them rather than assuming so. The floor is a screen on costs, not a guarantee of an exact
+break-even rate.
 
 ## 5. How much a result can prove
 
@@ -230,43 +284,57 @@ listed in section 8.
 
 ### 6.3 The next bounded research implementation
 
-The founder and Codex asked for this list. Each item is one pull request on a research branch.
-No item touches the engine, the ledger, the database or order code. The strategy functions go in
-`src/strategy/`, which imports only `math` and `types`, so the same code would later run in the
-engine. That is the rule "One strategy implementation, ever".
+The founder and Codex asked for this list. Each item is one pull request on branch
+`research-liquidity-sweep`, from `phase-2-paper-engine`. The detailed plan is
+`docs/superpowers/plans/2026-09-24-liquidity-sweep-research.md` on that branch. No item touches the
+engine, the ledger, the database or order code. The strategy functions go in `src/strategy/`, so
+the same code would later run in the engine: that is the rule "One strategy implementation, ever".
+`src/strategy/` imports only `math`, `types`, `decimal.js` and its own files, and a test enforces
+it.
 
-1. **15-minute candles.** Generalize the candle fetcher to take an interval, keeping daily fetching
-   unchanged. Add storage, integrity checks for gaps, duplicates and impossible prices, and 4-hour
-   and daily candles built from 15-minute ones. Test the built candles against Bybit's own 4-hour
-   and daily candles.
-2. **Swings and structure.** Pure functions for R2 to R4. Tests cover when a swing becomes known,
-   ties, and no lookahead: adding later candles must never change an earlier answer.
-3. **The rules.** A pure step function for R5 to R8, R12 and R13:
-   `(state, completed candle) → (state, actions)`. Each rule gets tests, including the first touch,
-   the discard order, and no late entries.
-4. **The backtester.** R9 to R11: fills, stop-first, missing candles, sizing, results in R, and the
-   placebo. Tested on synthetic candles.
-5. **Report and lock.** The report in 6.4, the enforced lock, and the attempt log.
-6. **Run the development period.** First check the data, then count trades before looking at any
-   result, then do the one run. The results go into this document as they are, through their own
-   pull request.
-7. **Run the locked period.** Its own pull request, and only if development passed.
+1. **15-minute candles.** The candle fetcher takes an interval and an end date, with daily fetching
+   unchanged. Add integrity checks for gaps, duplicates and impossible prices, and a fetch command
+   that keeps the locked period off the disk.
+2. **Candles, swings and structure.** Pure functions for R1 to R4: 4-hour and daily candles built
+   from 15-minute ones, swings with the time they become known, and structure. Tests cover ties and
+   no lookahead: adding later candles must never change an earlier answer.
+3. **The rules.** A step function for R5 to R8, R12 and R13, fed one completed candle at a time. It
+   keeps its own history, rebuilt by replaying candles, so the same candles always give the same
+   events. Each rule and each boundary in section 3a gets a test.
+4. **The backtester.** R9 to R11: fills, stop-first, missing candles, sizing, and results in net
+   and gross R. Tested on synthetic candles.
+5. **Evidence.** The seeded generator, the month-block bootstrap and the month-matched placebo.
+6. **Report and lock.** The report in 6.4, the bar in 6.5, and the enforced lock.
+7. **Commands.** A data check against Bybit's own 4-hour and daily candles, and the research
+   command with a count-only step and the attempt log.
+8. **Run the development period.** First check the data, then count trades before looking at any
+   result, then do the one run. The results are recorded as they are, in their own pull request.
+9. **Run the locked period.** Its own pull request, and only if development passed.
 
 ### 6.4 What every run reports
 
 - **Trades:** count, per year, win rate, and the average win and loss in R.
-- **Result:** mean R per trade after costs, with a 90% bootstrap interval (10,000 resamples), and
-  total R. It is also broken down by calendar year: 2022 fell, 2023 recovered, 2024 rose and went
-  sideways.
+- **Result:** mean net R per trade and total R, and the same in gross R. The mean has a 90%
+  interval from 10,000 bootstrap resamples. The resampling unit is the calendar month: all of a
+  month's trades are drawn together, so months that bunch trades together are not treated as
+  independent. Results are also broken down by calendar year: 2022 fell, 2023 recovered, and 2024
+  rose and went sideways.
 - **Costs:** the same results at 0.15% slippage, and the round-trip cost at which the mean
   reaches zero.
-- **Placebo:** for each real trade, one random 15-minute open in the same period when the
-  structure was up and the day had a level. It gets the trade's stop distance as a percentage,
-  plus the same target, time limit, costs and exits. That makes one placebo set; 1,000 sets give a
-  distribution of mean R, and the report says where the real mean ranks. Placebo trades may
-  overlap; each is scored alone.
-- **Ambiguous candles:** how many trades ended on a candle that reached both the stop and the
-  target.
+- **Placebo:** for each real trade, one random 15-minute candle **in the same calendar month**,
+  entered at its open. It must be a candle where a real entry could have been decided: the one
+  directly after a close at which the structure was up and the day had a level. Only information
+  known at that open is used.
+  - Each placebo trade gets the real trade's stop distance as a share of price, and the same target
+    multiple, time limit, costs and exits. It is measured in its own planned risk.
+  - That makes one placebo set. 1,000 sets give a distribution of mean R, and the report says where
+    the real mean ranks.
+  - Placebo trades may overlap; each is scored alone.
+  - Matching by month stops a different mix of market periods from passing for skill at timing.
+- **Randomness is fixed:** the seeded generator mulberry32, with seed 20260924 for the bootstrap and
+  20260925 for the placebo. Both are printed in every report.
+- **Ambiguous candles:** the actual number of trades that ended on a candle reaching both the stop
+  and the target.
 - **Account view at 0.25% risk:** return, maximum drawdown, time in the market, capital in use,
   and the longest losing streak.
 - **Context only, never a pass criterion:** buy-and-hold, MA-125 and cash over the same dates and
@@ -349,11 +417,11 @@ coins.
 | Retest entry as the one registered alternative | **Left out of round one** | Resting buys at a level are the most flattering fills a candle backtest can give: it fills the trades that come back and misses the ones that run. A second variant also halves what each result can prove |
 | Next-bar entry; no same-bar fill; one position; no resurrected setups | Kept | |
 | Stop: sweep low − 0.25 × ATR | **Changed: one price step below the sweep low** | Two fewer numbers, and one sentence to explain. Codex's buffer is tested as a neighbour, not assumed |
-| — | **Added: skip if the stop is under 0.6% away** | Derived from costs (section 4). It also makes candles that reach both exits rare |
+| — | **Added: skip if the stop is under 0.6% away** | Derived from costs (section 4). It should also make candles that reach both exits rare; the report counts them |
 | Target 2R; time exit after 32 bars; no break-even, no partials | Kept | |
 | How the target fills (not specified) | **Specified: a triggered market sell, with slippage** | On Bybit spot, a sell order resting at the target would lock the BTC the stop must sell (section 8) |
 | Risk 0.25% per trade, costs included in the risk, capped by available USDT | Kept, as a research setting | Research is judged on R, which sizing does not change |
-| Stop and target in one bar: use lower-timeframe data, then the adverse ordering | **Changed: always the adverse ordering;** 1-minute data only as a reported sensitivity | Simpler, and with the floor such candles are rare. If they turn out common, that is itself a finding |
+| Stop and target in one bar: use lower-timeframe data, then the adverse ordering | **Changed: always the adverse ordering;** 1-minute data only as a reported sensitivity | Simpler, and with the floor such candles should be rare; the report counts them. If they turn out common, that is itself a finding |
 | Development, validation and final untouched periods | **Two historical periods, then practice trading as the untouched one** | No settings are chosen, so a validation period has nothing to do, and a three-way split of about three good years leaves each piece too small |
 | Choose acceptance thresholds before the final evaluation | **Fixed now, before development** | Thresholds set after seeing development results are chosen to pass |
 | Record every configuration; compare with buy-and-hold, MA-125 and cash; report exposure | Kept (6.4) | |
@@ -387,10 +455,32 @@ coins.
 
 So a limit sell resting at the target would lock the BTC that a triggered stop must sell. The
 candidate design is **two conditional market sells, one below and one above, neither holding funds
-until triggered**. The first to trigger sells everything, and the engine cancels the other. It
-must be verified on a real account before any real money: in particular, what Bybit does with the
-second order when the first has already sold the BTC. The backtest models exits this way, which is
-why R9 and R11 apply slippage at the target.
+until triggered**. The first to trigger should sell everything, and the engine then cancels the
+other. **That is an assumption to verify, not a fact.** Bybit documents market orders as
+immediate-or-cancel, and they can be cancelled when liquidity runs short, so a trigger is not proof
+of a full exit. The backtest models exits this way, which is why R9 and R11 apply slippage at the
+target.
+
+**The live gate.** Before any real money, the engine spec must handle each of these. Codex raised
+them on 2026-09-24:
+
+- **A partial exit.** After any exit order ends, the engine compares the account's BTC with the
+  trade. A remainder above the exchange minimum stays in the trade and keeps a protective stop, for
+  the rest of the quantity. If the price is already past the trigger, the remainder is sold at
+  market, completing an exit that has already triggered.
+- **Races.** Both conditional orders may fire in one fast move. Every fill is reconciled against
+  the trade's quantity, and anything unexplained freezes the account, as locked funds already do.
+- **Required exits and orphans are different.** An exit order that still protects a position is
+  never cancelled by a pause, a freeze or the kill switch. An exit order whose position is
+  confirmed gone is an orphan. It is cancelled in every state, the kill switch included: cancelling
+  cannot add risk, and a stale sell could act on funds deposited later.
+- **Stale exit orders** are looked for at every tick. Any of ours that matches no open trade is
+  cancelled, with an alert.
+- **Completing an exit that has triggered** is allowed under a pause or a freeze. Under the kill
+  switch it is not placed: the engine alerts at once, and the operator decides.
+
+All five must be verified on a real account in Phase 2b, including what Bybit does with the second
+order once the first has sold the BTC.
 
 **Codex's integration questions, answered:**
 
@@ -409,11 +499,13 @@ why R9 and R11 apply slippage at the target.
 3. **Protective exits survive failures by resting on the exchange** (above). They are reconciled
    like any order: the intent is recorded before sending, each order gets one result, and every
    tick looks them up.
-4. **Pause, proposed for this strategy:** no state places a new order or cancels a protective
-   one. That covers a pause, a freeze, the kill switch and an outage.
+4. **Pause, proposed for this strategy:** no state places a new entry, and no state cancels an
+   exit that still protects a position. That covers a pause, a freeze, the kill switch and an
+   outage.
    - A waiting setup is discarded, never resumed.
    - An open trade keeps its stop and target resting.
    - Its time exit is a new order, so it waits until the account can trade again.
+   - Orphaned exits, and exits that have already triggered, follow the live gate above.
    - Someone who wants out closes the trade explicitly.
 
    MA-125's wording does not carry over. For MA-125, a pause holds the position with no stop at
@@ -427,13 +519,10 @@ why R9 and R11 apply slippage at the target.
 matter. It is not available to activate, and it says its steps are "not current market signals,
 and no performance has been established". It warns that the prior low "does not reveal real stop
 orders", and says the candidate "cannot simply share control of the daily strategy's whole
-account". Two wording changes, if these rules are accepted:
-
-- "Price trades below that level, then a candle closes back above it" describes a recovery that
-  can come hours later. Under R5, the same 15-minute candle must dip below and close back above.
-  Suggested: *"A 15-minute candle dips below that level and closes back above it."*
-- "must satisfy the tested rules": nothing is tested yet. Suggested: *"must meet rules fixed
-  before any testing."*
+account". Codex made both suggested wording changes at `6115b80`: the same candle dips below the
+level and closes back above it, as the day's first touch; and the rules are "fixed before any
+testing". The card now shows the exact version, *Liquidity sweep · v0*, labelled *Research · not
+available*.
 
 **Setup states, only once practice trading runs,** from the engine's recorded events, never from
 sample data dressed as live:
@@ -444,6 +533,18 @@ sample data dressed as live:
 - **Closed** by its stop, its target, or the time limit.
 - **Not taken**, with the reason: the level broke, the structure turned, the setup expired, the
   stop was too close, or the entry candle was missed.
+
+Each state carries the fields Codex listed at `6115b80`:
+- the recorded event time;
+- the rule and version;
+- the expiry;
+- the reason code;
+- the reconciled position;
+- the stop, target and time limit;
+- whether reconciliation is complete.
+
+**An empty or delayed event stream is never shown as "Watching".** The screen then shows when the
+last check succeeded.
 
 Before practice trading, the card describes the rules and nothing else. It shows no backtest
 figures on customer screens, per the brand rule never to state or imply a return, and uses no
