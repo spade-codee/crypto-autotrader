@@ -208,7 +208,8 @@ Each rule prevents a specific way of losing a user's money.
   Postgres. Never `parseFloat` an exchange response — go straight from string to Decimal.
 - **One strategy implementation, ever.** The strategy is a pure function (`StrategyFn`), and the
   identical function runs in backtest and production. Never write a second implementation.
-  `src/strategy/` must import nothing except `../math.js` and `../types.js`.
+  `src/strategy/` must import nothing except `../math.js`, `../types.js`, `decimal.js` and its own
+  files, and never read a clock or randomness; `tests/strategy/purity.test.ts` enforces it.
 - **No lookahead.** A signal computed from candle N's close executes at candle N+1's open.
 - **Backtests include fees and slippage.** Without them the results are fiction.
 - **Choose parameters in-sample, verify out-of-sample**, and pick from a broad plateau of working
