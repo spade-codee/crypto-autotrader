@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import Decimal from 'decimal.js';
 import {
   closedCandles,
+  fetchCandles,
   fetchDailyCandles,
   parseKlineResponse,
 } from '../../src/data/bybit.js';
@@ -78,26 +79,26 @@ describe('parseKlineResponse', () => {
   });
 });
 
+const row = (time: number) => [String(time), '1', '1', '1', '1', '1', '1'];
+const page = (...times: number[]) => ({
+  retCode: 0,
+  retMsg: 'OK',
+  // Bybit returns newest first.
+  result: { list: times.map(row).reverse() },
+});
+
+/** Serves the given response bodies in order, recording every URL requested. */
+function serve(bodies: unknown[]) {
+  const urls: string[] = [];
+  const impl = async (url: string) => {
+    urls.push(url);
+    const body = bodies[Math.min(urls.length - 1, bodies.length - 1)];
+    return { ok: true, status: 200, json: async () => body };
+  };
+  return { impl, urls };
+}
+
 describe('fetchDailyCandles', () => {
-  const row = (time: number) => [String(time), '1', '1', '1', '1', '1', '1'];
-  const page = (...times: number[]) => ({
-    retCode: 0,
-    retMsg: 'OK',
-    // Bybit returns newest first.
-    result: { list: times.map(row).reverse() },
-  });
-
-  /** Serves the given response bodies in order, recording every URL requested. */
-  function serve(bodies: unknown[]) {
-    const urls: string[] = [];
-    const impl = async (url: string) => {
-      urls.push(url);
-      const body = bodies[Math.min(urls.length - 1, bodies.length - 1)];
-      return { ok: true, status: 200, json: async () => body };
-    };
-    return { impl, urls };
-  }
-
   it('pages forward, requests the given category, and drops the unfinished candle', async () => {
     const now = 2 * DAY + 3_600_000; // day 2 has started but not finished
     const { impl, urls } = serve([page(0, DAY), page(2 * DAY), page()]);
@@ -137,5 +138,41 @@ describe('fetchDailyCandles', () => {
     });
     expect(candles.map((c) => c.time)).toEqual([0, DAY]);
     expect(urls).toHaveLength(2);
+  });
+});
+
+describe('closedCandles with an interval', () => {
+  it('drops a 15-minute candle that has not finished', () => {
+    const q = 900_000;
+    const result = closedCandles([candleAt(0), candleAt(q), candleAt(2 * q)], 2 * q + 60_000, q);
+    expect(result.map((c) => c.time)).toEqual([0, q]);
+  });
+});
+
+describe('fetchCandles', () => {
+  const q = 900_000;
+
+  it('asks for the interval and continues one interval after the last candle', async () => {
+    const { impl, urls } = serve([page(0, q), page(2 * q), page()]);
+    const candles = await fetchCandles('BTCUSDT', '15', new Date(0), {
+      hosts: ['https://x.test'],
+      fetchImpl: impl,
+      now: 3 * q,
+    });
+    expect(candles.map((c) => c.time)).toEqual([0, q, 2 * q]);
+    expect(urls[0]).toContain('interval=15');
+    expect(urls[1]).toContain(`start=${2 * q}`);
+  });
+
+  it('keeps nothing at or after the end, and stops asking past it', async () => {
+    const { impl, urls } = serve([page(0, q, 2 * q, 3 * q), page(4 * q)]);
+    const candles = await fetchCandles('BTCUSDT', '15', new Date(0), {
+      hosts: ['https://x.test'],
+      fetchImpl: impl,
+      now: 100 * q,
+      end: 2 * q,
+    });
+    expect(candles.map((c) => c.time)).toEqual([0, q]);
+    expect(urls).toHaveLength(1);
   });
 });

@@ -13,6 +13,7 @@
     "backtest": "tsx src/cli/backtest.ts",
     "sweep": "tsx src/cli/sweep.ts",
     "out-of-asset": "tsx src/cli/outOfAsset.ts",
+    "liquidity:fetch": "tsx src/cli/liquidity-fetch.ts",
     "cycle": "tsx src/cli/cycle.ts",
     "paper:init": "tsx src/cli/paper-init.ts",
     "status": "tsx src/cli/status.ts",

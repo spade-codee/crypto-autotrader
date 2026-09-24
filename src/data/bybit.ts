@@ -10,6 +10,10 @@ const KLINE_PATH = '/v5/market/kline';
 const MAX_LIMIT = 1000;
 const DAY_MS = 86_400_000;
 
+/** The Bybit kline intervals this project fetches, and each one's length in milliseconds. */
+export const INTERVAL_MS = { '15': 900_000, '240': 14_400_000, D: DAY_MS } as const;
+export type Interval = keyof typeof INTERVAL_MS;
+
 /**
  * Bybit v5 kline rows arrive as string arrays, newest first:
  *   [startTime, open, high, low, close, volume, turnover]
@@ -50,15 +54,16 @@ export function parseKlineResponse(body: unknown): Candle[] {
 }
 
 /**
- * Keeps only daily candles whose day has fully ended by `now`.
+ * Keeps only candles whose interval has fully ended by `now`: daily candles by
+ * default, or any interval given its length.
  *
- * The exchange includes today's candle while it is still forming, and its
- * "close" is merely the latest price. The strategy decides on daily closes, so
+ * The exchange includes the current candle while it is still forming, and its
+ * "close" is merely the latest price. The strategy decides on closes, so
  * acting on an unfinished candle would mean trading on a value that can still
  * change — in the backtest a small distortion, in production a real bug.
  */
-export function closedCandles(candles: Candle[], now: number): Candle[] {
-  return candles.filter((c) => c.time + DAY_MS <= now);
+export function closedCandles(candles: Candle[], now: number, intervalMs: number = DAY_MS): Candle[] {
+  return candles.filter((c) => c.time + intervalMs <= now);
 }
 
 export type FetchCandlesOptions = {
@@ -72,18 +77,26 @@ export type FetchCandlesOptions = {
   fetchImpl?: FetchLike;
   /** Epoch ms treated as the current time. Injectable for tests. */
   now?: number;
+  /**
+   * Epoch ms. Candles opening at or after this are neither kept nor asked for, so a
+   * research period that must stay unseen never reaches the disk. Defaults to now.
+   */
+  end?: number;
 };
 
 /**
- * Fetches CLOSED daily candles from `start` up to now, paginating forward.
+ * Fetches CLOSED candles of one interval from `start` up to `end`, paginating
+ * forward.
  *
  * Given only a `start`, Bybit returns the OLDEST `limit` candles at or after
- * it (verified against the live API 2026-09-17), so each page continues from
- * the day after the last candle received. Stops when a page returns nothing
- * new, which also guards against looping if the API ever repeats a page.
+ * it (verified against the live API for daily candles 2026-09-17 and for
+ * 15-minute candles 2026-09-23), so each page continues one interval after the
+ * last candle received. Stops when a page returns nothing new, which also
+ * guards against looping if the API ever repeats a page.
  */
-export async function fetchDailyCandles(
+export async function fetchCandles(
   symbol: string,
+  interval: Interval,
   start: Date,
   options: FetchCandlesOptions = {},
 ): Promise<Candle[]> {
@@ -91,12 +104,14 @@ export async function fetchDailyCandles(
   const hosts = options.hosts ?? BYBIT_HOSTS;
   const fetchImpl = options.fetchImpl ?? fetch;
   const now = options.now ?? Date.now();
+  const end = Math.min(options.end ?? now, now);
+  const step = INTERVAL_MS[interval];
 
   const all: Candle[] = [];
   let cursor = start.getTime();
 
   for (;;) {
-    const path = `${KLINE_PATH}?category=${category}&symbol=${symbol}&interval=D&start=${cursor}&limit=${MAX_LIMIT}`;
+    const path = `${KLINE_PATH}?category=${category}&symbol=${symbol}&interval=${interval}&start=${cursor}&limit=${MAX_LIMIT}`;
     const page = parseKlineResponse(await getJson(hosts, path, fetchImpl));
     if (page.length === 0) {
       break;
@@ -108,11 +123,20 @@ export async function fetchDailyCandles(
     }
     all.push(...fresh);
 
-    cursor = all[all.length - 1]!.time + DAY_MS;
-    if (cursor > now) {
+    cursor = all[all.length - 1]!.time + step;
+    if (cursor > end) {
       break;
     }
   }
 
-  return closedCandles(all, now);
+  return closedCandles(all, now, step).filter((c) => c.time < end);
+}
+
+/** Fetches CLOSED daily candles from `start` up to now. See fetchCandles. */
+export async function fetchDailyCandles(
+  symbol: string,
+  start: Date,
+  options: FetchCandlesOptions = {},
+): Promise<Candle[]> {
+  return fetchCandles(symbol, 'D', start, options);
 }
