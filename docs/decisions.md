@@ -39,6 +39,7 @@ are still open.
 | 22 | Phase 2 execution rules | Whole dedicated account; catch up missed runs; founder-only unfreeze; systemd timer | DECIDED 2026-09-22 |
 | 23 | Where the multi-user practice pilot sits | Keep it in Phase 4, bring it forward, or run a small founder-operated version | **OPEN** — decide after the prototype sessions and the Bybit key test |
 | 26 | Strategies are additions the user chooses | A versioned catalogue; one version per dedicated account; eligibility per version; MA-125 stays | DECIDED 2026-09-23 |
+| 27 | The liquidity idea | One pre-registered version 1; it was untestable too, so the idea is not pursued | DECIDED 2026-09-25 |
 
 **What blocks what:** Phase 0 is complete and #16 is decided, so Phase 1 is unblocked. The legal
 opinion (#18) gates opening the pilot to anyone other than the founder.
@@ -724,6 +725,46 @@ over time. The requirements are in `docs/product/strategy-catalogue.md`:
 **Not permission to trade.** Codex proposed the account rule and the switching contract. This
 entry adopts them and adds details.
 
+## 27. The liquidity idea: one version 1, then not pursued — DECIDED 2026-09-25
+
+**The founder's decision:** version 0 was untestable, with 3 trades in 2022–2024 against the 30 its
+bar needs. The founder chose to pre-register **one** version 1, on the condition written into the
+choice: if it too is untestable, or fails, the idea is not pursued.
+
+**The outcome:** version 1 was untestable. Its four-step ladder counted 16, 16, 26 and 29 trades.
+So:
+- the liquidity sweep, version 0 and version 1, is **Not pursued** in the catalogue
+  (`docs/product/strategy-catalogue.md`, section 3);
+- no further version is tried;
+- MA-125 is unaffected, and is still the only strategy in Practice.
+
+**What this does and does not say.**
+- No return, R or profit of any version was computed. So it says nothing about whether the
+  pattern makes or loses money. It says the pattern signals too rarely on 15-minute BTC to be
+  judged.
+- The locked period, 2025-01 to 2026-08, stays unseen.
+- The records: `docs/research/liquidity-sweep-results.md` and `docs/research/liquidity-sweep-v1.md`
+  on `research-liquidity-sweep` (PRs #44 and #49).
+
+**Alternatives rejected by the founder's condition:**
+
+- **Accepting 29 as close enough.** 30 was already the least a result could mean.
+- **A fifth change, or a version 2.** Each further try on the same three years makes a pass mean
+  less.
+
+**One path the arithmetic leaves open, not recommended.** The spec names a check of the
+perpetual's longer history as the founder's call after an untestable count (its 6.2 and 6.5).
+For version 0 it could not help, at about one trade a year. Step D's rate is about ten a year, so
+the inverse perpetual's history from 2018 might lift it past 30. It is still not recommended:
+- the version 1 pre-registration said no further change is tried after step D, and choosing more
+  data after seeing a count is the tuning pre-registration exists to prevent;
+- perpetual wicks differ most from spot's, because of liquidations. The spec requires a check that
+  both markets sweep on the same days before one can stand in for the other;
+- even a pass would mean about ten trades a year: years of practice to confirm, and little for a
+  user to see.
+
+It stays the founder's to reopen, as a new decision.
+
 ## Corrections made along the way
 
 Recorded so the reasoning trail stays honest.
@@ -748,4 +789,4 @@ Recorded so the reasoning trail stays honest.
 | `docs/research/competitors.md` | Exchange-native tools, eight automation platforms, the Nigerian landscape |
 | `docs/research/naming.md` | Stress test of Keel and ten alternatives |
 | `docs/research/landing-copy.md` | Waitlist page draft — uses the rejected placeholder name |
-| `docs/research/liquidity-sweep-candidate.md` | The founder's liquidity idea as fixed rules and a test plan, with the bar written before any data. A draft: nothing is built or run |
+| `docs/research/liquidity-sweep-candidate.md` | The founder's liquidity idea as fixed rules and a test plan, with the bar written before any data. Built and counted on `research-liquidity-sweep`: untestable, so not pursued (#27) |
