@@ -10,6 +10,8 @@
   - As the spec requires, the full evaluation was **not** run.
   - No rule was loosened to get more trades.
   - The locked period, 2025-01 to 2026-08, is still unfetched and unseen.
+- **Then version 1, 2026-09-25: untestable too,** at 29 trades for its best step. The liquidity
+  idea is not pursued. See the last section.
 
 ## What was run, in order
 
@@ -117,3 +119,42 @@ No other run of version 0, of its neighbours, or of the locked period has been m
   returns the oldest candles at or after `start`, which is not always true. A page holding nothing
   new would also end a fetch early without a word. Both need fixing before the locked period is
   fetched.
+
+## Version 1, and the end of the idea (2026-09-25)
+
+The founder chose option 2: one pre-registered version 1
+(`docs/research/liquidity-sweep-v1.md`, PR #46). It was a ladder of four changes in a fixed order,
+each tried with the count-only command, stopping at the first to reach 30 trades.
+
+| Step | Development trades |
+|---|---|
+| A: confirm above the sweep candle's high | 16 |
+| B: and a 16-candle window | 16 |
+| C: and structure on rising lows | 26 |
+| D: and the first wick from above | 29 |
+
+**No step reached 30, so version 1 is untestable too, and the liquidity idea is not pursued.** Step
+D was checked like version 0: the independent recomputation agrees on 594 of 594 candidates and 147
+of 147 armed setups.
+
+As before:
+- no return, R or profit of any version was ever computed;
+- no full evaluation ran;
+- the locked period is still unseen.
+
+The pattern's own behaviour sets the limit. After a sweep of the previous day's low, price more
+often keeps falling than turns up.
+
+**Attempt log, continued:**
+
+| When | Commit | Run | Result |
+|---|---|---|---|
+| 2026-09-25 | `93b2ef9` | `liquidity:research -- --period development --version 1 --step A --count-only` | 16 trades |
+| 2026-09-25 | `93b2ef9` | … `--step B --count-only` | 16 trades |
+| 2026-09-25 | `93b2ef9` | … `--step C --count-only` | 26 trades |
+| 2026-09-25 | `93b2ef9` | … `--step D --count-only` | 29 trades: **UNTESTABLE**, and the idea stops |
+| 2026-09-25 | `93b2ef9` | `liquidity:funnel -- --version 1 --step D` | Rule outcomes; the recomputation agrees on 594 of 594 and 147 of 147 |
+
+**Next,** as in option 1: the catalogue's next candidate is the daily channel breakout, which needs
+the founder's go and its own pre-registration. The fetcher follow-ups above stay open, and matter
+for any future 15-minute research.

@@ -30,7 +30,7 @@ user-facing code.** The repository also holds the design, product research, and 
 | Phase 2 — paper-trading engine | **Code complete** on branch `phase-2-paper-engine`, 537 tests with Phase 2a, after a code review whose six findings were all fixed — see the plan's execution notes. **Awaiting deployment to the VPS** (plan Task 21, the founder's). The phase completes after 14 clean days of paper trading (spec section 12). Trades a paper account on live Bybit prices, so it needs no key. Its cross-process lock test was fixed on 2026-09-23 to kill the process that really holds the lock; before, it failed intermittently on Windows and would have failed on Linux, including the `npm test` the runbook asks for on the VPS |
 | Phase 2a — order settlement | **Complete, and merged into `phase-2-paper-engine`** (pull request #8) before any deployment, so the 14-day paper run covers it. Built through pull requests #1 to #6. An order already sent always gets its one recorded answer, whatever state its account is in; pause and freeze are independent; `npm run order:record` records what the founder finds for an order the exchange cannot show. Required before any real order |
 | Engine self-check | **Complete**, built through pull requests #15 to #24 and merged into `phase-2-paper-engine` before any deployment. Each morning the engine replays the previous days' decisions on fresh data and costs their fills against the backtest's 0.15% a trade, recording both and alerting only when something is off. It never changes a trade and makes no extra request. Spec: `docs/superpowers/specs/2026-09-23-engine-self-check-design.md` |
-| Liquidity-sweep research | Built on branch `research-liquidity-sweep` (plan PR #34, tasks #36 to #43), from `phase-2-paper-engine`. **Development verdict: UNTESTABLE.** Version 0 made 3 trades in 2022–2024, against the 30 the pre-registered bar needs. `npm run liquidity:funnel` independently verified this is not a bug. The full evaluation was not run and the locked period is unseen. Results: `docs/research/liquidity-sweep-results.md`. Next: the founder's call, between stopping and one pre-registered version 1 |
+| Liquidity-sweep research | **Closed: untestable, and the idea is not pursued.** Built on branch `research-liquidity-sweep` from `phase-2-paper-engine`: plan PR #34, tasks #36 to #43, version 1 in #46 to #48. Version 0 made 3 trades in 2022–2024, against the 30 the pre-registered bar needs. The founder chose one pre-registered version 1; its four-step ladder counted 16, 16, 26 and 29 trades, so it was untestable too. `npm run liquidity:funnel` independently verified both counts are not bugs. No return was ever computed, no full evaluation ran, and the locked period is unseen. Results: `docs/research/liquidity-sweep-results.md` and `docs/research/liquidity-sweep-v1.md`. Next candidate, when the founder says go: the daily channel breakout |
 | Product research | Complete. It reopened the business model, which was re-decided 2026-09-17 |
 | Name | **Undecided** — "Keel" was rejected after a verified conflict |
 
@@ -133,8 +133,8 @@ Other work, if the founder asks for it:
 | `npm run out-of-asset` | Judges BTC's MA-125, unchanged, on another asset. `ASSET=DOGE npm run out-of-asset` |
 | `npm run liquidity:fetch` | Fetches Bybit spot BTCUSDT 15-minute candles into `data/` for the liquidity-sweep research, up to 2025-01-01 unless `-- --until YYYY-MM-DD` |
 | `npm run liquidity:check` | Checks those candles, and compares the 4-hour and daily candles built from them with Bybit's own |
-| `npm run liquidity:research` | `-- --period development`, run with `--count-only` first. The locked period also needs `--unlock-locked-period`, in its own pull request |
-| `npm run liquidity:funnel` | Where version 0's setups drop out in the development period, and an independent recomputation of each step. Rule outcomes only, never a price or a profit |
+| `npm run liquidity:research` | `-- --period development`, run with `--count-only` first. `--version 1 --step A` (to `D`) counts a version 1 ladder step, and only counts it. The locked period also needs `--unlock-locked-period`, in its own pull request |
+| `npm run liquidity:funnel` | Where a version's setups drop out in the development period (version 0 by default, or `-- --version 1 --step D`), and an independent recomputation of each step. Rule outcomes only, never a price or a profit |
 | `npm run vault:init` | Create this machine's `.env.local` with a vault master key. Refuses to overwrite |
 | `npm run key:add` | Validate a Bybit key and store it encrypted. Interactive terminal only; secret input is hidden |
 | `npm run key:check` | Re-validate the stored key |
@@ -271,7 +271,7 @@ docs/
 src/
   types.ts, math.ts           shared types; exact Decimal mean and rounding
   strategy/trendFilter.ts     THE strategy — pure, reused unchanged in production
-  strategy/liquiditySweep.ts  the liquidity-sweep research candidate, with bars, swings and structure; nothing trades it
+  strategy/liquiditySweep.ts  the liquidity-sweep research candidate, untestable and not pursued, with bars, swings and structure; nothing trades it
   backtest/                   engine (next-open execution, warm-up), costs, metrics, report; also the
                               liquidity-sweep backtester, evidence, report and lock
   data/                       public market data: Bybit candle fetcher, CSV storage, datasets

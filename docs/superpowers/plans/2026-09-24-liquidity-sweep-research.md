@@ -3111,3 +3111,17 @@ by exactly the intended test, and the code was restored:
 **Follow-ups found:** a per-page retry for long research fetches. Bybit can return candles from
 before `start` inside a gap: the fetcher coped, but its comment is wrong, and a page with nothing
 new would end a fetch silently. Both need fixing before any locked-period fetch.
+
+**Version 1, after the plan** (2026-09-25). The founder chose one pre-registered version 1. It was
+built outside this plan, to its own pre-registration, `docs/research/liquidity-sweep-v1.md`:
+
+- **#46:** the pre-registration, committed before any version 1 code or count.
+- **#47:** the three levers, each defaulting to version 0's behaviour, and the four-step ladder.
+  Every existing test passed unchanged. Four mutation checks were each caught: step A using the
+  prior swing high, `LOWS` still needing rising highs, a recovery counting as a sweep, and a break
+  ending the day under `FIRST_WICK`.
+- **#48:** any version through the report, the research command and the funnel. A ladder step can
+  only be counted. The full suite passes, **656 tests**.
+- **The ladder counted 16, 16, 26 and 29 trades.** No step reached 30, so version 1 was untestable
+  and the idea stops. The funnel's recomputation for step D agrees on 594 of 594 and 147 of 147.
+  No `VERSION_1` was frozen, and no full evaluation ran.
