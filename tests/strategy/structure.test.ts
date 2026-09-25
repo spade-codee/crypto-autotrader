@@ -23,6 +23,13 @@ describe('structureIsUp', () => {
     expect(structureIsUp(d(100, 110), d(90, 95), close(95))).toBe(false);
   });
 
+  it('judges on rising lows alone when asked to, as version 1 step C does', () => {
+    expect(structureIsUp(d(110, 110), d(90, 95), close(100), 'LOWS')).toBe(true);
+    expect(structureIsUp([], d(90, 95), close(100), 'LOWS')).toBe(true);
+    expect(structureIsUp(d(100, 110), d(95, 90), close(100), 'LOWS')).toBe(false);
+    expect(structureIsUp(d(100, 110), d(90, 95), close(95), 'LOWS')).toBe(false);
+  });
+
   it('is not up with too few swings, or before any 4-hour close', () => {
     expect(structureIsUp(d(110), d(90, 95), close(100))).toBe(false);
     expect(structureIsUp(d(100, 110), d(95), close(100))).toBe(false);

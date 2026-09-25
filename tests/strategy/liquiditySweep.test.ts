@@ -1,7 +1,7 @@
 import Decimal from 'decimal.js';
 import { describe, expect, it } from 'vitest';
 import { DAY_MS, QUARTER_HOUR_MS } from '../../src/strategy/bars.js';
-import { createLiquiditySweep, VERSION_0, type SweepEvent } from '../../src/strategy/liquiditySweep.js';
+import { createLiquiditySweep, VERSION_0, VERSION_1_LADDER, type SweepEvent } from '../../src/strategy/liquiditySweep.js';
 import type { Candle } from '../../src/types.js';
 import {
   beforeSweep,
@@ -12,6 +12,7 @@ import {
   enteringScenario,
   START,
   sweepCandle,
+  triangleDays,
   zigzagDays,
 } from '../helpers/liquidity.js';
 
@@ -196,5 +197,57 @@ describe('the liquidity sweep, version 0', () => {
     expect(strategy.status().structureUp).toBe(true);
     strategy.onCandle({ candle: beforeSweep()[0]!, flatAtOpen: true });
     expect(strategy.status().level?.toString()).toBe('105000');
+  });
+});
+
+describe('version 1: the ladder of pre-registered changes', () => {
+  it('adds exactly one change at each step, in the pre-registered order', () => {
+    const { A, B, C, D } = VERSION_1_LADDER;
+    expect(A).toEqual({ ...VERSION_0, confirmation: 'SWEEP_HIGH' });
+    expect(B).toEqual({ ...A, waitCandles: 16 });
+    expect(C).toEqual({ ...B, structure: 'LOWS' });
+    expect(D).toEqual({ ...C, sweep: 'FIRST_WICK' });
+  });
+
+  it("step A confirms on a close above the sweep candle's own high", () => {
+    // 113,000 is above the sweep candle's 112,200 high but below version 0's 114,000 reference.
+    const nearer = candle(day4(5), 110_000, 113_200, 109_000, 113_000);
+    const candles = [...zigzagDays('up'), ...beforeSweep(), sweepCandle(), nearer];
+    expect(kinds(run(candles))).toEqual([['ARMED']]);
+    const events = run(candles, VERSION_1_LADDER.A);
+    expect(kinds(events)).toEqual([['ARMED'], ['ENTER']]);
+    const [armed, enter] = events as [Extract<SweepEvent, { kind: 'ARMED' }>, Extract<SweepEvent, { kind: 'ENTER' }>];
+    expect(armed.reference.toString()).toBe('112200');
+    expect([enter.time, enter.confirmationClose.toString()]).toEqual([day4(5), '113000']);
+  });
+
+  it('step C counts structure on rising lows, where version 0 needs rising highs too', () => {
+    const sweep = [
+      candle(day4(0), 109_000, 109_300, 108_800, 109_000),
+      candle(day4(1), 109_000, 109_200, 104_500, 108_000),
+    ];
+    const candles = [...triangleDays(), ...sweep];
+    expect(kinds(run(candles))).toEqual([['NOT_ARMED', 'STRUCTURE_NOT_UP']]);
+    expect(kinds(run(candles, VERSION_1_LADDER.B))).toEqual([['NOT_ARMED', 'STRUCTURE_NOT_UP']]);
+    expect(kinds(run(candles, VERSION_1_LADDER.C))).toEqual([['ARMED']]);
+  });
+
+  it('step D sweeps on the day\'s first wick from above, after a break, but never on a recovery from below', () => {
+    const day = [
+      candle(day4(0), 111_000, 111_200, 110_000, 110_200),
+      // A break: it closes below 105,000.
+      candle(day4(1), 110_200, 110_300, 104_500, 104_800),
+      // A recovery from below: it opens under the level, so it is no sweep.
+      candle(day4(2), 104_800, 106_000, 104_700, 105_800),
+      candle(day4(3), 105_800, 106_500, 105_600, 106_200),
+      // A wick from above: it opens over the level, dips below and closes back above.
+      candle(day4(4), 106_200, 106_400, 104_900, 105_900),
+    ];
+    const candles = [...zigzagDays('up'), ...day];
+    expect(kinds(run(candles))).toEqual([['LEVEL_BROKE']]);
+    expect(kinds(run(candles, VERSION_1_LADDER.C))).toEqual([['LEVEL_BROKE']]);
+    const events = run(candles, VERSION_1_LADDER.D);
+    expect(kinds(events)).toEqual([['LEVEL_BROKE'], ['ARMED']]);
+    expect(events[1]!.time).toBe(day4(4));
   });
 });
