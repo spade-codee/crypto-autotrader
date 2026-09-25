@@ -5,6 +5,8 @@
 - **Decided by:** the founder on 2026-09-25, choosing option 2 of the version 0 results
   (`docs/research/liquidity-sweep-results.md`). There will be **one version 1.** If it cannot be
   tested, or fails its bar, **the idea is not pursued.**
+- **Outcome, 2026-09-25: untestable.** No ladder step reached 30 trades; the best, step D, made
+  29. The idea is not pursued (section 6). Sections 1 to 5 are the pre-registration as committed.
 - **Builds on:** version 0's spec, `docs/research/liquidity-sweep-candidate.md` on `product-prototype`
   at `a079748`. Rule numbers (R1–R13) and section numbers refer to it.
 
@@ -109,3 +111,59 @@ pursued. No further change is tried.
    - The funnel's independent recomputation covers each lever.
 4. **The ladder's counts,** the frozen `VERSION_1`, and this document updated.
 5. **The development run and its result.**
+
+## 6. The ladder's result, 2026-09-25: untestable, and the idea is not pursued
+
+The ladder was counted at commit `93b2ef9`, in the declared order, with the count-only command.
+
+| Step | Development trades |
+|---|---|
+| A: confirm above the sweep candle's high | 16 |
+| B: and a 16-candle window | 16 |
+| C: and structure on rising lows | 26 |
+| **D: and the first wick from above** | **29** |
+
+**No step reached 30.** Section 3 fixed what happens next: *"If step D is still under 30 trades,
+the idea is recorded as untestable on 15-minute BTC and not pursued. No further change is tried."*
+
+- No `VERSION_1` was frozen.
+- No full evaluation ran.
+- No return, R or profit of any version or step was computed.
+- The locked period is still unfetched and unseen.
+
+**Not a bug.** At 29 against 30, one suppressed trade would change the verdict. So step D was
+checked to the same standard as version 0, with `npm run liquidity:funnel -- --version 1 --step D`,
+which prints rule outcomes only. The independent recomputation agrees on:
+- all **594 of 594** sweep candidates and breaks;
+- all **147 of 147** armed setups' reference and outcome.
+
+**Where step D's setups drop out:**
+
+| Stage, over 1,096 development days | Count |
+|---|---|
+| Breaks: a first wick from above that closed at or below the level | 234 |
+| Sweep candidates | 360 |
+| → the structure not up, even on rising lows alone | 212 |
+| → a setup still waiting from the day before | 1 |
+| → **armed** | **147** |
+| → → price traded below the sweep low before confirming | 80 |
+| → → the stop sat under 0.6% away when it confirmed | 26 |
+| → → the structure turned | 6 |
+| → → expired | 6 |
+| → → **entered** | **29** |
+
+**What the ladder showed about the pattern.** These are rule outcomes, not results:
+- Loosening the confirmation, the window, the structure and the sweep in turn took the count from
+  3 to 29 in three years: still under ten a year.
+- Every version was bounded by the same fact. **After a sweep of the previous day's low, price
+  more often keeps falling than turns up.** 32 of version 0's 57 setups and 80 of step D's 147
+  saw the sweep low break within hours.
+- The nearer confirmation also produced stops too close to pay for their costs: 26 of 147.
+
+**Why the line holds at 29.**
+- 30 was already the least a result could mean: section 5 of the version 0 spec shows 50 trades can
+  only reveal an extraordinary edge.
+- Moving the line, or adding a fifth change, after seeing the counts is exactly the tuning this
+  pre-registration exists to prevent.
+- A strategy trading under ten times a year would take years of practice to judge, and would give
+  a user almost nothing to watch.
