@@ -29,6 +29,7 @@ import {
   type PlaceboResult,
 } from './evidence.js';
 import type { PeriodName } from './liquidityPeriods.js';
+import { V0, type Version } from './liquidityVersions.js';
 
 const YEAR_MS = 365.25 * DAY_MS;
 
@@ -37,17 +38,29 @@ export const STRESSED_COSTS: CostModel = { feeRate: DEFAULT_COSTS.feeRate, slipp
 /** The research account's starting USDT. Results in R do not depend on it. */
 export const CAPITAL = new Decimal(10_000);
 
-/** Spec 6.4: the eight neighbours, each changing one rule of version 0. Shown, never used to choose. */
-export const NEIGHBOURS: Array<{ name: string; config: LiquiditySweepConfig }> = [
-  { name: 'swing size 3', config: { ...VERSION_0, swingSize: 3 } },
-  { name: 'wait 4 candles', config: { ...VERSION_0, waitCandles: 4 } },
-  { name: 'wait 16 candles', config: { ...VERSION_0, waitCandles: 16 } },
-  { name: 'target 1.5R', config: { ...VERSION_0, targetMultiple: new Decimal('1.5') } },
-  { name: 'target 3R', config: { ...VERSION_0, targetMultiple: new Decimal(3) } },
-  { name: 'time limit 16', config: { ...VERSION_0, timeLimitCandles: 16 } },
-  { name: 'time limit 96', config: { ...VERSION_0, timeLimitCandles: 96 } },
-  { name: 'stop 0.25 ATR below', config: { ...VERSION_0, stopAtrMultiple: new Decimal('0.25') } },
-];
+/**
+ * Spec 6.4: the eight neighbours, each changing one rule of a version. Shown,
+ * never used to choose. The waiting windows are half and double the version's
+ * own, so version 0's are exactly its pre-registered 4 and 16 candles
+ * (docs/research/liquidity-sweep-v1.md, section 3).
+ */
+export function neighboursOf(config: LiquiditySweepConfig): Array<{ name: string; config: LiquiditySweepConfig }> {
+  const half = config.waitCandles / 2;
+  const double = config.waitCandles * 2;
+  return [
+    { name: 'swing size 3', config: { ...config, swingSize: 3 } },
+    { name: `wait ${half} candles`, config: { ...config, waitCandles: half } },
+    { name: `wait ${double} candles`, config: { ...config, waitCandles: double } },
+    { name: 'target 1.5R', config: { ...config, targetMultiple: new Decimal('1.5') } },
+    { name: 'target 3R', config: { ...config, targetMultiple: new Decimal(3) } },
+    { name: 'time limit 16', config: { ...config, timeLimitCandles: 16 } },
+    { name: 'time limit 96', config: { ...config, timeLimitCandles: 96 } },
+    { name: 'stop 0.25 ATR below', config: { ...config, stopAtrMultiple: new Decimal('0.25') } },
+  ];
+}
+
+/** Version 0's neighbours, as pre-registered. */
+export const NEIGHBOURS = neighboursOf(VERSION_0);
 
 export type TradeSummary = {
   trades: number;
@@ -143,6 +156,8 @@ export function correlation(xs: Decimal[], ys: Decimal[]): Decimal | null {
 export type Context = { buyAndHold: Decimal; ma125: Decimal; correlationWithMa125: Decimal | null };
 
 export type Evidence = {
+  /** The version's name, as reports and attempt lines carry it: v0, or v1. */
+  version: string;
   period: PeriodName;
   from: number;
   to: number;
@@ -182,15 +197,19 @@ export function runVersion(candles: Candle[], config: LiquiditySweepConfig, cost
 }
 
 /**
- * The round-trip cost, as a share of price, at which version 0's mean net R
+ * The round-trip cost, as a share of price, at which a version's mean net R
  * reaches zero: both the fee and the slippage are scaled together and the
  * scale is found by bisection. Zero when it loses before any cost; null when
  * it still makes money at twenty times the standard costs.
  */
-export function breakEvenRoundTrip(candles: Candle[], from: number): Decimal | null {
+export function breakEvenRoundTrip(
+  candles: Candle[],
+  from: number,
+  config: LiquiditySweepConfig = VERSION_0,
+): Decimal | null {
   const meanAt = (scale: Decimal) => {
     const costs = { feeRate: DEFAULT_COSTS.feeRate.times(scale), slippageRate: DEFAULT_COSTS.slippageRate.times(scale) };
-    return summarizeTrades(runVersion(candles, VERSION_0, costs, from).trades, new Decimal(1)).meanR;
+    return summarizeTrades(runVersion(candles, config, costs, from).trades, new Decimal(1)).meanR;
   };
   const zero = meanAt(new Decimal(0));
   if (zero === null || zero.lte(0)) {
@@ -242,13 +261,21 @@ export function context(candles: Candle[], run: BracketRun, from: number): Conte
   };
 }
 
-/** Everything section 6.4 reports, for one period. The candles must already be cut by periodCandles. */
-export function gatherEvidence(candles: Candle[], period: PeriodName, from: number, to: number): Evidence {
+/** Everything section 6.4 reports, for one version over one period. The candles must already be cut by periodCandles. */
+export function gatherEvidence(
+  candles: Candle[],
+  period: PeriodName,
+  from: number,
+  to: number,
+  version: Version = V0,
+): Evidence {
+  const { config } = version;
   const years = new Decimal(to - from).div(YEAR_MS);
-  const run = runVersion(candles, VERSION_0, DEFAULT_COSTS, from);
+  const run = runVersion(candles, config, DEFAULT_COSTS, from);
   const summary = summarizeTrades(run.trades, years);
   const yearsSeen = [...new Set(run.trades.map((t) => new Date(t.entryTime).getUTCFullYear()))].sort((a, b) => a - b);
   return {
+    version: version.name,
     period,
     from,
     to,
@@ -261,9 +288,9 @@ export function gatherEvidence(candles: Candle[], period: PeriodName, from: numb
       0.9,
       BOOTSTRAP_SEED,
     ),
-    stressed: summarizeTrades(runVersion(candles, VERSION_0, STRESSED_COSTS, from).trades, years),
-    breakEvenRoundTrip: breakEvenRoundTrip(candles, from),
-    placebo: placebo(candles, run.placeboEntries, run.trades, VERSION_0, DEFAULT_COSTS, PLACEBO_SETS, PLACEBO_SEED),
+    stressed: summarizeTrades(runVersion(candles, config, STRESSED_COSTS, from).trades, years),
+    breakEvenRoundTrip: breakEvenRoundTrip(candles, from, config),
+    placebo: placebo(candles, run.placeboEntries, run.trades, config, DEFAULT_COSTS, PLACEBO_SETS, PLACEBO_SEED),
     exits: count(run.trades.map((t) => t.exit.reason)),
     skips: count(run.skips.map((s) => s.reason)),
     ambiguous: run.trades.filter((t) => t.exit.ambiguous).length,
@@ -275,9 +302,9 @@ export function gatherEvidence(candles: Candle[], period: PeriodName, from: numb
       ),
     })),
     account: summarizeAccount(run.equity, run.trades, CAPITAL),
-    neighbours: NEIGHBOURS.map(({ name, config }) => ({
-      name,
-      summary: summarizeTrades(runVersion(candles, config, DEFAULT_COSTS, from).trades, years),
+    neighbours: neighboursOf(config).map((neighbour) => ({
+      name: neighbour.name,
+      summary: summarizeTrades(runVersion(candles, neighbour.config, DEFAULT_COSTS, from).trades, years),
     })),
     context: context(candles, run, from),
   };
@@ -346,7 +373,7 @@ export function formatEvidence(e: Evidence, verdict: { verdict: Verdict; checks:
       : `median ${r(e.placebo.median)}, 95th percentile ${r(e.placebo.p95)}, ` +
         `real mean above ${pct(new Decimal(e.placebo.rankOfReal))} of sets`;
   const lines = [
-    `Liquidity sweep v0, ${e.period} period, ${day(e.from)} to ${day(e.to)} (exclusive)`,
+    `Liquidity sweep ${e.version}, ${e.period} period, ${day(e.from)} to ${day(e.to)} (exclusive)`,
     `Seeds: bootstrap ${BOOTSTRAP_SEED}, placebo ${PLACEBO_SEED}`,
     '',
     `Trades: ${s.trades} (${s.perYear.toFixed(1)} a year), win rate ${pct(s.winRate)}`,
@@ -383,7 +410,7 @@ export function formatEvidence(e: Evidence, verdict: { verdict: Verdict; checks:
 /** The attempt log's line for this run. */
 export function attemptLine(e: Evidence, verdict: Verdict, commit: string, runAt: Date): string {
   return (
-    `${runAt.toISOString().slice(0, 16)}Z ${commit} liquidity-sweep v0 ${e.period}: ` +
+    `${runAt.toISOString().slice(0, 16)}Z ${commit} liquidity-sweep ${e.version} ${e.period}: ` +
     `${e.summary.trades} trades, mean ${r(e.summary.meanR)}, ${verdict}`
   );
 }
