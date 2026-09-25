@@ -8,10 +8,13 @@ import {
   formatEvidence,
   gatherEvidence,
   lockedVerdict,
+  NEIGHBOURS,
+  neighboursOf,
   summarizeAccount,
   summarizeTrades,
   type Evidence,
 } from '../../src/backtest/liquidityReport.js';
+import { VERSION_1_LADDER } from '../../src/strategy/liquiditySweep.js';
 import { candle, day4, enteringScenario, START } from '../helpers/liquidity.js';
 
 const trade = (r: number, gross = r): BracketTrade =>
@@ -132,6 +135,38 @@ describe('gatherEvidence and formatEvidence', () => {
     }
     expect(attemptLine(evidence, verdict.verdict, 'abc1234', new Date('2026-09-24T10:00:00Z'))).toBe(
       '2026-09-24T10:00Z abc1234 liquidity-sweep v0 development: 1 trades, mean -1.031R, UNTESTABLE',
+    );
+  });
+});
+
+describe('neighboursOf', () => {
+  it("gives version 0 exactly its pre-registered neighbours, and halves and doubles another version's window", () => {
+    expect(NEIGHBOURS.map((n) => n.name)).toEqual([
+      'swing size 3',
+      'wait 4 candles',
+      'wait 16 candles',
+      'target 1.5R',
+      'target 3R',
+      'time limit 16',
+      'time limit 96',
+      'stop 0.25 ATR below',
+    ]);
+    const around = neighboursOf(VERSION_1_LADDER.B);
+    expect(around.map((n) => n.config.waitCandles).slice(1, 3)).toEqual([8, 32]);
+    expect(around.every((n) => n.config.confirmation === 'SWEEP_HIGH')).toBe(true);
+  });
+});
+
+describe('a named version', () => {
+  it('carries its name into the report and the attempt line', () => {
+    const entry = candle(day4(6), 114_500, 115_000, 113_000, 113_500);
+    const stopped = candle(day4(7), 113_500, 113_600, 103_000, 104_500);
+    const version = { name: 'v1 step A', config: VERSION_1_LADDER.A };
+    const evidence = gatherEvidence([...enteringScenario(), entry, stopped], 'development', START, START + 5 * 86_400_000, version);
+    const verdict = developmentVerdict(evidence);
+    expect(formatEvidence(evidence, verdict)).toContain('Liquidity sweep v1 step A, development period');
+    expect(attemptLine(evidence, verdict.verdict, 'abc1234', new Date('2026-09-25T10:00:00Z'))).toContain(
+      'liquidity-sweep v1 step A development:',
     );
   });
 });
