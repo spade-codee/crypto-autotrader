@@ -1,8 +1,16 @@
 # Research candidate: liquidity sweep with structure confirmation
 
-- **Status:** draft for the founder and Codex to review, 2026-09-23. Nothing here is built,
-  backtested, or approved. It works as a pre-registration: it fixes the rules and the result
-  they must reach before anyone looks at any results.
+- **Status:** draft for the founder and Codex to review, 2026-09-23. It works as a
+  pre-registration: it fixes the rules and the result they must reach before anyone looks at any
+  results.
+- **Development result, 2026-09-24: UNTESTABLE.** Version 0 made **3 trades in 2022–2024**, against
+  the 30 the bar in 6.5 needs.
+  - An independent recomputation found no bug.
+  - The full evaluation was not run, and no rule was loosened.
+  - The locked period is still unseen.
+  - Details: `docs/research/liquidity-sweep-results.md` on branch `research-liquidity-sweep` (PR
+    #44).
+  - Next is the founder's call: stop, or pre-register one version 1.
 - **Asked for by:** the founder, relayed by Codex on 2026-09-23. They want to find liquidity, check
   the market structure, then wait for confirmation, and want the idea worked out, improved, and
   brought onto the platform.
