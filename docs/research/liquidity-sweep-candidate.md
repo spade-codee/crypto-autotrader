@@ -10,7 +10,13 @@
   - The locked period is still unseen.
   - Details: `docs/research/liquidity-sweep-results.md` on branch `research-liquidity-sweep` (PR
     #44).
-  - Next is the founder's call: stop, or pre-register one version 1.
+  - The founder then chose one pre-registered version 1.
+- **Version 1, 2026-09-25: UNTESTABLE too, so the idea is not pursued.** Its four-step ladder
+  counted 16, 16, 26 and 29 trades; none reached 30.
+  - An independent recomputation again found no bug.
+  - No return was ever computed, and the locked period is still unseen.
+  - Details: `docs/research/liquidity-sweep-v1.md` on `research-liquidity-sweep` (PR #49), and
+    `docs/decisions.md` #27.
 - **Asked for by:** the founder, relayed by Codex on 2026-09-23. They want to find liquidity, check
   the market structure, then wait for confirmation, and want the idea worked out, improved, and
   brought onto the platform.

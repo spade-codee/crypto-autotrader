@@ -353,3 +353,44 @@ the development run is recorded in #44 (`docs/research/liquidity-sweep-results.m
     recommendation.
   - Or pre-register one version 1, designed openly after this frequency funnel and never on
     returns. If that is untestable or fails, the idea stops.
+
+## 12. Version 1, and the end of the liquidity idea, 2026-09-25
+
+The founder chose the second option in section 11: one version 1, pre-registered before any of its
+code or counts (`docs/research/liquidity-sweep-v1.md`, PR #46 on `research-liquidity-sweep`). It was
+a ladder of four changes, counted in a fixed order, stopping at the first to reach 30 development
+trades.
+
+| Step | Adds | Trades |
+|---|---|---|
+| A | confirm above the sweep candle's own high | 16 |
+| B | a four-hour confirmation window | 16 |
+| C | structure on rising lows alone | 26 |
+| D | a sweep may follow a break on the same day | 29 |
+
+- **None reached 30, so version 1 is untestable, and the idea is not pursued** (`docs/decisions.md`
+  #27). The pre-registration fixed this before any count. No fifth change is tried.
+- **It is not a bug.** An independent recomputation of step D agrees on 594 of 594 candidates and
+  147 of 147 armed setups (PR #49).
+- **Nothing is known about profit or loss.** No return, R or profit of any version was computed,
+  and the locked period is unseen.
+- **Why, in one line:** after a sweep of the previous day's low, BTC more often kept falling than
+  turned up. 80 of step D's 147 armed setups saw the sweep low break within four hours.
+
+**What changes on your side, all your call:**
+
+- The catalogue now lists "Liquidity sweep v0 and v1" as **Not pursued**
+  (`docs/product/strategy-catalogue.md`, section 3). That state now also covers too few trades to
+  judge.
+- **The research card.** Either remove it from the customer catalogue, or keep it as "Tested · not
+  pursued" with one plain sentence, such as: "Tested on past prices. It signalled too rarely to
+  judge, so it is not offered." In the customer interface, no numbers, no chart and no activate
+  action.
+- **Where the prototype offers the liquidity strategy** as an option, in switching or
+  customization, it becomes not pursued. The switching and configuration contracts themselves are
+  unchanged: sections 5 and 5a of the catalogue keep the liquidity strategy as their worked
+  example, and their rules hold for any strategy.
+
+**Next:** the daily channel breakout, your recommendation, once the founder says go. It needs its
+own pre-registration, and nothing has started. Nothing here approves the compiled-build design or
+any real order.

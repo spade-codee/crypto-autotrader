@@ -8,6 +8,9 @@
 - **Written with Codex's input:** Codex proposed one strategy per dedicated account for the first
   release, a switching contract, and eligibility per strategy. All three are adopted below, with
   details added.
+- **2026-09-25:** the liquidity sweep, the first candidate, could not be tested and is not pursued
+  (section 3, and #27). Sections 5 and 5a keep it as their worked example of a second strategy with
+  its own timing and exits. Their rules hold for any strategy.
 
 ## 1. What the catalogue is
 
@@ -49,7 +52,7 @@ Each entry records:
 | **Practice** | Practice (paper) accounts | Tested, and engine support built and reviewed |
 | **Founder live** | Only the founder's own dedicated real-money account | Its practice bar met, real orders working (Phase 2b), its own checks (for example, exchange-side stops verified), `MAX_ORDER_USDT` set small, and the founder's recorded decision |
 | **Live** | Customers' dedicated real-money accounts | The founder's run reviewed, the legal opinion (#18), the live-pilot gates, and the founder's recorded decision |
-| **Not pursued** | Nobody | It failed a bar. The record stays, with its numbers |
+| **Not pursued** | Nobody | It failed a bar, or made too few trades to be judged by one. The record stays, with its numbers |
 | **Retired** | No new assignments | A recorded decision with its reason. Existing assignments follow the switching rules (section 5) |
 
 - **The engine checks eligibility against each account's mode before every new entry.** A
@@ -60,12 +63,12 @@ Each entry records:
 - **There is no blanket "strategies enabled" flag.** The global kill switch stays as the operator's
   emergency stop for everything.
 
-**The catalogue on 2026-09-23:**
+**The catalogue on 2026-09-25:**
 
 | Version | State | Next gate |
 |---|---|---|
 | MA-125 v1 | **Practice.** The paper engine is complete. Deploying it and the 14-day run are the founder's (plan Tasks 21 and 23) | Its practice bar, 14 clean days (Phase 2 spec §12). Then Phase 2b and the Bybit key test (#8) before Founder live |
-| Liquidity sweep v0 | **Research. Untestable on 2022–2024:** 3 trades against the 30 needed. Results: `docs/research/liquidity-sweep-results.md` on `research-liquidity-sweep` | The founder's call: record as not pursued, or pre-register one version 1 |
+| Liquidity sweep v0 and v1 | **Not pursued. Untestable on 2022–2024,** against the 30 trades needed: version 0 made 3, and version 1's best ladder step 29. No return was ever computed. Results: `docs/research/liquidity-sweep-results.md` and `docs/research/liquidity-sweep-v1.md` on `research-liquidity-sweep` | None. No further version is tried (#27) |
 
 ## 4. Assignment
 
@@ -273,3 +276,6 @@ each would meet:
 and comes first. If the founder then wants a second entry quickly, a daily channel breakout is the
 cheapest to test, because it reuses the existing backtester, data and engine. It is also the one
 most likely to duplicate MA-125.
+
+**2026-09-25:** the liquidity research has ended, untestable. The channel breakout is next once the
+founder says go, with its own pre-registration. Nothing has started.
