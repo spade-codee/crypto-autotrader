@@ -61,8 +61,26 @@ export function zigzagDays(direction: 'up' | 'down', start = START): Candle[] {
   for (let i = 1; i < 18; i++) {
     mids.push(mids[i - 1]! + steps[(i - 1) % 4]!);
   }
-  const peaks = new Set(direction === 'up' ? [2, 6, 10, 14] : [4, 8, 12, 16]);
-  const troughs = new Set(direction === 'up' ? [4, 8, 12, 16] : [2, 6, 10, 14]);
+  const peaks = direction === 'up' ? [2, 6, 10, 14] : [4, 8, 12, 16];
+  const troughs = direction === 'up' ? [4, 8, 12, 16] : [2, 6, 10, 14];
+  return fromMids(mids, peaks, troughs, start);
+}
+
+/**
+ * Three complete UTC days in which the 4-hour swing highs stay level at 111k
+ * while the swing lows rise, 101k, 103k, 105k: rising lows without rising
+ * highs. Version 0's structure test says not up; version 1's step C says up.
+ * Day 3's low, 105k, is the level on day 4, and the last close is 109k.
+ */
+export function triangleDays(start = START): Candle[] {
+  const mids = [100, 105, 110, 106, 102, 106, 110, 107, 104, 107, 110, 108, 106, 108, 110, 109, 108, 109];
+  return fromMids(mids, [2, 6, 10, 14], [4, 8, 12, 16], start);
+}
+
+/** 4-hour candles from a path of closes, each realized by sixteen 15-minute candles; peaks and troughs get a longer wick. */
+function fromMids(mids: number[], peakBars: number[], troughBars: number[], start: number): Candle[] {
+  const peaks = new Set(peakBars);
+  const troughs = new Set(troughBars);
   return mids.flatMap((close, i) => {
     const open = i === 0 ? close : mids[i - 1]!;
     const high = Math.max(open, close) + (peaks.has(i) ? 1 : 0.25);
