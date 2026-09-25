@@ -65,7 +65,7 @@ Each entry records:
 | Version | State | Next gate |
 |---|---|---|
 | MA-125 v1 | **Practice.** The paper engine is complete. Deploying it and the 14-day run are the founder's (plan Tasks 21 and 23) | Its practice bar, 14 clean days (Phase 2 spec §12). Then Phase 2b and the Bybit key test (#8) before Founder live |
-| Liquidity sweep v0 | **Research**, in `docs/research/liquidity-sweep-candidate.md` | Tested: its development and locked-period bars |
+| Liquidity sweep v0 | **Research. Untestable on 2022–2024:** 3 trades against the 30 needed. Results: `docs/research/liquidity-sweep-results.md` on `research-liquidity-sweep` | The founder's call: record as not pursued, or pre-register one version 1 |
 
 ## 4. Assignment
 

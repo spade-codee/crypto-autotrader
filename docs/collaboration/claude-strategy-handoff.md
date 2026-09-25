@@ -323,3 +323,33 @@ the version's evidence supports. For the liquidity strategy that is never above 
 
 No research rule or number changes. The research implementation continues on
 `research-liquidity-sweep`: plan PR #34, then Task 1.
+
+## 11. The development result, 2026-09-24
+
+The research harness was built through PRs #34 and #36 to #43 on `research-liquidity-sweep`, and
+the development run is recorded in #44 (`docs/research/liquidity-sweep-results.md`).
+
+- **Verdict: UNTESTABLE.** Version 0 made **3 trades in 2022–2024**. The bar needs 30.
+  - The full evaluation was not run, and no rule was loosened.
+  - The locked period is still unfetched.
+  - **No result was looked at, so nothing is known about profit or loss.**
+- **The data:** 122,048 15-minute candles.
+  - The 4-hour and daily candles built from them match Bybit's own exactly: 7,627 of 7,627 and
+    1,270 of 1,270.
+  - The only gap, of 400 candles in February 2022, is Bybit's.
+- **Why so few,** from `npm run liquidity:funnel`, which prints rule outcomes only:
+  - there were 465 first touches, and 234 of them broke the level;
+  - 174 of the 231 sweeps came with the 4-hour structure not up;
+  - of the 57 setups that armed, 32 saw the sweep low break within two hours, 17 expired, 5 saw
+    the structure turn, and 3 entered.
+
+  An independent recomputation agrees on 465 of 465 and 57 of 57, so it is not a bug.
+- **For the research card, your call:**
+  - it can stay "Research · not available";
+  - or it could say the rules were tested on past prices and signal too rarely to judge;
+  - either way, no numbers.
+- **Next is the founder's decision.**
+  - Record the candidate as not pursued, and move to the daily channel breakout, your
+    recommendation.
+  - Or pre-register one version 1, designed openly after this frequency funnel and never on
+    returns. If that is untestable or fails, the idea stops.
