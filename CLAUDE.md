@@ -133,6 +133,7 @@ Other work, if the founder asks for it:
 | `npm run liquidity:fetch` | Fetches Bybit spot BTCUSDT 15-minute candles into `data/` for the liquidity-sweep research, up to 2025-01-01 unless `-- --until YYYY-MM-DD` |
 | `npm run liquidity:check` | Checks those candles, and compares the 4-hour and daily candles built from them with Bybit's own |
 | `npm run liquidity:research` | `-- --period development`, run with `--count-only` first. The locked period also needs `--unlock-locked-period`, in its own pull request |
+| `npm run liquidity:funnel` | Where version 0's setups drop out in the development period, and an independent recomputation of each step. Rule outcomes only, never a price or a profit |
 | `npm run vault:init` | Create this machine's `.env.local` with a vault master key. Refuses to overwrite |
 | `npm run key:add` | Validate a Bybit key and store it encrypted. Interactive terminal only; secret input is hidden |
 | `npm run key:check` | Re-validate the stored key |

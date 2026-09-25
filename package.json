@@ -16,6 +16,7 @@
     "liquidity:fetch": "tsx src/cli/liquidity-fetch.ts",
     "liquidity:check": "tsx src/cli/liquidity-check.ts",
     "liquidity:research": "tsx src/cli/liquidity-research.ts",
+    "liquidity:funnel": "tsx src/cli/liquidity-funnel.ts",
     "cycle": "tsx src/cli/cycle.ts",
     "paper:init": "tsx src/cli/paper-init.ts",
     "status": "tsx src/cli/status.ts",
