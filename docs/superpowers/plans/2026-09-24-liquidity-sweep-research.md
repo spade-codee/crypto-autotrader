@@ -3070,4 +3070,44 @@ main().catch((error: unknown) => {
 
 ## Execution notes
 
-Filled in while building: what differed from this plan, and why.
+Built on 2026-09-24, inline, one pull request per task: #36 to #42, then #43. The full suite
+passes, **646 tests** (565 before), and the type check is clean. Every task's code is as written
+above, apart from the additions below.
+
+**Tests added beyond the plan, each to close a gap the plan's tests left:**
+
+- **Task 4:** a gap-up entry. In the scenario the entry opens at the confirmation close, so no
+  planned test could tell sizing from the close apart from sizing from the open. The new test
+  expects 0.002298 BTC and −1.0476 gross R.
+- **Task 5:** a direct month-matching test, in which January rises and February falls. The
+  planned test caught a placebo that ignores the month only indirectly.
+- **Task 6:** an end-to-end run of `gatherEvidence`, `formatEvidence` and `attemptLine` on the
+  hand-built scenario, with 1,000 placebo sets and eight neighbours.
+
+**Mutation checks.** Every subtle rule was checked by breaking it on purpose; each break was caught
+by exactly the intended test, and the code was restored:
+
+| Task | Breaks caught |
+|---|---|
+| 3 | the waiting-setup check removed; the touch not spent while in a trade; confirmation before invalidation; swings added before the touch |
+| 4 | the target checked before the stop; late entries allowed; sizing from the open |
+| 5 | single-trade resampling; a placebo that ignores the month |
+
+**Task 8, the development run** (results: `docs/research/liquidity-sweep-results.md`):
+
+- **The fetch needed a second attempt.** One Bybit response stalled after the server had answered,
+  which the fetcher does not retry.
+- **The data has one gap:** 400 candles after 2022-02-01 02:30 UTC. It is Bybit's own, confirmed
+  directly.
+- **The built 4-hour and daily candles match Bybit's exactly.**
+- **The count was 3 trades: UNTESTABLE.** The full evaluation was not run.
+- **An added step, not in the plan.** Before recording the verdict, PR #43 added
+  `npm run liquidity:funnel`, to rule out a bug, the one reason the spec allows a revision. It
+  prints rule outcomes only. It recomputes every first touch, sweep, structure verdict, reference
+  and waiting outcome independently, and agrees on 465 of 465 and 57 of 57.
+
+**Task 9 was not reached.** The locked period stays unfetched.
+
+**Follow-ups found:** a per-page retry for long research fetches. Bybit can return candles from
+before `start` inside a gap: the fetcher coped, but its comment is wrong, and a page with nothing
+new would end a fetch silently. Both need fixing before any locked-period fetch.
