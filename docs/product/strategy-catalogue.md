@@ -63,12 +63,13 @@ Each entry records:
 - **There is no blanket "strategies enabled" flag.** The global kill switch stays as the operator's
   emergency stop for everything.
 
-**The catalogue on 2026-09-25:**
+**The catalogue on 2026-09-26:**
 
 | Version | State | Next gate |
 |---|---|---|
 | MA-125 v1 | **Practice.** The paper engine is complete. Deploying it and the 14-day run are the founder's (plan Tasks 21 and 23) | Its practice bar, 14 clean days (Phase 2 spec §12). Then Phase 2b and the Bybit key test (#8) before Founder live |
 | Liquidity sweep v0 and v1 | **Not pursued. Untestable on 2022–2024,** against the 30 trades needed: version 0 made 3, and version 1's best ladder step 29. No return was ever computed. Results: `docs/research/liquidity-sweep-results.md` and `docs/research/liquidity-sweep-v1.md` on `research-liquidity-sweep` | None. No further version is tried (#27) |
+| Channel breakout v0 | **Research.** Pre-registered 2026-09-26 in `docs/research/channel-breakout-candidate.md`. Nothing is built or run | Its three tests, fixed in advance (the candidate's section 6) |
 
 ## 4. Assignment
 
@@ -279,3 +280,7 @@ most likely to duplicate MA-125.
 
 **2026-09-25:** the liquidity research has ended, untestable. The channel breakout is next once the
 founder says go, with its own pre-registration. Nothing has started.
+
+**2026-09-26:** the founder said go. The channel breakout is pre-registered in
+`docs/research/channel-breakout-candidate.md`, with its windows fixed in advance rather than chosen
+(its section 4). Nothing is built or run yet.

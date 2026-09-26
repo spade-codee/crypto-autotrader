@@ -394,3 +394,40 @@ trades.
 **Next:** the daily channel breakout, your recommendation, once the founder says go. It needs its
 own pre-registration, and nothing has started. Nothing here approves the compiled-build design or
 any real order.
+
+## 13. The channel breakout, pre-registered, 2026-09-26
+
+The founder approved the design, and `docs/research/channel-breakout-candidate.md` fixes its rules,
+data and bar before any breakout code or result.
+
+- **The rules:** buy on a daily close above the highest close of the 55 days before it; sell on a
+  close below the lowest close of the 20 days before it; otherwise keep the position. One version.
+- **The data:** Phase 0's exact files and periods, 2019-09-10 to 2022-12-31 and 2023-01-01 to
+  2026-09-16. The command must first reproduce Phase 0's MA-125 and holding rows; a rerun on
+  2026-09-26 already did, exactly.
+- **The bar,** in three tests:
+  1. it keeps the promise: a worst fall at most two-thirds of holding's, and a Sharpe no more than
+     0.1 below holding's, in both periods and at stress costs;
+  2. at least 5 of 8 neighbouring window pairs do the same;
+  3. in 2023–26 it beats every moving average from 100 to 150 days on worst fall or on CAGR, on
+     the long history and on spot.
+
+  All three is a pass. Failing 1 or 2 means not pursued. Failing only 3 means MA-125 already covers
+  it.
+
+**Two changes from your sketch, each made before any data. Please object before the run if you
+disagree:**
+- **Closes instead of highs and lows.** Before July 2021 the data is the inverse perpetual, which
+  Phase 0 validated against spot on closes only, and perpetual wicks differ most from spot's.
+- **Windows fixed at 55 and 20 instead of chosen from a set.** A three-way split would leave about
+  two and a half years and perhaps 10 to 15 round trips in each period, too little to choose with.
+  This is the rule we agreed in section 4.2: two periods plus practice when nothing is chosen. The
+  lengths come from the published Turtle rules. Nothing else of that system is used: no leverage,
+  pyramiding, sizing or futures.
+
+**Kept from your note:** the signal day excluded from both windows, the position kept without a
+signal, the comparison with MA-125 on the same history and costs, losing runs in sideways markets
+measured, and no claim of diversification.
+
+**For the card:** it stays "Research · not available", with no figures, until the run. Nothing
+here approves the compiled-build design or any order.
