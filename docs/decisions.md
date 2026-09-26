@@ -790,3 +790,4 @@ Recorded so the reasoning trail stays honest.
 | `docs/research/naming.md` | Stress test of Keel and ten alternatives |
 | `docs/research/landing-copy.md` | Waitlist page draft — uses the rejected placeholder name |
 | `docs/research/liquidity-sweep-candidate.md` | The founder's liquidity idea as fixed rules and a test plan, with the bar written before any data. Built and counted on `research-liquidity-sweep`: untestable, so not pursued (#27) |
+| `docs/research/channel-breakout-candidate.md` | The daily channel breakout's pre-registration: rules, data, periods and a three-test bar, fixed before any code. Nothing is built or run |
