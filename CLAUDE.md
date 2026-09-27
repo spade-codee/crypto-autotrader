@@ -267,6 +267,7 @@ docs/
 src/
   types.ts, math.ts           shared types; exact Decimal mean and rounding
   strategy/trendFilter.ts     THE strategy — pure, reused unchanged in production
+  strategy/channelBreakout.ts the channel-breakout research candidate; nothing trades it
   backtest/                   engine (next-open execution, warm-up), costs, metrics, report
   data/                       public market data: Bybit candle fetcher, CSV storage, datasets
   net/http.ts                 GET with host fallback and deadlines, shared by market data and account access
