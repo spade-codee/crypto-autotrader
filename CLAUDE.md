@@ -132,6 +132,7 @@ Other work, if the founder asks for it:
 | `npm run backtest` | MA-200 against buy-and-hold on both datasets. Set `MA_PERIOD` to change |
 | `npm run sweep` | Every period, in-sample and out-of-sample — the Phase 0 result |
 | `npm run out-of-asset` | Judges BTC's MA-125, unchanged, on another asset. `ASSET=DOGE npm run out-of-asset` |
+| `npm run breakout:research` | The channel-breakout research, run once, on the Phase 0 files only. `-- --check-only` stops after the reproduction check, before any breakout run |
 | `npm run vault:init` | Create this machine's `.env.local` with a vault master key. Refuses to overwrite |
 | `npm run key:add` | Validate a Bybit key and store it encrypted. Interactive terminal only; secret input is hidden |
 | `npm run key:check` | Re-validate the stored key |
@@ -268,7 +269,8 @@ src/
   types.ts, math.ts           shared types; exact Decimal mean and rounding
   strategy/trendFilter.ts     THE strategy — pure, reused unchanged in production
   strategy/channelBreakout.ts the channel-breakout research candidate; nothing trades it
-  backtest/                   engine (next-open execution, warm-up), costs, metrics, report
+  backtest/                   engine (next-open execution, warm-up), costs, metrics, report; also the
+                              channel-breakout bar, evidence and research
   data/                       public market data: Bybit candle fetcher, CSV storage, datasets
   net/http.ts                 GET with host fallback and deadlines, shared by market data and account access
   secrets/secret.ts           Secret — prints [redacted] everywhere
