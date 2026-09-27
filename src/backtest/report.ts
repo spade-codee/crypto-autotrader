@@ -1,7 +1,8 @@
 import type Decimal from 'decimal.js';
 import type { BacktestResult } from '../types.js';
 
-const pct = (value: Decimal): string => `${value.times(100).toFixed(1)}%`;
+/** A fraction as a percentage with one decimal, as the comparison table prints it. */
+export const pct = (value: Decimal): string => `${value.times(100).toFixed(1)}%`;
 
 const COLUMNS = [
   { header: 'Strategy', width: 14 },
